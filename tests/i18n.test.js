@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { DICT } from "../public/js/i18n-dict.js";
 import { t } from "../public/js/i18n.js";
 import { ALLERGEN_IDS } from "../public/js/allergens.js";
-import { UNITS } from "../public/js/recipe-logic.js";
+import { UNITS, TAGS } from "../public/js/recipe-logic.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pub = path.join(root, "public");
@@ -28,6 +28,7 @@ function usedKeys() {
   for (const s of ["host", "joining", "declined", "invited", "none"]) keys.add(`status.${s}`);
   for (const c of ["house", "group"]) keys.add(`circle.${c}`);
   for (const u of UNITS) keys.add(`unit.${u}`);
+  for (const tag of TAGS) keys.add(`tag.${tag}`);
   return keys;
 }
 

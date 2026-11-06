@@ -27,6 +27,51 @@ test("every built-in recipe uses known ingredients and units, in both languages"
   }
 });
 
+test("every library recipe is well-formed: id, hand-picked tags, servings, minutes and steps", () => {
+  for (const r of RECIPES) {
+    assert.match(r.id, /^[a-z0-9-]{2,60}$/, `id ${r.id}`);
+    assert.ok(Array.isArray(r.tags) && r.tags.every((x) => x === "budget" || x === "group"), `${r.id}: only budget and group are hand-picked (${r.tags})`);
+    assert.ok(Number.isInteger(r.servings) && r.servings >= 1 && r.servings <= 50, `${r.id}: servings ${r.servings}`);
+    assert.ok(Number.isInteger(r.minutes) && r.minutes > 0 && r.minutes <= 600, `${r.id}: minutes ${r.minutes}`);
+    assert.ok(r.steps.en.length >= 3, `${r.id}: at least three steps`);
+    assert.ok([...r.steps.en, ...r.steps.nl, r.name.en, r.name.nl].every((s) => typeof s === "string" && s.trim().length > 1), `${r.id}: no empty texts`);
+    const keys = r.ingredients.map(([k]) => k);
+    assert.equal(new Set(keys).size, keys.length, `${r.id}: an ingredient listed twice`);
+  }
+});
+
+test("no two library recipes have the same name", () => {
+  for (const lang of ["en", "nl"]) {
+    const seen = new Map();
+    for (const r of RECIPES) {
+      const name = r.name[lang].toLowerCase();
+      assert.ok(!seen.has(name), `${lang} "${r.name[lang]}" is both ${seen.get(name)} and ${r.id}`);
+      seen.set(name, r.id);
+    }
+  }
+});
+
+test("vegetarian and vegan are worked out from the ingredients", () => {
+  const by = Object.fromEntries(builtinRecipes("en").map((r) => [r.id, r]));
+  assert.equal(by.dahl.diet, "vegan", "lentils, coconut, vegetable stock");
+  assert.deepEqual(by.dahl.tags.filter((x) => x === "vegan" || x === "vegetarian").sort(), ["vegan", "vegetarian"]);
+  assert.equal(by.chili.diet, "vegetarian", "the sour cream is dairy");
+  assert.equal(by.pancakes.diet, "vegetarian");
+  assert.equal(by.greencurry.diet, null, "chicken (and shrimp paste in the curry paste)");
+  assert.equal(by.bolognese.diet, null);
+  assert.ok(by.pesto.tags.includes("quick"), "15 minutes is quick");
+  assert.ok(!by.lasagne.tags.includes("quick"));
+  assert.ok(by.lasagne.tags.includes("group"), "hand-picked tags stay");
+});
+
+test("a user recipe is only vegetarian when every ingredient is known to be", () => {
+  const known = toRecipe({ id: "u", name: "Kaastosti", servings: 2, minutes: 10, ingredients: [{ name: "brood" }, { name: "kaas" }], steps: "" }, "user", "nl");
+  assert.equal(known.diet, "vegetarian");
+  assert.deepEqual(known.tags, ["quick", "vegetarian"]);
+  const unknown = toRecipe({ id: "u", name: "Mystery", servings: 2, ingredients: [{ name: "brood" }, { name: "mystery paste" }], steps: "" }, "user", "en");
+  assert.equal(unknown.diet, null, "mystery paste could be anything");
+});
+
 test("built-in recipes carry the allergens of their ingredients", () => {
   const pesto = builtinRecipes("en").find((r) => r.id === "pesto");
   assert.deepEqual(pesto.allergens, ["gluten", "milk", "nuts"]);
@@ -103,10 +148,13 @@ test("what can I make: with everything for a recipe, it comes first and has noth
 
 test("what can I make: spaghetti suggests pasta dishes, never pancakes", () => {
   const ranked = rankByPantry(builtinRecipes("en"), ["spaghetti"]);
-  const matches = pantryMatches(ranked).map((r) => r.recipe.id);
-  assert.ok(!matches.includes("pancakes"), `pancakes use no spaghetti, matches: ${matches}`);
-  assert.deepEqual(new Set(matches), new Set(["bolognese", "pesto", "tunasalad"]), "the three pasta recipes, and nothing else");
-  assert.ok(ranked.findIndex((r) => r.recipe.id === "pancakes") > 2, "pancakes rank below every match");
+  const matches = pantryMatches(ranked);
+  const ids = matches.map((r) => r.recipe.id);
+  assert.ok(!ids.includes("pancakes"), `pancakes use no spaghetti, matches: ${ids}`);
+  assert.ok(matches.length >= 3, "the pasta recipes are found");
+  for (const m of matches) assert.ok(m.have.some((i) => i.group === "pasta"), `${m.recipe.id} is a match, so it must use pasta`);
+  for (const id of ["bolognese", "pesto", "tunasalad"]) assert.ok(ids.includes(id), `${id} is a pasta recipe`);
+  assert.ok(ranked.findIndex((r) => r.recipe.id === "pancakes") >= matches.length, "pancakes rank below every match");
   const pesto = ranked.find((r) => r.recipe.id === "pesto");
   assert.deepEqual(pesto.swaps.map((s) => [s.using, s.ingredient.key]), [["spaghetti", "pasta"]], "spaghetti stands in for penne, and says so");
   const bolognese = ranked.find((r) => r.recipe.id === "bolognese");
@@ -118,7 +166,7 @@ test("what can I make: the main ingredient counts for more than the garlic", () 
   const withGarlicOnly = rankByPantry(builtinRecipes("en"), ["garlic"]).find((r) => r.recipe.id === "bolognese");
   assert.ok(withChicken.score > withGarlicOnly.score, `${withChicken.score} > ${withGarlicOnly.score}`);
   const ranked = rankByPantry(builtinRecipes("en"), ["rice", "eggs"]);
-  assert.equal(ranked[0].recipe.id, "nasi", "rice and eggs: nasi goreng first");
+  assert.deepEqual(ranked[0].have.map((i) => i.key).sort(), ["eggs", "rice"], `rice and eggs: the first suggestion uses both (${ranked[0].recipe.id})`);
 });
 
 test("what can I make: nothing typed, or nothing that fits, gives no matches", () => {

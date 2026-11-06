@@ -269,6 +269,13 @@
 }
 
 /* ---- Recipes page ---- */
+.recipe-tag {
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+}
+.recipe-filters .btn {
+  white-space: nowrap;
+}
 .ingredient-row__qty { max-width: 5.5rem; }
 .ingredient-row__unit { max-width: 6.5rem; }
 .pantry-chip {

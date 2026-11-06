@@ -11,7 +11,9 @@ https://splitskebab-1fb8.web.app). Sign-in: Google accounts on @aperam.com that 
   FullCalendar 6 (pinned with integrity hashes, js/calendar.js) from CDNs.
 - `public/*.html`: index (calendar), meal, recipes, houses, profile, settings (admin), login. All share the navbar and bottom bar; soft
   navigation swaps `#page-content`.
-- `public/js/`: pure logic, unit tested (`money.js`, `recipe-logic.js`, `catalog.js` built-in recipes, `allergens.js`, `i18n.js` +
+- `public/js/library/`: the built-in recipes, one file per theme (classics, budget, group, veggie, quick; format in `index.js`), made
+  only of `catalog.js` ingredient keys. Allergens, vegetarian/vegan and "quick" are computed from the ingredients, never typed per recipe.
+- `public/js/`: pure logic, unit tested (`money.js`, `recipe-logic.js`, `catalog.js` ingredients, `allergens.js`, `i18n.js` +
   `i18n-dict.js`); Firestore access and shared live lists (`store.js`); one script per page (`home.js`, `meal.js`, `recipes.js`,
   `houses.js`, `profile.js`); shared UI (`ui.js`, `recipe-view.js`, `calendar.js`); the starter's auth and settings.
 - `firestore.rules`: every permission (data model at the top of `public/js/store.js`). Allergen ids must match `js/allergens.js`.

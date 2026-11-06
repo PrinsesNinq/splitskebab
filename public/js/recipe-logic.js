@@ -40,11 +40,16 @@ export function toRecipe(raw, source, lang = "en") {
   if (source === "builtin") {
     const ingredients = raw.ingredients.map(([key, qty, unit]) => {
       const item = INGREDIENTS[key];
-      return { key, label: item[lang] || item.en, qty, unit, allergens: item.allergens, staple: !!item.staple, role: item.role || "side", group: item.group || null };
+      return {
+        key, label: item[lang] || item.en, qty, unit, allergens: item.allergens, staple: !!item.staple, role: item.role || "side",
+        group: item.group || null, diet: item.diet || null,
+      };
     });
+    const diet = recipeDiet(ingredients);
     return {
       id: raw.id, source, name: raw.name[lang] || raw.name.en, servings: raw.servings, minutes: raw.minutes, ingredients,
       allergens: cleanAllergens(ingredients.flatMap((i) => i.allergens)), steps: raw.steps[lang] || raw.steps.en, owner: null,
+      diet, tags: recipeTags(raw.tags, raw.minutes, diet),
     };
   }
   const list = Array.isArray(raw.ingredients) ? raw.ingredients.slice(0, 60) : [];
@@ -62,13 +67,19 @@ export function toRecipe(raw, source, lang = "en") {
       staple: !!item?.staple,
       role: item?.role || "side",
       group: item?.group || null,
+      // Unknown to the catalogue: undefined, so recipeDiet() does not call the recipe vegetarian on a guess.
+      diet: item ? item.diet || null : undefined,
     };
   }).filter((i) => i.label);
   const steps = typeof raw.steps === "string" ? raw.steps.slice(0, 5000).split(/\n+/).map((s) => s.trim()).filter(Boolean) : [];
+  const minutes = Number.isFinite(Number(raw.minutes)) && Number(raw.minutes) > 0 ? Math.round(Number(raw.minutes)) : null;
+  const diet = recipeDiet(ingredients);
   return {
     id: String(raw.id || ""), source: "user", name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim().slice(0, 80) : "?",
-    servings: clampServings(raw.servings), minutes: Number.isFinite(Number(raw.minutes)) && Number(raw.minutes) > 0 ? Math.round(Number(raw.minutes)) : null,
+    servings: clampServings(raw.servings), minutes,
     ingredients,
+    diet,
+    tags: recipeTags([], minutes, diet),
     // The allergens the author ticked, plus whatever a recognised ingredient brings: someone who forgets to tick "milk" for cheese is
     // still covered.
     allergens: cleanAllergens([...(Array.isArray(raw.allergens) ? raw.allergens : []), ...ingredients.flatMap((i) => i.allergens)]),
@@ -78,6 +89,27 @@ export function toRecipe(raw, source, lang = "en") {
 }
 
 export const builtinRecipes = (lang) => RECIPES.map((r) => toRecipe(r, "builtin", lang));
+
+export const TAGS = ["quick", "vegetarian", "vegan", "budget", "group"];
+const QUICK_MINUTES = 30;
+
+/**
+ * "vegan", "vegetarian" or null, worked out from the ingredients (catalog diet), never typed per recipe: one fish sauce makes it neither.
+ * An ingredient the catalogue does not know (a user typed it) could be anything, so a recipe with one is neither too.
+ */
+export function recipeDiet(ingredients) {
+  if (ingredients.some((i) => i.diet === "meat" || i.diet === "fish" || i.diet === undefined)) return null;
+  return ingredients.some((i) => i.diet === "animal") ? "vegetarian" : "vegan";
+}
+
+/** The recipe's tags: the hand-picked ones (budget, group) and the worked-out ones (quick, vegetarian, vegan). */
+export function recipeTags(handPicked, minutes, diet) {
+  const tags = new Set((Array.isArray(handPicked) ? handPicked : []).filter((x) => x === "budget" || x === "group"));
+  if (minutes && minutes <= QUICK_MINUTES) tags.add("quick");
+  if (diet) tags.add("vegetarian");
+  if (diet === "vegan") tags.add("vegan");
+  return TAGS.filter((x) => tags.has(x));
+}
 
 function roundQty(qty, unit) {
   if (qty == null) return null;

@@ -10,3 +10,5 @@ All notable changes are kept here in Keep a Changelog format.
 - Split the receipt total equally, see who owes whom, send payment requests with your Tikkie or bunq.me link
 - English and Dutch; invite-only access managed by the admin, any Google account can be invited
 - Friends: send and accept friend requests, invite friends from outside your house to a meal
+- "What can I make" ranks by what you have (main ingredients count most, swaps like spaghetti for penne), never by the shortest list
+- 102 built-in recipes in English and Dutch, with filters: quick, vegetarian, vegan, budget, big group

@@ -4,7 +4,7 @@ import "../vendor/sel/elements/tabs-glass-paper.js";
 import { whenUser, esc, onLeave, attempt, allergenBadges, toast } from "./ui.js";
 import { people, person, userRecipes, saveRecipe, deleteRecipe } from "./store.js";
 import { allRecipes, ingredientHtml, getPantry, setPantry, recipeRef } from "./recipe-view.js";
-import { scaleIngredients, rankByPantry, pantryMatches, findIngredientKey, UNITS } from "./recipe-logic.js";
+import { scaleIngredients, rankByPantry, pantryMatches, findIngredientKey, UNITS, TAGS } from "./recipe-logic.js";
 import { INGREDIENTS } from "./catalog.js";
 import { ALLERGENS, allergenLabel } from "./allergens.js";
 import { getLang, t } from "./i18n.js";
@@ -22,6 +22,11 @@ let pantry = getPantry();
 let detail = null; // { recipe, servings }
 let editing = null; // id of the user recipe being edited, or null for a new one
 
+const filters = new Set(); // ticked tags: a recipe must have all of them
+const TAG_ICON = { quick: "bi-lightning-charge", vegetarian: "bi-flower1", vegan: "bi-tree", budget: "bi-piggy-bank", group: "bi-people" };
+const tagBadges = (recipe) => recipe.tags.filter((tag) => !(tag === "vegetarian" && recipe.tags.includes("vegan")))
+  .map((tag) => `<span class="badge text-bg-light border recipe-tag"><i class="bi ${TAG_ICON[tag]}" aria-hidden="true"></i> ${esc(t(`tag.${tag}`))}</span>`).join(" ");
+
 const myAllergies = () => person(me).allergies;
 const conflictsForMe = (recipe) => recipe.allergens.filter((a) => myAllergies().includes(a));
 
@@ -33,6 +38,7 @@ function recipeItem(recipe, extra = "") {
       <span class="small text-body-secondary text-nowrap">${recipe.minutes ? esc(t("recipes.minutes", { n: recipe.minutes })) : ""}${recipe.source === "user" ? ` · ${esc(t("recipes.byUser", { name: person(recipe.owner || "").name }))}` : ""}</span>
     </span>
     ${danger.length ? `<span class="d-block small fw-semibold text-danger"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> ${esc(t("allergy.notSafeForYou"))}</span>` : ""}
+    ${recipe.tags.length ? `<span class="d-block mt-1">${tagBadges(recipe)}</span>` : ""}
     <span class="d-block mt-1">${allergenBadges(recipe.allergens, { danger }) || `<span class="small text-body-secondary">${esc(t("recipes.noAllergens"))}</span>`}</span>
     ${extra}
   </button>`;
@@ -44,8 +50,16 @@ function renderList() {
   const list = [...recipes]
     .filter((r) => !term || r.name.toLowerCase().includes(term) || r.ingredients.some((i) => i.label.toLowerCase().includes(term)))
     .filter((r) => !hide || !conflictsForMe(r).length)
+    .filter((r) => [...filters].every((tag) => r.tags.includes(tag)))
     .sort((a, b) => a.name.localeCompare(b.name));
+  $("#recipe-count").textContent = t("recipes.count", { n: list.length, total: recipes.length });
   $("#recipe-list").innerHTML = list.map((r) => recipeItem(r)).join("") || `<p class="small text-body-secondary mb-0">${esc(t("recipes.none"))}</p>`;
+}
+
+function renderFilters() {
+  $("#recipe-filters").innerHTML = TAGS.map((tag) => `
+    <input type="checkbox" class="btn-check" id="filter-${tag}" value="${tag}" autocomplete="off" ${filters.has(tag) ? "checked" : ""}>
+    <label class="btn btn-sm btn-outline-primary rounded-pill" for="filter-${tag}"><i class="bi ${TAG_ICON[tag]}" aria-hidden="true"></i> ${esc(t(`tag.${tag}`))}</label>`).join("");
 }
 
 function renderPantry() {
@@ -145,6 +159,11 @@ function openForm(raw = null) {
 
 // ---- Wiring ----
 $("#recipe-filter").addEventListener("input", renderList);
+$("#recipe-filters").addEventListener("change", (e) => {
+  if (e.target.checked) filters.add(e.target.value); else filters.delete(e.target.value);
+  renderList();
+});
+renderFilters();
 $("#hide-unsafe").addEventListener("change", renderList);
 $("#recipe-list").addEventListener("click", (e) => { const b = e.target.closest("[data-open]"); if (b) openDetail(b.dataset.open); });
 $("#pantry-results").addEventListener("click", (e) => { const b = e.target.closest("[data-open]"); if (b) openDetail(b.dataset.open); });

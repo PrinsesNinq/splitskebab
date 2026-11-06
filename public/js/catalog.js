@@ -1,213 +1,160 @@
-// The built-in ingredients and recipes, in English and Dutch. Shipped with the app (no database read): everyone gets the same set, and
-// users add their own recipes on top (Firestore recipes/). The allergens per ingredient are the usual ones for what you buy in a Dutch
-// supermarket; a brand can differ, so the recipe page says to check the packaging.
+// The ingredients Splitskebab knows, in English and Dutch, with their allergens. Every built-in recipe (js/library/) is made of these, so
+// the allergen and diet information comes from one place and is the same in every recipe. The allergens are the usual ones for what you
+// buy in a Dutch supermarket; a brand can differ, so the recipe pages say to check the packaging. Users add their own recipes on top
+// (Firestore recipes/).
 //
-// Ingredient: key -> { en, nl, allergens, staple, aliases }. A staple (salt, oil...) is assumed to be in every kitchen: it is listed but
-// never counted as "missing" when the app looks for the recipe you can make with what you have. Aliases are extra words a person might
-// type for it, in either language, already lowercase without accents.
-//
-// For "what can I make" (js/recipe-logic.js rankByPantry): role says how much an ingredient makes the dish. "main" is what it is built
-// on (the pasta, the meat, the rice), "minor" is flavour you could leave out or swap (garlic, soy sauce, honey); everything else is in
-// between. group puts ingredients that can stand in for each other together: spaghetti in the house also works for a penne recipe.
+// Ingredient: key -> { en, nl, allergens, staple, aliases, role, group, diet }.
+// - staple (salt, oil...) is assumed to be in every kitchen: listed, but never "missing" for "what can I make".
+// - aliases are extra words a person might type for it, in either language, lowercase without accents.
+// - role says how much an ingredient makes the dish (js/recipe-logic.js rankByPantry): "main" is what it is built on (the pasta, the
+//   meat, the rice), "minor" is flavour you could leave out or swap (garlic, soy sauce, honey); everything else is in between.
+// - group puts ingredients that can stand in for each other together: spaghetti in the house also works for a penne recipe.
+// - diet: "meat", "fish" (also shellfish, and sauces made with them) or "animal" (dairy, eggs, honey: fine for vegetarians, not for
+//   vegans). Nothing means plant-based. A recipe is vegetarian or vegan only when every ingredient is (worked out, never hand-tagged).
 
 export const INGREDIENTS = {
+  // ---- Pasta, rice, bread, grains, potatoes ----
   spaghetti: { role: "main", group: "pasta", en: "Spaghetti", nl: "Spaghetti", allergens: ["gluten"], aliases: [] },
   pasta: { role: "main", group: "pasta", en: "Pasta (penne/fusilli)", nl: "Pasta (penne/fusilli)", allergens: ["gluten"], aliases: ["penne", "fusilli", "macaroni"] },
-  lasagneSheets: { role: "main", en: "Lasagne sheets", nl: "Lasagnebladen", allergens: ["gluten", "eggs"], aliases: ["lasagne"] },
-  rice: { role: "main", en: "Rice", nl: "Rijst", allergens: [], aliases: ["basmati", "pandan"] },
-  tortillas: { role: "main", en: "Tortilla wraps", nl: "Tortilla wraps", allergens: ["gluten"], aliases: ["wraps", "tortilla"] },
-  bread: { en: "Bread", nl: "Brood", allergens: ["gluten"], aliases: ["stokbrood", "baguette"] },
+  lasagneSheets: { role: "main", en: "Lasagne sheets", nl: "Lasagnebladen", allergens: ["gluten", "eggs"], diet: "animal", aliases: ["lasagne"] },
+  gnocchi: { role: "main", en: "Gnocchi", nl: "Gnocchi", allergens: ["gluten"], aliases: [] },
+  eggNoodles: { role: "main", group: "noodles", en: "Egg noodles", nl: "Mie (eiermie)", allergens: ["gluten", "eggs"], diet: "animal", aliases: ["mie", "noodles", "eiermie"] },
+  riceNoodles: { role: "main", group: "noodles", en: "Rice noodles", nl: "Rijstnoedels", allergens: [], aliases: ["rijstnoedel", "rice noodle"] },
+  rice: { role: "main", en: "Rice", nl: "Rijst", allergens: [], aliases: ["basmati", "pandan", "zilvervliesrijst"] },
+  couscous: { role: "main", en: "Couscous", nl: "Couscous", allergens: ["gluten"], aliases: [] },
+  bulgur: { role: "main", en: "Bulgur", nl: "Bulgur", allergens: ["gluten"], aliases: [] },
+  quinoa: { role: "main", en: "Quinoa", nl: "Quinoa", allergens: [], aliases: [] },
+  oats: { role: "main", en: "Rolled oats", nl: "Havermout", allergens: ["gluten"], aliases: ["havervlokken", "oatmeal"] },
+  tortillas: { role: "main", group: "flatbread", en: "Tortilla wraps", nl: "Tortilla wraps", allergens: ["gluten"], aliases: ["wraps", "tortilla"] },
+  pitaBread: { role: "main", group: "flatbread", en: "Pita bread", nl: "Pitabroodjes", allergens: ["gluten"], aliases: ["pita", "pitabrood"] },
+  naan: { role: "main", group: "flatbread", en: "Naan bread", nl: "Naanbrood", allergens: ["gluten", "milk"], diet: "animal", aliases: ["naan"] },
+  tacoShells: { role: "main", en: "Taco shells", nl: "Tacoschelpen", allergens: [], aliases: ["taco", "tacos"] },
+  bread: { en: "Bread", nl: "Brood", allergens: ["gluten"], aliases: ["stokbrood", "baguette", "brood"] },
+  burgerBuns: { role: "main", en: "Burger buns", nl: "Hamburgerbroodjes", allergens: ["gluten", "sesame"], aliases: ["buns", "bolletjes"] },
+  pizzaDough: { role: "main", en: "Pizza dough (fresh)", nl: "Pizzadeeg (vers)", allergens: ["gluten"], aliases: ["pizzadeeg", "pizza"] },
+  puffPastry: { role: "main", en: "Puff pastry", nl: "Bladerdeeg", allergens: ["gluten", "milk"], diet: "animal", aliases: ["bladerdeeg"] },
+  breadcrumbs: { role: "minor", en: "Breadcrumbs", nl: "Paneermeel", allergens: ["gluten"], aliases: ["paneermeel"] },
   flour: { role: "main", en: "Flour", nl: "Bloem", allergens: ["gluten"], aliases: ["meel"] },
-  potatoes: { role: "main", en: "Potatoes", nl: "Aardappelen", allergens: [], aliases: ["potato", "aardappel", "krieler"] },
-  redLentils: { role: "main", en: "Red lentils", nl: "Rode linzen", allergens: [], aliases: ["lentils", "linzen"] },
+  potatoes: { role: "main", group: "potato", en: "Potatoes", nl: "Aardappelen", allergens: [], aliases: ["potato", "aardappel", "krieler", "krielaardappelen"] },
+  sweetPotatoes: { role: "main", group: "potato", en: "Sweet potatoes", nl: "Zoete aardappelen", allergens: [], aliases: ["sweet potato", "zoete aardappel", "bataat"] },
 
-  mincedBeef: { role: "main", en: "Minced beef", nl: "Rundergehakt", allergens: [], aliases: ["gehakt", "mince", "ground beef"] },
-  chicken: { role: "main", en: "Chicken breast", nl: "Kipfilet", allergens: [], aliases: ["kip", "chicken", "kipdijfilet", "chicken thighs"] },
-  smokedSausage: { role: "main", en: "Smoked sausage", nl: "Rookworst", allergens: ["mustard"], aliases: ["sausage", "worst"] },
-  salmon: { role: "main", en: "Salmon fillet", nl: "Zalmfilet", allergens: ["fish"], aliases: ["zalm"] },
-  tuna: { role: "main", en: "Tuna (canned)", nl: "Tonijn (blik)", allergens: ["fish"], aliases: ["tonijn"] },
-  eggs: { role: "main", en: "Eggs", nl: "Eieren", allergens: ["eggs"], aliases: ["egg", "ei"] },
+  // ---- Beans, lentils, plant protein ----
+  redLentils: { role: "main", group: "lentils", en: "Red lentils", nl: "Rode linzen", allergens: [], aliases: ["lentils", "linzen"] },
+  greenLentils: { role: "main", group: "lentils", en: "Lentils (canned)", nl: "Linzen (blik)", allergens: [], aliases: ["groene linzen", "bruine linzen"] },
+  kidneyBeans: { role: "main", group: "beans", en: "Kidney beans (canned)", nl: "Kidneybonen (blik)", allergens: [], aliases: ["beans", "bonen", "kidneybonen"] },
+  blackBeans: { role: "main", group: "beans", en: "Black beans (canned)", nl: "Zwarte bonen (blik)", allergens: [], aliases: ["zwarte bonen"] },
+  whiteBeans: { role: "main", group: "beans", en: "White beans (canned)", nl: "Witte bonen (blik)", allergens: [], aliases: ["witte bonen", "cannellini"] },
+  chickpeas: { role: "main", en: "Chickpeas (canned)", nl: "Kikkererwten (blik)", allergens: [], aliases: ["kikkererwten", "garbanzo"] },
+  tofu: { role: "main", en: "Tofu", nl: "Tofu", allergens: ["soy"], aliases: [] },
+  tempeh: { role: "main", en: "Tempeh", nl: "Tempeh", allergens: ["soy"], aliases: [] },
+  veggieMince: { role: "main", en: "Vegetarian mince", nl: "Vegetarisch gehakt", allergens: ["soy", "gluten"], aliases: ["vega gehakt", "vegetarisch gehakt", "plant mince"] },
 
-  milk: { en: "Milk", nl: "Melk", allergens: ["milk"], aliases: [] },
-  butter: { en: "Butter", nl: "Roomboter", allergens: ["milk"], aliases: ["boter"] },
-  cheese: { group: "cheese", en: "Grated cheese", nl: "Geraspte kaas", allergens: ["milk"], aliases: ["kaas", "cheese"] },
-  parmesan: { group: "cheese", en: "Parmesan", nl: "Parmezaanse kaas", allergens: ["milk"], aliases: ["parmezaan", "parmigiano"] },
-  feta: { en: "Feta", nl: "Feta", allergens: ["milk"], aliases: [] },
-  sourCream: { en: "Sour cream", nl: "Zure room", allergens: ["milk"], aliases: ["creme fraiche"] },
-  coconutMilk: { en: "Coconut milk", nl: "Kokosmelk", allergens: [], aliases: ["kokos"] },
+  // ---- Meat and fish ----
+  mincedBeef: { role: "main", group: "mince", en: "Minced beef", nl: "Rundergehakt", allergens: [], diet: "meat", aliases: ["rundergehakt", "mince", "ground beef"] },
+  mincedMixed: { role: "main", group: "mince", en: "Minced beef and pork", nl: "Half-om-half gehakt", allergens: [], diet: "meat", aliases: ["gehakt", "half om half"] },
+  chicken: { role: "main", group: "chicken", en: "Chicken breast", nl: "Kipfilet", allergens: [], diet: "meat", aliases: ["kip", "chicken", "kipfilet"] },
+  chickenThighs: { role: "main", group: "chicken", en: "Chicken thighs", nl: "Kippendijen", allergens: [], diet: "meat", aliases: ["kipdij", "kipdijfilet", "kippendij", "chicken thighs"] },
+  stewBeef: { role: "main", en: "Stewing beef", nl: "Runderstoofvlees", allergens: [], diet: "meat", aliases: ["stoofvlees", "riblappen", "sukadelappen"] },
+  bacon: { group: "bacon", en: "Bacon bits", nl: "Spekblokjes", allergens: [], diet: "meat", aliases: ["spek", "spekjes", "bacon", "pancetta"] },
+  ham: { en: "Ham (cubes or slices)", nl: "Ham (blokjes of plakjes)", allergens: [], diet: "meat", aliases: ["hamblokjes"] },
+  chorizo: { group: "bacon", en: "Chorizo", nl: "Chorizo", allergens: [], diet: "meat", aliases: [] },
+  smokedSausage: { role: "main", en: "Smoked sausage", nl: "Rookworst", allergens: ["mustard"], diet: "meat", aliases: ["sausage", "worst"] },
+  salmon: { role: "main", group: "fish", en: "Salmon fillet", nl: "Zalmfilet", allergens: ["fish"], diet: "fish", aliases: ["zalm"] },
+  whiteFish: { role: "main", group: "fish", en: "White fish fillet (cod, pollock)", nl: "Witvisfilet (kabeljauw, koolvis)", allergens: ["fish"], diet: "fish", aliases: ["witvis", "kabeljauw", "koolvis", "pangasius", "cod"] },
+  tuna: { role: "main", en: "Tuna (canned)", nl: "Tonijn (blik)", allergens: ["fish"], diet: "fish", aliases: ["tonijn"] },
+  shrimp: { role: "main", en: "Shrimp (peeled)", nl: "Garnalen (gepeld)", allergens: ["crustaceans"], diet: "fish", aliases: ["garnalen", "scampi", "prawns"] },
 
-  onion: { en: "Onion", nl: "Ui", allergens: [], aliases: ["onions", "uien"] },
+  // ---- Eggs and dairy ----
+  eggs: { role: "main", en: "Eggs", nl: "Eieren", allergens: ["eggs"], diet: "animal", aliases: ["egg", "ei"] },
+  milk: { en: "Milk", nl: "Melk", allergens: ["milk"], diet: "animal", aliases: [] },
+  butter: { en: "Butter", nl: "Roomboter", allergens: ["milk"], diet: "animal", aliases: ["boter"] },
+  cookingCream: { en: "Cooking cream", nl: "Kookroom", allergens: ["milk"], diet: "animal", aliases: ["room", "slagroom", "cream"] },
+  sourCream: { en: "Sour cream", nl: "Zure room", allergens: ["milk"], diet: "animal", aliases: ["creme fraiche"] },
+  greekYogurt: { en: "Greek yogurt", nl: "Griekse yoghurt", allergens: ["milk"], diet: "animal", aliases: ["yoghurt", "yogurt"] },
+  cheese: { group: "cheese", en: "Grated cheese", nl: "Geraspte kaas", allergens: ["milk"], diet: "animal", aliases: ["kaas", "cheese", "cheddar", "goudse kaas"] },
+  parmesan: { group: "cheese", en: "Parmesan", nl: "Parmezaanse kaas", allergens: ["milk"], diet: "animal", aliases: ["parmezaan", "parmigiano"] },
+  mozzarella: { en: "Mozzarella", nl: "Mozzarella", allergens: ["milk"], diet: "animal", aliases: [] },
+  feta: { en: "Feta", nl: "Feta", allergens: ["milk"], diet: "animal", aliases: [] },
+  halloumi: { role: "main", en: "Halloumi", nl: "Halloumi", allergens: ["milk"], diet: "animal", aliases: [] },
+  creamCheese: { en: "Cream cheese", nl: "Roomkaas", allergens: ["milk"], diet: "animal", aliases: ["philadelphia"] },
+
+  // ---- Plant milks, nuts, seeds ----
+  coconutMilk: { en: "Coconut milk", nl: "Kokosmelk", allergens: [], aliases: ["kokos", "coconut cream"] },
+  oatMilk: { en: "Oat drink", nl: "Haverdrink", allergens: ["gluten"], aliases: ["havermelk", "oat milk", "plantaardige melk"] },
+  peanutButter: { en: "Peanut butter", nl: "Pindakaas", allergens: ["peanuts"], aliases: ["pindakaas"] },
+  peanuts: { role: "minor", en: "Peanuts", nl: "Pinda's", allergens: ["peanuts"], aliases: ["pindas", "pinda"] },
+  cashews: { role: "minor", en: "Cashew nuts", nl: "Cashewnoten", allergens: ["nuts"], aliases: ["cashew", "cashewnoten"] },
+  sesameSeeds: { role: "minor", en: "Sesame seeds", nl: "Sesamzaad", allergens: ["sesame"], aliases: ["sesam"] },
+  tahini: { role: "minor", en: "Tahini", nl: "Tahin", allergens: ["sesame"], aliases: ["tahin", "sesampasta"] },
+
+  // ---- Vegetables and fruit ----
+  onion: { en: "Onion", nl: "Ui", allergens: [], aliases: ["onions", "uien", "rode ui", "red onion"] },
+  springOnion: { role: "minor", en: "Spring onion", nl: "Lente-ui", allergens: [], aliases: ["bosui", "lente ui", "scallion"] },
+  leek: { en: "Leek", nl: "Prei", allergens: [], aliases: ["prei"] },
   garlic: { role: "minor", en: "Garlic", nl: "Knoflook", allergens: [], aliases: [] },
   ginger: { role: "minor", en: "Ginger", nl: "Gember", allergens: [], aliases: [] },
-  bellPepper: { en: "Bell pepper", nl: "Paprika", allergens: [], aliases: ["pepper", "paprika's"] },
-  cannedTomatoes: { en: "Canned tomatoes", nl: "Tomatenblokjes (blik)", allergens: [], aliases: ["tomatoes", "tomaten", "tomatenblokjes", "passata"] },
+  chiliPepper: { role: "minor", en: "Red chili pepper", nl: "Rode peper", allergens: [], aliases: ["chili", "rode peper", "spaanse peper"] },
+  bellPepper: { en: "Bell pepper", nl: "Paprika", allergens: [], aliases: ["paprika's", "bell peppers"] },
+  cannedTomatoes: { group: "tomatoSauce", en: "Canned tomatoes", nl: "Tomatenblokjes (blik)", allergens: [], aliases: ["tomatenblokjes", "tomaten in blik", "canned tomato"] },
+  passata: { group: "tomatoSauce", en: "Passata (sieved tomatoes)", nl: "Passata (gezeefde tomaten)", allergens: [], aliases: ["gezeefde tomaten", "tomatensaus"] },
   tomatoPaste: { role: "minor", en: "Tomato paste", nl: "Tomatenpuree", allergens: [], aliases: ["puree"] },
+  tomatoes: { group: "tomatoSauce", en: "Tomatoes (fresh)", nl: "Tomaten (vers)", allergens: [], aliases: ["tomaat", "tomaten", "trostomaten"] },
   cherryTomatoes: { en: "Cherry tomatoes", nl: "Cherrytomaatjes", allergens: [], aliases: ["tomaatjes"] },
   carrots: { en: "Carrots", nl: "Wortels", allergens: [], aliases: ["carrot", "wortel", "winterpeen"] },
+  celery: { en: "Celery stalks", nl: "Bleekselderij", allergens: ["celery"], aliases: ["selderij", "bleekselderij"] },
   broccoli: { en: "Broccoli", nl: "Broccoli", allergens: [], aliases: [] },
+  cauliflower: { en: "Cauliflower", nl: "Bloemkool", allergens: [], aliases: ["bloemkool"] },
+  zucchini: { en: "Zucchini", nl: "Courgette", allergens: [], aliases: ["courgette", "courgettes"] },
+  eggplant: { en: "Eggplant", nl: "Aubergine", allergens: [], aliases: ["aubergine", "aubergines"] },
+  mushrooms: { en: "Mushrooms", nl: "Champignons", allergens: [], aliases: ["champignon", "paddenstoelen"] },
+  spinach: { en: "Spinach", nl: "Spinazie", allergens: [], aliases: ["spinazie", "bladspinazie"] },
   kale: { role: "main", en: "Kale (chopped)", nl: "Boerenkool (gesneden)", allergens: [], aliases: ["boerenkool"] },
-  lettuce: { en: "Lettuce", nl: "Sla", allergens: [], aliases: ["ijsbergsla", "salad"] },
+  pointedCabbage: { en: "Pointed cabbage", nl: "Spitskool", allergens: [], aliases: ["spitskool", "kool", "cabbage", "witte kool"] },
+  greenBeans: { en: "Green beans", nl: "Sperziebonen", allergens: [], aliases: ["sperziebonen", "boontjes"] },
+  peas: { en: "Peas (frozen)", nl: "Doperwten (diepvries)", allergens: [], aliases: ["doperwten", "erwten", "erwtjes"] },
+  pumpkin: { en: "Pumpkin (butternut)", nl: "Pompoen (flespompoen)", allergens: [], aliases: ["pompoen", "butternut", "flespompoen"] },
+  lettuce: { en: "Lettuce", nl: "Sla", allergens: [], aliases: ["ijsbergsla", "salad", "rucola"] },
   cucumber: { en: "Cucumber", nl: "Komkommer", allergens: [], aliases: [] },
+  avocado: { en: "Avocado", nl: "Avocado", allergens: [], aliases: ["avocados"] },
   mixedVeg: { en: "Frozen stir-fry vegetables", nl: "Diepvries roerbakgroenten", allergens: [], aliases: ["roerbakgroente", "wokgroente", "vegetables", "groenten"] },
-  kidneyBeans: { role: "main", en: "Kidney beans (canned)", nl: "Kidneybonen (blik)", allergens: [], aliases: ["beans", "bonen"] },
   sweetcorn: { role: "minor", en: "Sweetcorn (canned)", nl: "Mais (blik)", allergens: [], aliases: ["corn", "mais"] },
+  lemon: { role: "minor", en: "Lemon", nl: "Citroen", allergens: [], aliases: ["citroen"] },
+  lime: { role: "minor", en: "Lime", nl: "Limoen", allergens: [], aliases: ["limoen"] },
+  apples: { en: "Apples", nl: "Appels", allergens: [], aliases: ["apple", "appel"] },
+  bananas: { en: "Bananas", nl: "Bananen", allergens: [], aliases: ["banana", "banaan"] },
+  freshHerbs: { role: "minor", en: "Fresh herbs (parsley, coriander, basil)", nl: "Verse kruiden (peterselie, koriander, basilicum)", allergens: [], aliases: ["peterselie", "koriander", "verse basilicum", "parsley", "coriander", "cilantro"] },
 
-  soySauce: { role: "minor", en: "Soy sauce", nl: "Sojasaus", allergens: ["soy", "gluten"], aliases: ["ketjap", "soja"] },
-  pesto: { en: "Green pesto", nl: "Groene pesto", allergens: ["nuts", "milk"], aliases: [] },
-  curryPaste: { en: "Green curry paste", nl: "Groene currypasta", allergens: ["crustaceans"], aliases: ["currypasta", "curry paste"] },
-  mayonnaise: { role: "minor", en: "Mayonnaise", nl: "Mayonaise", allergens: ["eggs", "mustard"], aliases: ["mayo"] },
+  // ---- Sauces, pastes and flavour ----
+  soySauce: { role: "minor", group: "soy", en: "Soy sauce", nl: "Sojasaus", allergens: ["soy", "gluten"], aliases: ["soja", "sojasaus"] },
+  ketjapManis: { role: "minor", group: "soy", en: "Sweet soy sauce (ketjap manis)", nl: "Ketjap manis", allergens: ["soy", "gluten"], aliases: ["ketjap", "kecap"] },
+  oysterSauce: { role: "minor", en: "Oyster sauce", nl: "Oestersaus", allergens: ["molluscs", "soy", "gluten"], diet: "fish", aliases: ["oestersaus"] },
+  fishSauce: { role: "minor", en: "Fish sauce", nl: "Vissaus", allergens: ["fish"], diet: "fish", aliases: ["vissaus"] },
+  sataySauce: { en: "Satay sauce", nl: "Satésaus", allergens: ["peanuts", "soy"], aliases: ["satesaus", "pindasaus"] },
+  pesto: { en: "Green pesto", nl: "Groene pesto", allergens: ["nuts", "milk"], diet: "animal", aliases: [] },
+  curryPaste: { group: "curryPaste", en: "Green curry paste", nl: "Groene currypasta", allergens: ["crustaceans"], diet: "fish", aliases: ["currypasta", "curry paste"] },
+  redCurryPaste: { group: "curryPaste", en: "Red curry paste", nl: "Rode currypasta", allergens: ["crustaceans"], diet: "fish", aliases: ["rode currypasta", "red curry"] },
+  tikkaPaste: { en: "Tikka masala paste", nl: "Tikka masala pasta", allergens: ["mustard"], aliases: ["tikka", "masala"] },
+  tacoSauce: { role: "minor", en: "Taco sauce / salsa", nl: "Tacosaus / salsa", allergens: [], aliases: ["salsa", "tacosaus"] },
+  mayonnaise: { role: "minor", en: "Mayonnaise", nl: "Mayonaise", allergens: ["eggs", "mustard"], diet: "animal", aliases: ["mayo"] },
   mustard: { role: "minor", en: "Mustard", nl: "Mosterd", allergens: ["mustard"], aliases: [] },
   sambal: { role: "minor", en: "Sambal", nl: "Sambal", allergens: [], aliases: [] },
-  stockCube: { role: "minor", en: "Stock cube", nl: "Bouillonblokje", allergens: ["celery"], aliases: ["bouillon", "stock"] },
-  sesameSeeds: { role: "minor", en: "Sesame seeds", nl: "Sesamzaad", allergens: ["sesame"], aliases: ["sesam"] },
+  stockCube: { role: "minor", en: "Vegetable stock cube", nl: "Groentebouillonblokje", allergens: ["celery"], aliases: ["bouillon", "stock", "bouillonblokje"] },
+  vinegar: { role: "minor", en: "Vinegar", nl: "Azijn", allergens: ["sulphites"], aliases: ["azijn"] },
   syrup: { role: "minor", en: "Pancake syrup", nl: "Stroop", allergens: [], aliases: ["schenkstroop"] },
-  honey: { role: "minor", en: "Honey", nl: "Honing", allergens: [], aliases: [] },
+  honey: { role: "minor", en: "Honey", nl: "Honing", allergens: [], diet: "animal", aliases: [] },
+  yeast: { role: "minor", en: "Dried yeast", nl: "Gedroogde gist", allergens: [], aliases: ["gist", "yeast"] },
+  bakingPowder: { role: "minor", en: "Baking powder", nl: "Bakpoeder", allergens: [], aliases: ["bakpoeder"] },
 
+  // ---- Kitchen basics (staples) ----
   salt: { en: "Salt", nl: "Zout", allergens: [], staple: true, aliases: [] },
   blackPepper: { en: "Black pepper", nl: "Zwarte peper", allergens: [], staple: true, aliases: ["peper"] },
   oil: { en: "Cooking oil", nl: "Olie", allergens: [], staple: true, aliases: ["olijfolie", "olive oil", "zonnebloemolie"] },
   sugar: { en: "Sugar", nl: "Suiker", allergens: [], staple: true, aliases: [] },
-  spices: { en: "Spices (paprika, cumin, chili)", nl: "Kruiden (paprika, komijn, chili)", allergens: [], staple: true, aliases: ["kruiden", "spices"] },
+  spices: { en: "Spices (paprika, cumin, chili)", nl: "Kruiden (paprika, komijn, chili)", allergens: [], staple: true, aliases: ["kruiden", "spices", "komijn", "paprikapoeder"] },
   curryPowder: { en: "Curry powder", nl: "Kerriepoeder", allergens: [], staple: true, aliases: ["kerrie", "curry"] },
-  driedHerbs: { en: "Dried Italian herbs", nl: "Italiaanse kruiden", allergens: [], staple: true, aliases: ["oregano", "basilicum"] },
+  driedHerbs: { en: "Dried Italian herbs", nl: "Italiaanse kruiden", allergens: [], staple: true, aliases: ["oregano", "basilicum", "tijm"] },
+  cinnamon: { en: "Cinnamon", nl: "Kaneel", allergens: [], staple: true, aliases: ["kaneel"] },
 };
 
-// Recipe: { id, servings, minutes, name: {en, nl}, ingredients: [[key, quantity for `servings`, unit]], steps: {en: [], nl: []} }.
-// Units: g, ml, pc (pieces), clove, can, tbsp, tsp, pinch, pack. Quantities scale with the number of people (js/recipe-logic.js).
-export const RECIPES = [
-  {
-    id: "bolognese", servings: 4, minutes: 35,
-    name: { en: "Spaghetti bolognese", nl: "Spaghetti bolognese" },
-    ingredients: [["spaghetti", 400, "g"], ["mincedBeef", 400, "g"], ["onion", 1, "pc"], ["garlic", 2, "clove"], ["carrots", 1, "pc"],
-      ["cannedTomatoes", 2, "can"], ["tomatoPaste", 2, "tbsp"], ["driedHerbs", 1, "tbsp"], ["parmesan", 50, "g"], ["oil", 1, "tbsp"], ["salt", 1, "pinch"], ["blackPepper", 1, "pinch"]],
-    steps: {
-      en: ["Chop the onion, garlic and carrot.", "Brown the mince in a little oil, add the vegetables and fry 5 minutes.", "Stir in the tomato paste, the canned tomatoes and the herbs; simmer 20 minutes.", "Cook the spaghetti, season the sauce and serve with parmesan."],
-      nl: ["Snipper de ui, knoflook en wortel.", "Bak het gehakt rul in wat olie, voeg de groenten toe en bak 5 minuten.", "Roer de tomatenpuree, tomatenblokjes en kruiden erdoor; laat 20 minuten pruttelen.", "Kook de spaghetti, breng de saus op smaak en serveer met parmezaan."],
-    },
-  },
-  {
-    id: "chili", servings: 4, minutes: 40,
-    name: { en: "Chili sin carne", nl: "Chili sin carne" },
-    ingredients: [["kidneyBeans", 2, "can"], ["sweetcorn", 1, "can"], ["cannedTomatoes", 2, "can"], ["onion", 1, "pc"], ["bellPepper", 2, "pc"],
-      ["garlic", 2, "clove"], ["rice", 300, "g"], ["sourCream", 125, "ml"], ["spices", 2, "tbsp"], ["oil", 1, "tbsp"], ["salt", 1, "pinch"]],
-    steps: {
-      en: ["Cook the rice.", "Fry the chopped onion, garlic and bell pepper in oil with the spices.", "Add the tomatoes, drained beans and corn; simmer 20 minutes.", "Serve on the rice with a spoon of sour cream."],
-      nl: ["Kook de rijst.", "Fruit de gesnipperde ui, knoflook en paprika in olie met de kruiden.", "Voeg de tomaten, uitgelekte bonen en mais toe; 20 minuten laten sudderen.", "Serveer op de rijst met een lepel zure room."],
-    },
-  },
-  {
-    id: "stamppot", servings: 4, minutes: 35,
-    name: { en: "Kale stamppot with smoked sausage", nl: "Boerenkoolstamppot met rookworst" },
-    ingredients: [["potatoes", 1500, "g"], ["kale", 600, "g"], ["smokedSausage", 1, "pc"], ["milk", 150, "ml"], ["butter", 30, "g"], ["mustard", 1, "tbsp"], ["salt", 1, "pinch"], ["blackPepper", 1, "pinch"]],
-    steps: {
-      en: ["Peel the potatoes, cut them in pieces and boil them 20 minutes with the kale on top.", "Heat the sausage in hot water (do not boil) for 10 minutes.", "Drain, mash with the warm milk and butter, season.", "Serve with slices of sausage and mustard."],
-      nl: ["Schil de aardappelen, snijd ze in stukken en kook ze 20 minuten met de boerenkool erop.", "Verwarm de rookworst 10 minuten in heet (niet kokend) water.", "Afgieten, stampen met de warme melk en boter, op smaak brengen.", "Serveer met plakjes rookworst en mosterd."],
-    },
-  },
-  {
-    id: "nasi", servings: 4, minutes: 30,
-    name: { en: "Nasi goreng", nl: "Nasi goreng" },
-    ingredients: [["rice", 300, "g"], ["chicken", 400, "g"], ["eggs", 4, "pc"], ["mixedVeg", 400, "g"], ["onion", 1, "pc"], ["garlic", 2, "clove"],
-      ["soySauce", 3, "tbsp"], ["sambal", 1, "tsp"], ["oil", 2, "tbsp"]],
-    steps: {
-      en: ["Cook the rice (best a few hours ahead) and let it cool.", "Stir-fry the chicken in pieces, then the onion, garlic and vegetables.", "Add the rice, soy sauce and sambal and fry until hot.", "Fry the eggs and serve one on every plate."],
-      nl: ["Kook de rijst (liefst een paar uur van tevoren) en laat afkoelen.", "Roerbak de kip in stukjes, dan de ui, knoflook en groenten.", "Voeg de rijst, ketjap en sambal toe en bak tot alles heet is.", "Bak de eieren en leg er een op elk bord."],
-    },
-  },
-  {
-    id: "pancakes", servings: 4, minutes: 30,
-    name: { en: "Dutch pancakes", nl: "Pannenkoeken" },
-    ingredients: [["flour", 400, "g"], ["milk", 800, "ml"], ["eggs", 3, "pc"], ["butter", 40, "g"], ["syrup", 1, "pack"], ["salt", 1, "pinch"]],
-    steps: {
-      en: ["Whisk the flour, salt and half of the milk smooth, then the eggs and the rest of the milk.", "Melt a little butter in a hot pan, pour in a thin layer of batter.", "Bake until the top is dry, flip, bake the other side.", "Serve with syrup (or bacon, cheese, apple...)."],
-      nl: ["Klop de bloem, het zout en de helft van de melk glad, daarna de eieren en de rest van de melk.", "Smelt wat boter in een hete pan, giet er een dun laagje beslag in.", "Bak tot de bovenkant droog is, keer om en bak de andere kant.", "Serveer met stroop (of spek, kaas, appel...)."],
-    },
-  },
-  {
-    id: "shakshuka", servings: 4, minutes: 25,
-    name: { en: "Shakshuka", nl: "Shakshuka" },
-    ingredients: [["eggs", 6, "pc"], ["cannedTomatoes", 2, "can"], ["bellPepper", 2, "pc"], ["onion", 1, "pc"], ["garlic", 2, "clove"], ["feta", 150, "g"],
-      ["bread", 1, "pc"], ["spices", 1, "tbsp"], ["oil", 1, "tbsp"], ["salt", 1, "pinch"]],
-    steps: {
-      en: ["Fry the onion, garlic and bell pepper strips with the spices.", "Add the tomatoes and simmer 10 minutes.", "Make small hollows and crack an egg into each; cover and cook 6–8 minutes.", "Crumble the feta on top and eat from the pan with bread."],
-      nl: ["Bak de ui, knoflook en reepjes paprika met de kruiden.", "Voeg de tomaten toe en laat 10 minuten pruttelen.", "Maak kuiltjes en breek in elk een ei; deksel erop en 6–8 minuten garen.", "Verkruimel de feta erover en eet uit de pan met brood."],
-    },
-  },
-  {
-    id: "wraps", servings: 4, minutes: 25,
-    name: { en: "Chicken wraps", nl: "Kipwraps" },
-    ingredients: [["tortillas", 8, "pc"], ["chicken", 500, "g"], ["bellPepper", 2, "pc"], ["onion", 1, "pc"], ["sourCream", 150, "ml"], ["cheese", 150, "g"],
-      ["lettuce", 1, "pc"], ["spices", 2, "tbsp"], ["oil", 1, "tbsp"]],
-    steps: {
-      en: ["Cut the chicken, pepper and onion into strips.", "Fry the chicken with the spices, add the vegetables for the last 5 minutes.", "Warm the wraps in a dry pan.", "Fill with lettuce, the filling, cheese and sour cream."],
-      nl: ["Snijd de kip, paprika en ui in reepjes.", "Bak de kip met de kruiden, voeg de laatste 5 minuten de groenten toe.", "Verwarm de wraps in een droge pan.", "Beleg met sla, de vulling, kaas en zure room."],
-    },
-  },
-  {
-    id: "greencurry", servings: 4, minutes: 30,
-    name: { en: "Thai green curry", nl: "Thaise groene curry" },
-    ingredients: [["chicken", 500, "g"], ["coconutMilk", 400, "ml"], ["curryPaste", 3, "tbsp"], ["broccoli", 1, "pc"], ["bellPepper", 1, "pc"], ["rice", 300, "g"], ["oil", 1, "tbsp"]],
-    steps: {
-      en: ["Cook the rice.", "Fry the curry paste in a little oil for a minute, add the chicken in pieces.", "Pour in the coconut milk, add the broccoli florets and pepper; simmer 10 minutes.", "Serve with the rice."],
-      nl: ["Kook de rijst.", "Bak de currypasta een minuut in wat olie, voeg de kip in stukjes toe.", "Giet de kokosmelk erbij, voeg de broccoliroosjes en paprika toe; 10 minuten laten sudderen.", "Serveer met de rijst."],
-    },
-  },
-  {
-    id: "pesto", servings: 4, minutes: 15,
-    name: { en: "Pasta pesto with cherry tomatoes", nl: "Pasta pesto met cherrytomaatjes" },
-    ingredients: [["pasta", 400, "g"], ["pesto", 190, "g"], ["cherryTomatoes", 250, "g"], ["parmesan", 50, "g"], ["salt", 1, "pinch"]],
-    steps: {
-      en: ["Cook the pasta.", "Halve the tomatoes.", "Drain the pasta, stir in the pesto and tomatoes.", "Serve with parmesan."],
-      nl: ["Kook de pasta.", "Halveer de tomaatjes.", "Giet de pasta af, roer de pesto en tomaatjes erdoor.", "Serveer met parmezaan."],
-    },
-  },
-  {
-    id: "dahl", servings: 4, minutes: 35,
-    name: { en: "Red lentil dahl", nl: "Rodelinzendahl" },
-    ingredients: [["redLentils", 300, "g"], ["coconutMilk", 400, "ml"], ["cannedTomatoes", 1, "can"], ["onion", 1, "pc"], ["garlic", 2, "clove"],
-      ["ginger", 1, "pc"], ["stockCube", 1, "pc"], ["curryPowder", 2, "tbsp"], ["rice", 300, "g"], ["oil", 1, "tbsp"]],
-    steps: {
-      en: ["Cook the rice.", "Fry the onion, garlic, grated ginger and curry powder.", "Add the lentils, tomatoes, coconut milk and 500 ml of water with the stock cube; simmer 20 minutes, stirring now and then.", "Serve with the rice."],
-      nl: ["Kook de rijst.", "Fruit de ui, knoflook, geraspte gember en kerrie.", "Voeg de linzen, tomaten, kokosmelk en 500 ml water met het bouillonblokje toe; 20 minuten laten sudderen, af en toe roeren.", "Serveer met de rijst."],
-    },
-  },
-  {
-    id: "traybake", servings: 4, minutes: 50,
-    name: { en: "Chicken and potato tray bake", nl: "Ovenschotel met kip en aardappel" },
-    ingredients: [["chicken", 600, "g"], ["potatoes", 1000, "g"], ["carrots", 500, "g"], ["onion", 2, "pc"], ["garlic", 3, "clove"], ["honey", 2, "tbsp"],
-      ["mustard", 1, "tbsp"], ["oil", 3, "tbsp"], ["driedHerbs", 1, "tbsp"], ["salt", 1, "pinch"]],
-    steps: {
-      en: ["Heat the oven to 200 °C.", "Cut the potatoes, carrots and onions in chunks, toss with oil, herbs and salt on a tray; roast 20 minutes.", "Mix the honey and mustard, coat the chicken with it and add it to the tray with the garlic.", "Roast 25 minutes more, until the chicken is cooked."],
-      nl: ["Verwarm de oven voor op 200 °C.", "Snijd de aardappelen, wortels en uien in stukken, hussel met olie, kruiden en zout op een bakplaat; 20 minuten roosteren.", "Meng de honing en mosterd, bestrijk de kip ermee en leg die met de knoflook op de plaat.", "Nog 25 minuten roosteren, tot de kip gaar is."],
-    },
-  },
-  {
-    id: "salmonbowl", servings: 4, minutes: 25,
-    name: { en: "Salmon rice bowl", nl: "Rijstbowl met zalm" },
-    ingredients: [["salmon", 4, "pc"], ["rice", 300, "g"], ["broccoli", 1, "pc"], ["cucumber", 1, "pc"], ["soySauce", 4, "tbsp"], ["honey", 1, "tbsp"],
-      ["sesameSeeds", 1, "tbsp"], ["oil", 1, "tbsp"]],
-    steps: {
-      en: ["Cook the rice; steam the broccoli for the last 5 minutes.", "Mix the soy sauce and honey.", "Fry the salmon 3–4 minutes per side, pour the sauce over it at the end.", "Fill the bowls with rice, broccoli, cucumber and salmon; sprinkle with sesame."],
-      nl: ["Kook de rijst; stoom de broccoli de laatste 5 minuten mee.", "Meng de sojasaus en honing.", "Bak de zalm 3–4 minuten per kant, giet de saus er op het eind over.", "Vul de kommen met rijst, broccoli, komkommer en zalm; bestrooi met sesam."],
-    },
-  },
-  {
-    id: "lasagne", servings: 4, minutes: 70,
-    name: { en: "Lasagne", nl: "Lasagne" },
-    ingredients: [["lasagneSheets", 250, "g"], ["mincedBeef", 500, "g"], ["cannedTomatoes", 2, "can"], ["onion", 1, "pc"], ["garlic", 2, "clove"],
-      ["milk", 500, "ml"], ["butter", 40, "g"], ["flour", 40, "g"], ["cheese", 150, "g"], ["driedHerbs", 1, "tbsp"], ["salt", 1, "pinch"]],
-    steps: {
-      en: ["Make a meat sauce: brown the mince with onion and garlic, add the tomatoes and herbs, simmer 15 minutes.", "White sauce: melt the butter, stir in the flour, then the milk bit by bit until thick.", "Layer sauce, sheets and white sauce in a dish three times; finish with cheese.", "Bake 35 minutes at 180 °C."],
-      nl: ["Gehaktsaus: bak het gehakt rul met ui en knoflook, voeg tomaten en kruiden toe, 15 minuten laten pruttelen.", "Witte saus: smelt de boter, roer de bloem erdoor, daarna beetje bij beetje de melk tot het dik is.", "Leg drie keer saus, bladen en witte saus in een schaal; eindig met kaas.", "35 minuten bakken op 180 °C."],
-    },
-  },
-  {
-    id: "tunasalad", servings: 4, minutes: 20,
-    name: { en: "Tuna pasta salad", nl: "Pastasalade met tonijn" },
-    ingredients: [["pasta", 350, "g"], ["tuna", 2, "can"], ["sweetcorn", 1, "can"], ["cucumber", 1, "pc"], ["cherryTomatoes", 250, "g"], ["mayonnaise", 4, "tbsp"], ["salt", 1, "pinch"], ["blackPepper", 1, "pinch"]],
-    steps: {
-      en: ["Cook the pasta and rinse it cold.", "Dice the cucumber, halve the tomatoes, drain the tuna and corn.", "Mix everything with the mayonnaise and season.", "Chill until dinner."],
-      nl: ["Kook de pasta en spoel koud af.", "Snijd de komkommer in blokjes, halveer de tomaatjes, laat tonijn en mais uitlekken.", "Meng alles met de mayonaise en breng op smaak.", "Koud zetten tot het eten."],
-    },
-  },
-];
+// The built-in recipes live in js/library/ (one file per theme); re-exported here so existing imports keep working.
+export { RECIPES } from "./library/index.js";
