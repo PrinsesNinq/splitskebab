@@ -4,7 +4,8 @@
 import "../vendor/sel/elements/tabs-glass-paper.js";
 import { startFriends } from "./friends.js";
 import { whenUser, esc, onLeave, attempt, avatarHtml, avatarStackHtml, allergenBadges, shareText, toast, hiddenAllergiesTag } from "./ui.js";
-import { myCircles, myMeals, people, person, createCircle, renameCircle, addMember, removeMember, deleteCircle, setSettled } from "./store.js";
+import { myCircles, myMeals, people, person, createCircle, renameCircle, addMember, removeMember, deleteCircle, setSettled, setCircleAdmin } from "./store.js";
+import { isCircleAdmin } from "./analytics.js";
 import { adminStatus } from "./auth.js";
 import { netDebts, mealDebts, formatMoney } from "./money.js";
 import { getLang, t } from "./i18n.js";
@@ -54,6 +55,7 @@ function circleCard(c) {
   const circleMeals = meals.filter((m) => m.circleId === c.id);
   const debts = netDebts(circleMeals);
   const owner = c.owner === me;
+  const iAmAdmin = isCircleAdmin(c, me); // sees the analytics, chooses other admins
   const known = people.value ? [...people.value.values()].filter((p) => !c.members.includes(p.email)) : [];
   const expanded = open.has(c.id);
   return `<section class="card circle-card" data-circle="${esc(c.id)}">
@@ -71,8 +73,9 @@ function circleCard(c) {
       <ul class="list-group list-group-flush mb-2">${members.map((p) => `
         <li class="list-group-item px-0 d-flex align-items-center gap-2">
           ${avatarHtml(p, "avatar avatar-sm")}
-          <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${p.email === me ? esc(p.name) : `<a class="person-link" href="person.html?email=${encodeURIComponent(p.email)}">${esc(p.name)}</a>`}${p.email === c.owner ? ` <span class="badge text-bg-light">${esc(t("houses.owner"))}</span>` : ""}${p.email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
+          <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${p.email === me ? esc(p.name) : `<a class="person-link" href="person.html?email=${encodeURIComponent(p.email)}">${esc(p.name)}</a>`}${p.email === c.owner ? ` <span class="badge text-bg-light">${esc(t("houses.owner"))}</span>` : isCircleAdmin(c, p.email) ? ` <span class="badge text-bg-light">${esc(t("houses.admin"))}</span>` : ""}${p.email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
           ${p.allergies.length ? `<span class="d-block small">${allergenBadges(p.allergies)}</span>` : ""}${hiddenAllergiesTag(p)}</span>
+          ${iAmAdmin && p.email !== c.owner && p.email !== me ? `<button type="button" class="btn btn-sm btn-link px-1" data-toggle-admin="${esc(p.email)}" aria-pressed="${isCircleAdmin(c, p.email)}" title="${esc(isCircleAdmin(c, p.email) ? t("houses.removeAdmin") : t("houses.makeAdmin"))}" aria-label="${esc(isCircleAdmin(c, p.email) ? t("houses.removeAdmin") : t("houses.makeAdmin"))}: ${esc(p.name)}"><i class="bi ${isCircleAdmin(c, p.email) ? "bi-shield-fill-check" : "bi-shield"}" aria-hidden="true"></i></button>` : ""}
           ${p.email !== c.owner && (owner || p.email === me) ? `<button type="button" class="btn btn-sm btn-link text-danger" data-remove-member="${esc(p.email)}" aria-label="${esc(p.email === me ? t("houses.leave") : t("houses.removeMember", { name: p.name }))}"><i class="bi ${p.email === me ? "bi-box-arrow-right" : "bi-x-lg"}" aria-hidden="true"></i></button>` : ""}
         </li>`).join("")}</ul>
       <form class="input-group input-group-sm mb-1" data-add-member="${esc(c.id)}">
@@ -86,6 +89,7 @@ function circleCard(c) {
       ${debtRows(debts, circleMeals)}
 
       <div class="d-flex flex-wrap gap-2 mt-3">
+        ${iAmAdmin ? `<a class="btn btn-sm btn-primary" href="analytics.html?circle=${encodeURIComponent(c.id)}"><i class="bi bi-bar-chart" aria-hidden="true"></i> ${esc(t("houses.analytics"))}</a>` : ""}
         <button type="button" class="btn btn-sm btn-outline-secondary" data-rename="${esc(c.id)}">${esc(t("houses.rename"))}</button>
         ${owner ? `<button type="button" class="btn btn-sm btn-outline-danger" data-delete-circle="${esc(c.id)}">${esc(t("houses.delete"))}</button>` : ""}
       </div>
@@ -128,6 +132,13 @@ $("#circles").addEventListener("click", async (e) => {
     const email = remove.dataset.removeMember;
     const question = email === me ? t("houses.confirmLeave", { name: circle.name }) : t("houses.confirmRemove", { name: person(email).name, circle: circle.name });
     if (window.confirm(question)) attempt(() => removeMember(circle.id, email));
+    return;
+  }
+  const adminToggle = e.target.closest("[data-toggle-admin]");
+  if (adminToggle) {
+    const email = adminToggle.dataset.toggleAdmin;
+    const makeAdmin = !isCircleAdmin(circle, email);
+    attempt(() => setCircleAdmin(circle.id, email, makeAdmin), makeAdmin ? t("houses.madeAdmin", { name: person(email).name }) : t("houses.unmadeAdmin", { name: person(email).name }));
     return;
   }
   if (e.target.closest("[data-rename]")) {

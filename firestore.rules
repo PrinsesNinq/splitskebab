@@ -125,13 +125,19 @@ service cloud.firestore {
       allow delete: if isAdmin() || (allowed() && me() == email);
     }
     // Houses and groups. Members see and change them (add or remove someone, rename); the owner stays a member and is the only one who
-    // deletes it. Anyone can leave by removing themselves.
+    // deletes it. Anyone can leave by removing themselves. Admins (the owner always, plus admins: [email] they or other admins chose)
+    // see the analytics; only an admin changes who is an admin.
     function validCircle(d) {
-      return d.keys().hasOnly(['name', 'type', 'members', 'owner', 'createdAt']) &&
+      return d.keys().hasOnly(['name', 'type', 'members', 'owner', 'admins', 'createdAt']) &&
         d.name is string && d.name.size() > 0 && d.name.size() <= 60 &&
         d.type in ['house', 'group'] &&
         d.members is list && d.members.size() >= 1 && d.members.size() <= 60 &&
-        d.owner is string && d.owner in d.members;
+        d.owner is string && d.owner in d.members &&
+        (!('admins' in d) || (d.admins is list && d.admins.size() <= 60));
+    }
+
+    function isCircleAdmin(d) {
+      return d.owner == me() || me() in d.get('admins', []);
     }
 
     match /circles/{id} {
@@ -140,7 +146,8 @@ service cloud.firestore {
         request.resource.data.members == [me()];
       allow update: if allowed() && me() in resource.data.members && validCircle(request.resource.data) &&
         request.resource.data.owner == resource.data.owner && request.resource.data.type == resource.data.type &&
-        request.resource.data.createdAt == resource.data.createdAt;
+        request.resource.data.createdAt == resource.data.createdAt &&
+        (request.resource.data.get('admins', []) == resource.data.get('admins', []) || isCircleAdmin(resource.data));
       allow delete: if allowed() && resource.data.owner == me();
     }
 

@@ -15,7 +15,7 @@ import { APP_VERSION } from "./version.js";
 // Marks the bottom bar's link of the current page as active (a meal belongs to the calendar, someone's profile to Houses).
 function markCurrentPage() {
   const here = location.pathname.split("/").pop() || "index.html";
-  const page = here === "meal.html" ? "index.html" : here === "person.html" ? "houses.html" : here;
+  const page = here === "meal.html" ? "index.html" : (here === "person.html" || here === "analytics.html") ? "houses.html" : here;
   for (const link of document.querySelectorAll("#nav .nav-link")) {
     const current = link.getAttribute("href") === page;
     link.classList.toggle("active", current);

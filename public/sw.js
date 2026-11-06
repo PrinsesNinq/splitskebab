@@ -9,8 +9,8 @@
 // Change CACHE when the list below changes; the old cache of this worker is removed when the new one takes over (other caches on this
 // address are not ours and are left alone).
 const PREFIX = 'app-shell-';
-const CACHE = PREFIX + 'v4';
-const SHELL = ['index.html', 'meal.html', 'recipes.html', 'houses.html', 'profile.html', 'person.html', 'settings.html', 'css/app.css', 'js/app.js', 'js/theme-mode.js', 'manifest.json', 'images/app-icon.svg'];
+const CACHE = PREFIX + 'v5';
+const SHELL = ['index.html', 'meal.html', 'recipes.html', 'houses.html', 'profile.html', 'person.html', 'analytics.html', 'settings.html', 'css/app.css', 'js/app.js', 'js/theme-mode.js', 'manifest.json', 'images/app-icon.svg'];
 const BASE = new URL('./', self.registration.scope).pathname;
 
 /** Whether this site's address is one of the files worth keeping: a page at the top, or a file in a static folder. */

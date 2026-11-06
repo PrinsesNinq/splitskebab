@@ -1758,6 +1758,94 @@ sel-insert-divider {
 }
 
 
+/* Vertical Bar Chart */
+/* Vertical bar chart. --vertical-bar-chart-2-color sets every bar's
+   colour (one series, one colour — unlike the horizontal bar chart /
+   donut, which colour a different category each) — set it on a specific
+   instance with an inline style="--vertical-bar-chart-2-color: #e0552b",
+   the same way stat-block's --stat-color works. Unset, it falls back to
+   the theme's own --bs-secondary (read directly in the JS tab, not
+   declared here — see its comment for why). Grid lines and tick text
+   read live from --bs-border-color / --bs-body-color, and are redrawn on
+   a light/dark flip (see the MutationObserver in the JS tab) — Chart.js
+   bakes colours in at creation time and does not watch CSS variables
+   itself.
+
+   Tabs and the colour picker are plain additions alongside the chart
+   styling above — nothing below touches it. */
+sel-vertical-bar-chart-2 {
+	display: block;
+}
+
+sel-vertical-bar-chart-2 > data {
+	display: none;
+}
+
+.vertical-bar-chart-2-container {
+	position: relative;
+	height: 280px;
+}
+
+.vertical-bar-chart-2-demo {
+	max-width: 40rem;
+}
+
+.vertical-bar-chart-2-tabs {
+	display: flex;
+	gap: 0.25rem;
+	border-bottom: 1px solid var(--bs-border-color);
+	margin-bottom: 1rem;
+}
+
+.vertical-bar-chart-2-tab {
+	appearance: none;
+	background: none;
+	border: none;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	padding: 0.4rem 0.75rem;
+	font-size: 0.9rem;
+	color: var(--bs-secondary-color);
+	cursor: pointer;
+}
+
+.vertical-bar-chart-2-tab:hover {
+	color: var(--bs-body-color);
+}
+
+.vertical-bar-chart-2-tab.active {
+	color: var(--primary-text); /* --bs-primary in light mode, --bs-primary-text-emphasis in dark mode: readable on the dark background */
+	border-bottom-color: var(--bs-primary);
+}
+
+.vertical-bar-chart-2-legend {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.vertical-bar-chart-2-legend-row {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.vertical-bar-chart-2-color-input {
+	width: 2.2rem;
+	height: 2.2rem;
+	padding: 0;
+	border: 1px solid var(--bs-border-color);
+	border-radius: var(--bs-border-radius);
+	background: none;
+	cursor: pointer;
+}
+
+.vertical-bar-chart-2-legend-label {
+	font-size: 0.9rem;
+	color: var(--bs-body-color);
+}
+
+
 /* Log-in Screen */
 /* Log-in screen (see the HTML tab). The page gradient is the theme's own; everything here sits on top of it.
 	 Knob: --log-in-screen-min-height (default the full viewport, the real sign-in page; the demo sets less). */

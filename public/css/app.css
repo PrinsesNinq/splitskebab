@@ -391,6 +391,24 @@
 .person-link:hover, .person-link:focus-visible { text-decoration: underline; }
 .person-chip { color: inherit; }
 
+/* ---- Analytics ---- */
+.analytics-chart__canvas { position: relative; height: 12rem; }
+.stat-tile { gap: 0.1rem; }
+/* "Who paid": one quiet bar per person; its length (--share, set per person) is the value, the label next to the name says it. */
+.share-bar {
+  height: 0.35rem;
+  border-radius: 1rem;
+  background: rgba(var(--bs-body-color-rgb), 0.08);
+  overflow: hidden;
+}
+.share-bar > span {
+  display: block;
+  width: var(--share, 0%);
+  height: 100%;
+  border-radius: 1rem;
+  background: var(--bs-secondary);
+}
+
 /* ---- Recipes page ---- */
 .recipe-tag {
   font-weight: 600;

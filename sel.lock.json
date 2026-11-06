@@ -52,19 +52,22 @@
     "out": "public/vendor/sel",
     "components": [
       "board",
+      "chart-loader",
       "notification-bell",
       "page-transitions",
       "striped-list",
-      "tabs-glass-paper"
+      "tabs-glass-paper",
+      "vertical-bar-chart-2"
     ],
     "roots": [
       "board",
       "notification-bell",
       "page-transitions",
       "striped-list",
-      "tabs-glass-paper"
+      "tabs-glass-paper",
+      "vertical-bar-chart-2"
     ],
-    "pulledAt": "2026-11-06T08:20:53.175Z",
+    "pulledAt": "2026-11-06T13:05:04.007Z",
     "icons": true,
     "files": {
       "theme-lit.js": "800e79a94a91e359c983dd287251210cfcb59efbba9dff221bea1bdfd0e21c16",
@@ -73,7 +76,9 @@
       "elements/tabs-glass-paper.js": "42d82c1da54bc6b5917e72b3ba98c5dd5851f1859a3827615ca5e526e59a9e92",
       "elements/board.js": "160b751b045e749e8bc1ca07a01b1f482985a4d3525956255bf42e6d0fe61958",
       "elements/page-transitions.js": "dfb5253006ddd7f2c095c320c006b3562fbeaa0238182c0c1e7272df8cf9dbbe",
-      "elements/notification-bell.js": "6f5fcda849cd12c73867b3418fbff682116702e3123c9cc62bd4d4c999ae3550"
+      "elements/notification-bell.js": "6f5fcda849cd12c73867b3418fbff682116702e3123c9cc62bd4d4c999ae3550",
+      "elements/vertical-bar-chart-2.js": "498b373e78784ae953d7443f061da9243729d383d85032738cca61fc13b899a0",
+      "elements/chart-loader.js": "a8a95e38862576230e0ce3614d1edeafad69c2e34aca1bbd40484da286b1c31f"
     }
   },
   "mode": "theme",
@@ -94,11 +99,12 @@
       "stepper-wizard",
       "striped-list",
       "tabs-glass-paper",
-      "tags"
+      "tags",
+      "vertical-bar-chart-2"
     ],
-    "pulledAt": "2026-11-06T08:20:53.355Z",
+    "pulledAt": "2026-11-06T13:05:04.171Z",
     "files": {
-      "theme.css": "f33ecf8d412f44c44ed74f87de46c50b77cd7af6abb4361c487d196096958191",
+      "theme.css": "c8ce9b8e3e51008f4dbaa41c73639524702ae29bc9463b38d662fd73feeaf8b1",
       "bootstrap.bundle.min.js": "af0f8daeeb46b647a7216cd38b320f6ee124933aeef83a31d284f76d69145824",
       "fonts/bootstrap-icons.woff2": "6c75710364a1ca5604267716f6d28997b26319fdb078cf11e0b42ab66ff2ea61",
       "fonts/bootstrap-icons.woff": "f55513b7b591cb84a3b87ff0e34ea24d4831d6fedc22e54b911ca64b5b544a15",
@@ -120,5 +126,8 @@
       "dev-proxy.mjs": "211a14e3c79a0c73934c32db9d6b48902f27fb843727fb588c8695fbe5a3b189",
       "import-users.mjs": "ba3ab41330b4b8b3e6e6b175a7025f547ce4cb760bce7760e4b5b40fcfc51656"
     }
-  }
+  },
+  "keep": [
+    "vertical-bar-chart-2"
+  ]
 }

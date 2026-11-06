@@ -5,7 +5,8 @@
 //                         photo or a small picture they chose, js/photo.js)
 //   privateProfiles/{email} { allergies: [allergen id], paymentLink, friends: [email], readers: [email] }   only the person and their
 //                         readers (housemates, people at their meals, friends; kept up to date by js/app.js) read it
-//   circles/{id}          { name, type: "house" | "group", members: [email], owner, createdAt }   members read and change, the owner deletes
+//   circles/{id}          { name, type: "house" | "group", members: [email], owner, admins: [email], createdAt }   members read and change,
+//                         the owner deletes; admins (the owner always, plus admins) see the analytics and choose other admins
 //   meals/{id}            { title, date "YYYY-MM-DD", time "HH:MM", circleId, circleName, host, viewers: [email], participants: [email],
 //                           declined: [email], guests: [{ id, name }], rsvp, recipe: { source, id } | null, servings, have: [key],
 //                           costs: { [email]: cents } (each payer only writes their own), settled: ["from>to"], createdAt, updatedAt }
@@ -154,7 +155,7 @@ export const saveMyProfile = (email, { allergies, paymentLink }) =>
 // ---- Houses and groups ----
 
 function toCircle(id, d) {
-  return { id, name: text(d.name, 60) || "?", type: d.type === "group" ? "group" : "house", members: strings(d.members), owner: text(d.owner) };
+  return { id, name: text(d.name, 60) || "?", type: d.type === "group" ? "group" : "house", members: strings(d.members), owner: text(d.owner), admins: strings(d.admins) };
 }
 
 let circlesFor = null;
@@ -174,7 +175,10 @@ export const createCircle = (me, { name, type }) => addDoc(collection(db, "circl
 });
 export const renameCircle = (id, name) => updateDoc(doc(db, "circles", id), { name: text(name, 60) });
 export const addMember = (id, email) => updateDoc(doc(db, "circles", id), { members: arrayUnion(email.toLowerCase()) });
-export const removeMember = (id, email) => updateDoc(doc(db, "circles", id), { members: arrayRemove(email) });
+// Someone who leaves (or is removed) stops being an admin too; when they were not one, removing them from admins changes nothing.
+export const removeMember = (id, email) => updateDoc(doc(db, "circles", id), { members: arrayRemove(email), admins: arrayRemove(email) });
+/** Makes a member an admin of the house or group, or not (only admins may: firestore.rules). The creator always is. */
+export const setCircleAdmin = (id, email, admin) => updateDoc(doc(db, "circles", id), { admins: admin ? arrayUnion(email) : arrayRemove(email) });
 export const deleteCircle = (id) => deleteDoc(doc(db, "circles", id));
 
 // ---- Meals ----

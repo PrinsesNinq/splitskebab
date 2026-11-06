@@ -22,3 +22,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Friends: search people by name, and see friends of your friends
 - Privacy: allergies, payment link and friend list are only visible to your housemates, people at your meals and friends
 - Tap a name in Houses or Friends to see their profile; the app reloads by itself when a new version is live
+- Houses and groups have admins; admins see analytics: spending per day, who paid, and on what
