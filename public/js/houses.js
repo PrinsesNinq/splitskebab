@@ -3,7 +3,7 @@
 // js/friends.js.
 import "../vendor/sel/elements/tabs-glass-paper.js";
 import { startFriends } from "./friends.js";
-import { whenUser, esc, onLeave, attempt, avatarHtml, avatarStackHtml, allergenBadges, shareText, toast } from "./ui.js";
+import { whenUser, esc, onLeave, attempt, avatarHtml, avatarStackHtml, allergenBadges, shareText, toast, hiddenAllergiesTag } from "./ui.js";
 import { myCircles, myMeals, people, person, createCircle, renameCircle, addMember, removeMember, deleteCircle, setSettled } from "./store.js";
 import { adminStatus } from "./auth.js";
 import { netDebts, mealDebts, formatMoney } from "./money.js";
@@ -72,7 +72,7 @@ function circleCard(c) {
         <li class="list-group-item px-0 d-flex align-items-center gap-2">
           ${avatarHtml(p, "avatar avatar-sm")}
           <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}${p.email === c.owner ? ` <span class="badge text-bg-light">${esc(t("houses.owner"))}</span>` : ""}${p.email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
-          ${p.allergies.length ? `<span class="d-block small">${allergenBadges(p.allergies)}</span>` : ""}</span>
+          ${p.allergies.length ? `<span class="d-block small">${allergenBadges(p.allergies)}</span>` : ""}${hiddenAllergiesTag(p)}</span>
           ${p.email !== c.owner && (owner || p.email === me) ? `<button type="button" class="btn btn-sm btn-link text-danger" data-remove-member="${esc(p.email)}" aria-label="${esc(p.email === me ? t("houses.leave") : t("houses.removeMember", { name: p.name }))}"><i class="bi ${p.email === me ? "bi-box-arrow-right" : "bi-x-lg"}" aria-hidden="true"></i></button>` : ""}
         </li>`).join("")}</ul>
       <form class="input-group input-group-sm mb-1" data-add-member="${esc(c.id)}">

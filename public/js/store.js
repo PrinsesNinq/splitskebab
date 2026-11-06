@@ -1,9 +1,10 @@
 // Everything Splitskebab keeps in Firestore, and the live lists the pages share. Who may read and write what is enforced in
 // firestore.rules; this module only shapes the data.
 //
-//   userProfiles/{email}  { displayName, photoUrl, allergies: [allergen id], paymentLink, friends: [email] }   every user reads, each writes
-//                         their own (photoUrl: their Google photo or a small picture they chose, js/photo.js; friends: kept up to date
-//                         by js/app.js from their accepted friendships, so others can see friends of friends)
+//   userProfiles/{email}  { displayName, photoUrl }   public: every user reads (search), each writes their own (photoUrl: their Google
+//                         photo or a small picture they chose, js/photo.js)
+//   privateProfiles/{email} { allergies: [allergen id], paymentLink, friends: [email], readers: [email] }   only the person and their
+//                         readers (housemates, people at their meals, friends; kept up to date by js/app.js) read it
 //   circles/{id}          { name, type: "house" | "group", members: [email], owner, createdAt }   members read and change, the owner deletes
 //   meals/{id}            { title, date "YYYY-MM-DD", time "HH:MM", circleId, circleName, host, viewers: [email], participants: [email],
 //                           declined: [email], guests: [{ id, name }], rsvp, recipe: { source, id } | null, servings, have: [key],
@@ -27,7 +28,7 @@ import { readCosts, settleKey } from "./money.js";
 
 const fs = await import(`${SDK}/firebase-firestore.js`);
 const {
-  collection, doc, onSnapshot, query, where, orderBy, limit, addDoc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, serverTimestamp,
+  collection, doc, onSnapshot, query, where, orderBy, limit, addDoc, getDoc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, serverTimestamp,
   FieldPath, deleteField,
 } = fs;
 
@@ -60,38 +61,96 @@ function shared(start) {
 }
 
 // ---- People ----
+// A person is two documents: the public profile (name and photo, everyone with an account reads it: search) and the private profile
+// (allergies, payment link, friend list), readable only by the people on its readers list (housemates, people at their meals, friends;
+// see firestore.rules). Profiles from before the split still have those fields on the public profile: they are read from there until
+// the person's app moves them (migrateMyProfile).
 
-function toPerson(email, d) {
+const LEGACY_PRIVATE = ["allergies", "paymentLink", "friends"];
+
+/**
+ * A person to draw. detailsVisible says whether their allergies and payment link could be read: false means "not shared with me
+ * (yet)", which the pages show as unknown, never as "no allergies" (that would hide a danger).
+ */
+function toPerson(email, pub = {}, priv = null) {
+  const legacy = LEGACY_PRIVATE.some((k) => k in pub);
+  const details = priv || (legacy ? pub : null);
   return {
     email,
-    name: text(d.displayName, 100) || email.split("@")[0],
-    photoUrl: photo(d.photoUrl),
-    allergies: cleanAllergens(d.allergies),
-    paymentLink: safeLink(d.paymentLink),
-    friends: strings(d.friends).slice(0, 500),
+    name: text(pub.displayName, 100) || email.split("@")[0],
+    photoUrl: photo(pub.photoUrl),
+    allergies: cleanAllergens(details?.allergies),
+    paymentLink: safeLink(details?.paymentLink),
+    friends: strings(details?.friends).slice(0, 500),
+    readers: strings(priv?.readers),
+    detailsVisible: Boolean(details),
   };
 }
 
-/** Everyone with a profile: Map email -> { email, name, photoUrl, allergies, paymentLink }. */
-export const people = shared((emit, fail) => onSnapshot(collection(db, "userProfiles"),
-  (snap) => emit(new Map(snap.docs.map((d) => [d.id, toPerson(d.id, d.data())]))), fail));
+let peopleMe = null;
+/** Who I am, for the private profiles I may read: js/app.js calls it before any page uses people. */
+export function usePeopleFor(email) { peopleMe = email; }
+
+/**
+ * Everyone with a public profile, with the private details I may read: Map email -> person (toPerson). Three live sources: every
+ * public profile, the private profiles that list me as a reader, and my own private profile.
+ */
+export const people = shared((emit, fail) => {
+  const state = { pub: null, priv: new Map(), mine: null };
+  const send = () => {
+    if (!state.pub) return;
+    const privs = new Map(state.priv);
+    if (peopleMe && state.mine) privs.set(peopleMe, state.mine);
+    emit(new Map([...state.pub].map(([email, pub]) => [email, toPerson(email, pub, privs.get(email) || null)])));
+  };
+  onSnapshot(collection(db, "userProfiles"), (snap) => { state.pub = new Map(snap.docs.map((d) => [d.id, d.data()])); send(); }, fail);
+  if (peopleMe) {
+    onSnapshot(query(collection(db, "privateProfiles"), where("readers", "array-contains", peopleMe)),
+      (snap) => { state.priv = new Map(snap.docs.map((d) => [d.id, d.data()])); send(); }, fail);
+    onSnapshot(doc(db, "privateProfiles", peopleMe), (snap) => { state.mine = snap.exists() ? snap.data() : {}; send(); }, fail);
+  }
+});
 
 /** A person to show, also when they never signed in (no profile yet): their email's first part as the name. */
 export function person(email, map = people.value) {
   return map?.get(email) || toPerson(email, {});
 }
 
-/** My name and photo as others see them (photoUrl: a safe https address or small picture data URL, or null for my initial). */
-export const saveMyIdentity = (email, { displayName, photoUrl }) =>
-  setDoc(doc(db, "userProfiles", email), { displayName: text(displayName, 100) || null, photoUrl: safePhoto(photoUrl) }, { merge: true });
+/**
+ * Moves my allergies, payment link and friend list from the public profile (where they were before the split) to my private one,
+ * then takes them off the public one, so strangers can no longer read them. Does nothing when there is nothing to move. A value already
+ * in my private profile wins (it is newer).
+ */
+export async function migrateMyProfile(email) {
+  const pubRef = doc(db, "userProfiles", email);
+  const pub = (await getDoc(pubRef)).data() || {};
+  const fields = LEGACY_PRIVATE.filter((k) => k in pub);
+  if (!fields.length) return false;
+  const privRef = doc(db, "privateProfiles", email);
+  const priv = (await getDoc(privRef)).data() || {};
+  const copy = {};
+  for (const k of fields) if (!(k in priv) && pub[k] != null) copy[k] = k === "allergies" ? cleanAllergens(pub[k]) : k === "paymentLink" ? safeLink(pub[k]) : strings(pub[k]).slice(0, 500);
+  if (Object.keys(copy).length) await setDoc(privRef, copy, { merge: true });
+  await updateDoc(pubRef, Object.fromEntries(fields.map((k) => [k, deleteField()])));
+  return true;
+}
 
-/** My list of friends on my profile (js/app.js keeps it in step with my accepted friendships), for friends-of-friends suggestions. */
+/** My name and photo as others see them (photoUrl: a safe https address or small picture data URL, or null for my initial). */
+export async function saveMyIdentity(email, { displayName, photoUrl }) {
+  await migrateMyProfile(email); // the public profile may only hold name and photo (firestore.rules)
+  await setDoc(doc(db, "userProfiles", email), { displayName: text(displayName, 100) || null, photoUrl: safePhoto(photoUrl) }, { merge: true });
+}
+
+/** My list of friends on my private profile (js/app.js keeps it in step with my accepted friendships), for friends of friends. */
 export const saveMyFriendList = (email, friends) =>
-  setDoc(doc(db, "userProfiles", email), { friends: [...new Set(friends)].sort().slice(0, 500) }, { merge: true });
+  setDoc(doc(db, "privateProfiles", email), { friends: [...new Set(friends)].sort().slice(0, 500) }, { merge: true });
+
+/** Who may read my private profile (js/sharing.js profileReaders, kept up to date by js/app.js). */
+export const saveMyReaders = (email, readers) =>
+  setDoc(doc(db, "privateProfiles", email), { readers }, { merge: true });
 
 export const saveMyProfile = (email, { allergies, paymentLink }) =>
-  setDoc(doc(db, "userProfiles", email), { allergies: cleanAllergens(allergies), paymentLink: safeLink(paymentLink) }, { merge: true });
-
+  setDoc(doc(db, "privateProfiles", email), { allergies: cleanAllergens(allergies), paymentLink: safeLink(paymentLink) }, { merge: true });
 // ---- Houses and groups ----
 
 function toCircle(id, d) {

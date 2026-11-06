@@ -93,9 +93,10 @@ export function startFriends(me, stops) {
   function renderSearch() {
     const query = $("#friend-search").value.trim();
     const results = searchPeople(query, people.value, me);
-    const mine = new Set(friendEmails(friendships));
+    const mine = friendEmails(friendships);
     const rows = results.map((p) => {
-      const common = (p.friends || []).filter((x) => mine.has(x));
+      // Friends in common, from my friends' lists (which I may read): a stranger's own list is private.
+      const common = mine.filter((f) => person(f).friends.includes(p.email));
       return personRow(p, common.length ? viaText(common) : esc(p.email));
     });
     // A full email of someone not found by name: offer to send the request anyway (the rules check they have an account).

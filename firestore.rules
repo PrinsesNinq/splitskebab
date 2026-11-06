@@ -55,20 +55,23 @@ service cloud.firestore {
       return !(field in d) || d[field] == null || (d[field] is string && d[field].size() <= max);
     }
 
-    // What a person may write about themselves: a name of a sane size, a photo that is null, an https address (their Google photo) or a
-    // small JPEG/PNG/WebP picture they chose (a data: URL of at most 60,000 characters, about 45 KB: the app shrinks it to a small
-    // square first), their allergies, a payment link that is empty or an https address (it ends up as a link other people tap), and
-    // their own list of friends (so others can see friends of friends).
+    // A person's public profile: a name of a sane size and a photo that is null, an https address (their Google photo) or a small
+    // JPEG/PNG/WebP picture they chose (a data: URL of at most 60,000 characters, about 45 KB: the app shrinks it to a small square).
     function validProfile(d) {
       return optionalString(d, 'displayName', 200) &&
         (!('photoUrl' in d) || d.photoUrl == null || (d.photoUrl is string && (
           (d.photoUrl.size() <= 500 && d.photoUrl.matches('https://.*')) ||
-          (d.photoUrl.size() <= 60000 && d.photoUrl.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+'))))) &&
-        (!('friends' in d) || (d.friends is list && d.friends.size() <= 500)) &&
-        (!('allergies' in d) || isAllergenList(d.allergies)) &&
-        (!('paymentLink' in d) || (d.paymentLink is string && d.paymentLink.size() <= 300 && (d.paymentLink == '' || d.paymentLink.matches('https://[^\\s"<>]+'))));
+          (d.photoUrl.size() <= 60000 && d.photoUrl.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+')))));
     }
 
+    // A person's private profile: their allergies, a payment link that is empty or an https address (it ends up as a link other people
+    // tap), their list of friends (for friends of friends) and who may read it (readers: kept by their own app, js/sharing.js).
+    function validPrivateProfile(d) {
+      return (!('allergies' in d) || isAllergenList(d.allergies)) &&
+        (!('paymentLink' in d) || (d.paymentLink is string && d.paymentLink.size() <= 300 && (d.paymentLink == '' || d.paymentLink.matches('https://[^\\s"<>]+')))) &&
+        (!('friends' in d) || (d.friends is list && d.friends.size() <= 500)) &&
+        (!('readers' in d) || (d.readers is list && d.readers.size() <= 1500));
+    }
     // The admins' emails: only for invited people (anyone with a Google account can sign in, and must not see who the admins are).
     match /settings/admins {
       allow read: if allowed();
@@ -98,16 +101,25 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Name, photo, allergies and payment link, written by each person about themselves (js/auth.js at sign-in, the profile page),
-    // readable by everyone invited: housemates must see each other's allergies. Writing it does not need an invitation, so someone who
-    // tried to sign in shows up in Settings > Users for an admin to let in.
+    // The public profile: name and photo, readable by everyone with an account (to find people by name). Each person writes their own
+    // (js/auth.js at the first sign-in, the profile page); writing it needs no account yet, so someone who signed in without
+    // registering shows up in Settings > Users. Allergies, payment link and friends are NOT here: they are in the private profile.
     match /userProfiles/{email} {
       allow read: if allowed();
       allow create, update: if signedIn() && me() == email &&
-        request.resource.data.keys().hasOnly(['displayName', 'photoUrl', 'allergies', 'paymentLink', 'friends']) && validProfile(request.resource.data);
+        request.resource.data.keys().hasOnly(['displayName', 'photoUrl']) && validProfile(request.resource.data);
       allow delete: if isAdmin();
     }
 
+    // The private profile: allergies, payment link and friend list. Readable only by the person and the people on its readers list:
+    // housemates, people at their meals and their friends, kept up to date by their own app (js/app.js, js/sharing.js profileReaders).
+    // A stranger who registers sees names and photos, nothing more. Each person writes only their own.
+    match /privateProfiles/{email} {
+      allow read: if allowed() && (me() == email || me() in resource.data.readers);
+      allow create, update: if allowed() && me() == email &&
+        request.resource.data.keys().hasOnly(['allergies', 'paymentLink', 'friends', 'readers']) && validPrivateProfile(request.resource.data);
+      allow delete: if isAdmin() || (allowed() && me() == email);
+    }
     // Houses and groups. Members see and change them (add or remove someone, rename); the owner stays a member and is the only one who
     // deletes it. Anyone can leave by removing themselves.
     function validCircle(d) {

@@ -3,6 +3,30 @@
 // shareCircleMeals() writes what this finds, tests/sharing.test.js checks it.
 
 export const SHARE_DAYS_BACK = 60; // older dinners are not worth sharing, and it keeps the writes few
+export const MAX_READERS = 1500; // firestore.rules allows the same
+
+/**
+ * Who may read my private profile (allergies, payment link, friend list): everyone I share a house or group with, everyone at a meal
+ * I can see, and my friends. Sorted, without me, at most MAX_READERS (the most recent connections are not lost first: houses and
+ * friends come before old meals). My app writes this list on my private profile; firestore.rules lets only those people read it.
+ */
+export function profileReaders(me, circles, meals, friendEmails) {
+  // In order of priority, so the cap drops the oldest meal guests first, never a housemate or a friend; sorted only at the end.
+  const ordered = [
+    ...circles.flatMap((c) => c.members),
+    ...friendEmails,
+    ...[...meals].sort((a, b) => b.date.localeCompare(a.date)).flatMap((m) => m.viewers),
+  ];
+  const readers = [];
+  const seen = new Set([me]);
+  for (const e of ordered) {
+    if (typeof e !== "string" || !e || seen.has(e)) continue;
+    seen.add(e);
+    readers.push(e);
+    if (readers.length === MAX_READERS) break;
+  }
+  return readers.sort();
+}
 
 /** "YYYY-MM-DD" a number of days before a "YYYY-MM-DD" date (local calendar days, at noon so DST cannot shift the day). */
 export function daysBefore(iso, days) {

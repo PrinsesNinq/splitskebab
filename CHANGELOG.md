@@ -20,3 +20,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Saying you will not join a dinner can come with a reason, shown to everyone at the table
 - Profile: change your name and photo; a ? explains how to get a payment link
 - Friends: search people by name, and see friends of your friends
+- Privacy: allergies, payment link and friend list are only visible to your housemates, people at your meals and friends

@@ -9,6 +9,7 @@ import { configured } from "./firebase-init.js";
 import { requireUser, signOutAndLeave, accountStatus, register, adminStatus, rememberedAccess, rememberAccess, forgetAccess } from "./auth.js";
 import { applyI18n, getLang, setLang, t, formatDay } from "./i18n.js";
 import { addNotification } from "../vendor/sel/elements/notification-bell.js";
+import * as peopleStore from "./store.js";
 
 // Marks the bottom bar's link of the current page as active (a meal belongs to the calendar).
 function markCurrentPage() {
@@ -171,21 +172,30 @@ async function startMealSharing(me) {
   myMeals(me).subscribe((list) => { if (list) { meals = list; run(); } });
 }
 
-// ---- My friend list on my profile, in step with my accepted friendships (for friends-of-friends suggestions, js/friends.js) ----
-async function startFriendListSync(me) {
-  const { myFriendships, friendEmails, people, saveMyFriendList } = await import("./store.js");
+// ---- My private profile: moved off the public one, my friend list, and who may read it ----
+// Allergies, payment link and friend list live in privateProfiles/{me}, readable only by the people on its readers list (firestore.rules):
+// housemates, people at my meals and my friends (js/sharing.js profileReaders). Only I can write that list, so my app keeps it up to date
+// whenever my houses, meals or friendships change. It writes only when something changed.
+async function startPrivacySync(me) {
+  const store = await import("./store.js");
+  const { profileReaders } = await import("./sharing.js");
+  await store.migrateMyProfile(me).catch((err) => console.warn("Could not move my profile details to my private profile:", err?.code || err));
+  let circles = null;
+  let meals = null;
   let friends = null;
-  let profiles = null;
+  let mine = null;
+  const same = (a, b) => [...a].sort().join("|") === [...b].sort().join("|");
   const sync = () => {
-    if (!friends || !profiles || !profiles.has(me)) return; // my profile exists after the first sign-in
-    const stored = [...profiles.get(me).friends].sort().join("|");
-    const actual = [...new Set(friends)].sort().join("|");
-    if (stored !== actual) saveMyFriendList(me, friends).catch((err) => console.warn("Could not update my friend list:", err?.code || err));
+    if (!circles || !meals || !friends || !mine) return;
+    const readers = profileReaders(me, circles, meals, friends);
+    if (!same(readers, mine.readers)) store.saveMyReaders(me, readers).catch((err) => console.warn("Could not update who may read my profile:", err?.code || err));
+    if (!same(friends, mine.friends)) store.saveMyFriendList(me, friends).catch((err) => console.warn("Could not update my friend list:", err?.code || err));
   };
-  myFriendships(me).subscribe((list) => { if (list) { friends = friendEmails(list); sync(); } });
-  people.subscribe((map) => { if (map) { profiles = map; sync(); } });
+  store.myCircles(me).subscribe((list) => { if (list) { circles = list; sync(); } });
+  store.myMeals(me).subscribe((list) => { if (list) { meals = list; sync(); } });
+  store.myFriendships(me).subscribe((list) => { if (list) { friends = store.friendEmails(list); sync(); } });
+  store.people.subscribe((map) => { if (map?.has(me)) { mine = map.get(me); sync(); } });
 }
-
 if (!configured) {
   // Not connected to Firebase yet: say so above the content instead of sending everyone to a sign-in that cannot work.
   document.querySelector("#site-nav").insertAdjacentHTML("afterend", '<div class="container mt-3"><div class="alert alert-warning mb-0">Firebase is not set up yet: fill in <code>public/js/config.js</code> (or create the project with sel-new). The pages work, signing in does not.</div></div>');
@@ -202,11 +212,12 @@ if (!configured) {
     started = true;
     show();
     adminStatus(user.email).then((s) => { document.querySelector("#nav-settings-item")?.toggleAttribute("hidden", !s.isAdmin && !s.canBootstrap); }).catch(() => {});
+    peopleStore.usePeopleFor(user.email.toLowerCase()); // the private profiles I may read (before any page subscribes)
     window.appUser = user; // for page scripts that start after this event (a page reached by soft navigation)
     document.dispatchEvent(new CustomEvent("app:user", { detail: { user } }));
     startInvites(user.email.toLowerCase());
     startMealSharing(user.email.toLowerCase());
-    startFriendListSync(user.email.toLowerCase());
+    startPrivacySync(user.email.toLowerCase());
   };
 
   // What to show for each account status (js/auth.js accountStatus): the app, "create your account", "blocked", or "no connection".

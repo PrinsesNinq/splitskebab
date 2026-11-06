@@ -31,6 +31,21 @@ export function allergenBadges(ids, { danger = [] } = {}) {
     : `<span class="badge tag tag--gray">${allergenIcon(id)} ${esc(allergenLabel(id, lang))}</span>`).join(" ");
 }
 
+/**
+ * A warning for the people whose allergies I cannot see (their private profile is not shared with me yet: it is, once their app has
+ * seen that we share a house, a meal or a friendship). Never let "not visible" pass for "no allergies". Escaped HTML, or "" when
+ * everyone's allergies are visible.
+ */
+export function hiddenAllergiesNote(list) {
+  const hidden = list.filter((p) => !p.detailsVisible);
+  if (!hidden.length) return "";
+  return `<div class="alert alert-warning small py-2" role="status"><i class="bi bi-eye-slash" aria-hidden="true"></i> ${esc(t("allergy.hiddenNote", { names: hidden.map((p) => p.name).join(", ") }))}</div>`;
+}
+
+/** Small text under a name when that person's allergies are not visible to me (yet). */
+export const hiddenAllergiesTag = (p) => (p.detailsVisible ? ""
+  : `<span class="d-block small text-warning-emphasis"><i class="bi bi-eye-slash" aria-hidden="true"></i> ${esc(t("allergy.hiddenTag"))}</span>`);
+
 /** The signed-in, invited user, once js/app.js has checked them (page scripts can start before it is done). */
 export function whenUser() {
   if (window.appUser) return Promise.resolve(window.appUser);

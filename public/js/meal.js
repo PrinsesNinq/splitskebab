@@ -2,7 +2,7 @@
 // my own yes or no), the allergies at the table, the recipe and its grocery list, and the cost split equally over everyone who ate.
 // Everyone who can see the meal can change it (the participants can change at any time); only the host deletes it.
 import {
-  whenUser, esc, onLeave, param, todayIso, go, toast, attempt, avatarHtml, allergenBadges, shareText, randomId,
+  whenUser, esc, onLeave, param, todayIso, go, toast, attempt, avatarHtml, allergenBadges, shareText, randomId, hiddenAllergiesNote, hiddenAllergiesTag,
 } from "./ui.js";
 import {
   myCircles, people, person, watchMeal, createMeal, updateMeal, deleteMeal, joinMeal, declineMeal, setHave, setSettled, userRecipes,
@@ -59,7 +59,7 @@ function startNew() {
       <label class="list-group-item d-flex align-items-center gap-2">
         <input class="form-check-input mt-0" type="checkbox" value="${esc(p.email)}" ${checked.has(p.email) ? "checked" : ""}>
         ${avatarHtml(p, "avatar avatar-sm")}
-        <span class="flex-grow-1 min-w-0 text-truncate">${esc(p.name)}${p.email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
+        <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}${p.email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>${hiddenAllergiesTag(p)}</span>
         ${p.allergies.length ? `<span class="small">${allergenBadges(p.allergies)}</span>` : ""}
       </label>`).join("") || `<p class="small text-body-secondary mb-0">${esc(t("meal.noMembers"))}</p>`;
     // Friends who are not in this house or group already: tick them to invite them.
@@ -74,8 +74,10 @@ function startNew() {
       </label>`).join("");
     const at = members.filter((p) => checked.has(p.email));
     const lines = allergyLines(at);
-    $("#new-allergies").innerHTML = lines ? `<strong>${esc(t("meal.allergiesAtTable"))}</strong><ul class="mb-0">${lines}</ul>` : "";
-    $("#new-allergies").classList.toggle("d-none", !lines);
+    const hidden = at.filter((p) => !p.detailsVisible);
+    $("#new-allergies").innerHTML = (lines ? `<strong>${esc(t("meal.allergiesAtTable"))}</strong><ul class="mb-0">${lines}</ul>` : "")
+      + (hidden.length ? `<p class="mb-0 ${lines ? "mt-2" : ""}"><i class="bi bi-eye-slash" aria-hidden="true"></i> ${esc(t("allergy.hiddenNote", { names: hidden.map((p) => p.name).join(", ") }))}</p>` : "");
+    $("#new-allergies").classList.toggle("d-none", !lines && !hidden.length);
   }
 
   $("#new-friends").addEventListener("change", (e) => {
@@ -218,7 +220,7 @@ function startView(id) {
       const lines = allergyLines(at);
       if (lines) html = `<div class="alert alert-warning" role="status"><strong>${esc(t("meal.allergiesAtTable"))}</strong><ul class="mb-0">${lines}</ul>${recipe ? `<p class="small mb-0 mt-1">${esc(t("allergy.recipeSafe"))}</p>` : ""}</div>`;
     }
-    $("#allergy-box").innerHTML = html;
+    $("#allergy-box").innerHTML = html + hiddenAllergiesNote(at);
   }
 
   function renderPeople() {
@@ -235,6 +237,7 @@ function startView(id) {
         ${avatarHtml(p, "avatar avatar-sm")}
         <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}${email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
         ${p.allergies.length ? `<span class="d-block small">${allergenBadges(p.allergies, { danger: chosenRecipe()?.allergens || [] })}</span>` : ""}
+        ${hiddenAllergiesTag(p)}
         ${reason ? `<span class="d-block small text-body-secondary decline-reason"><i class="bi bi-chat-left-quote" aria-hidden="true"></i> ${esc(reason)}</span>` : ""}</span>
         ${said}
       </label>`;

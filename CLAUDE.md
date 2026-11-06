@@ -18,6 +18,8 @@ document), admins can block someone in Settings > Users (firestore.rules allowed
   `i18n-dict.js`); Firestore access and shared live lists (`store.js`); one script per page (`home.js`, `meal.js`, `recipes.js`,
   `houses.js`, `profile.js`); shared UI (`ui.js`, `recipe-view.js`, `calendar.js`); the starter's auth and settings.
 - `firestore.rules`: every permission (data model at the top of `public/js/store.js`). Allergen ids must match `js/allergens.js`.
+  Profiles are split: `userProfiles` (name, photo: every user reads, for search) and `privateProfiles` (allergies, payment link,
+  friends: only the person and their `readers`, which their own app keeps to housemates, meal guests and friends, `js/sharing.js`).
 - `public/vendor/sel/` (or the folder in `sel.lock.json`) holds components pulled from the Shared Element Library: generated, never edit.
 
 ## Commands

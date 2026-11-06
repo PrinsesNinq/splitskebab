@@ -72,6 +72,7 @@ export async function removePerson(email) {
   const batch = writeBatch(db);
   batch.delete(doc(db, "users", email));
   batch.delete(doc(db, "userProfiles", email));
+  batch.delete(doc(db, "privateProfiles", email)); // allergies, payment link, friend list
   batch.update(doc(db, "settings", "admins"), { emails: arrayRemove(email) });
   await batch.commit();
 }

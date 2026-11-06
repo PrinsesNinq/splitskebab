@@ -1,7 +1,25 @@
 // Housemates see the house's meals (public/js/sharing.js): someone added to a house after a meal was planned gets access to it.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { missingViewers, daysBefore } from "../public/js/sharing.js";
+import { missingViewers, daysBefore, profileReaders, MAX_READERS } from "../public/js/sharing.js";
+
+test("my private profile is readable by housemates, people at my meals and friends, never a stranger", () => {
+  const circles = [{ id: "h1", members: ["me@x", "mate@x"] }];
+  const meals = [{ id: "m", date: "2026-11-10", viewers: ["me@x", "mate@x", "guest-friend@x"] }];
+  const readers = profileReaders("me@x", circles, meals, ["friend@x"]);
+  assert.deepEqual(readers, ["friend@x", "guest-friend@x", "mate@x"], "sorted, without me");
+  assert.ok(!readers.includes("stranger@x"));
+  assert.deepEqual(profileReaders("me@x", [], [], []), [], "nobody connected, nobody reads");
+});
+
+test("the reader list is capped, keeping houses and friends before old meals", () => {
+  const many = Array.from({ length: MAX_READERS + 50 }, (_, i) => `p${String(i).padStart(5, "0")}@x`);
+  const readers = profileReaders("me@x", [{ id: "h", members: ["me@x", "zz-mate@x"] }], [{ id: "m", date: "2020-01-01", viewers: many }], ["zz-friend@x"]);
+  assert.equal(readers.length, MAX_READERS);
+  assert.ok(readers.includes("zz-mate@x"), "a housemate is never dropped, whatever their name");
+  assert.ok(readers.includes("zz-friend@x"), "a friend is never dropped");
+  assert.ok(!readers.includes("me@x"));
+});
 
 const house = { id: "h1", members: ["nino@aperam.com", "nino@gmail.com"] };
 const meal = (over) => ({ id: "m1", circleId: "h1", date: "2026-11-10", viewers: ["nino@aperam.com"], ...over });

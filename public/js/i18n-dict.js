@@ -16,6 +16,8 @@ export const DICT = {
 
     "allergy.dangerTitle": "Allergy danger",
     "allergy.dangerLine": "{recipe} contains {allergens}: {name} is allergic.",
+    "allergy.hiddenNote": "You cannot see the allergies of {names} yet: they become visible once they open Splitskebab. Ask them before you cook.",
+    "allergy.hiddenTag": "Allergies not visible yet",
     "allergy.ingredientRisk": "Someone at the table is allergic to this",
     "allergy.notSafeFor": "Not safe for {names}",
     "allergy.notSafeForYou": "Contains something you are allergic to",
@@ -347,6 +349,8 @@ export const DICT = {
 
     "allergy.dangerTitle": "Gevaar: allergie",
     "allergy.dangerLine": "{recipe} bevat {allergens}: {name} is allergisch.",
+    "allergy.hiddenNote": "Je kunt de allergieën van {names} nog niet zien: die worden zichtbaar zodra diegene Splitskebab opent. Vraag het na voordat je kookt.",
+    "allergy.hiddenTag": "Allergieën nog niet zichtbaar",
     "allergy.ingredientRisk": "Iemand aan tafel is hier allergisch voor",
     "allergy.notSafeFor": "Niet veilig voor {names}",
     "allergy.notSafeForYou": "Bevat iets waar je allergisch voor bent",
