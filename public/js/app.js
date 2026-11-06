@@ -257,6 +257,8 @@ if (!configured) {
     startMealSharing(user.email.toLowerCase());
     startPrivacySync(user.email.toLowerCase());
     startUnreadCount(user.email.toLowerCase());
+    // Push notifications: keep this device's token fresh (and in the current language), when they are switched on here (js/push.js).
+    import("./push.js").then((push) => push.refreshPush(user.email.toLowerCase(), getLang())).catch((err) => console.warn("Push refresh failed:", err?.code || err?.message || err));
   };
 
   // What to show for each account status (js/auth.js accountStatus): the app, "create your account", "blocked", or "no connection".

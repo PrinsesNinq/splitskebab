@@ -217,6 +217,19 @@ service cloud.firestore {
       allow delete: if allowed() && resource.data.host == me();
     }
 
+    // Devices that get push notifications: the document id is the device's push token (js/push.js), and only its owner reads, writes
+    // or deletes it. Sending happens in functions/index.js with the server's rights, so nobody ever lists other people's devices. A
+    // device that changes hands (someone else signs in on the same phone) is taken over by its new owner, who has the token.
+    match /devices/{token} {
+      allow get, delete: if signedIn() && resource.data.owner == me();
+      allow create, update: if allowed() && token.size() <= 4096 &&
+        request.resource.data.keys().hasOnly(['owner', 'lang', 'types', 'updatedAt']) &&
+        request.resource.data.owner == me() && request.resource.data.lang in ['en', 'nl'] &&
+        request.resource.data.types is list && request.resource.data.types.size() <= 3 &&
+        request.resource.data.types.hasOnly(['messages', 'meals', 'money']) &&
+        request.resource.data.updatedAt == request.time;
+    }
+
     // Friendships: one document per pair, its id the two emails sorted and joined by "|" (so there is never a second one). Either
     // person reads it and deletes it (decline, cancel, unfriend); only the one who was asked accepts it, and accepting changes nothing
     // else. Both people must have access to Splitskebab.

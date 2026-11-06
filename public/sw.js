@@ -9,7 +9,7 @@
 // Change CACHE when the list below changes; the old cache of this worker is removed when the new one takes over (other caches on this
 // address are not ours and are left alone).
 const PREFIX = 'app-shell-';
-const CACHE = PREFIX + 'v7';
+const CACHE = PREFIX + 'v8';
 const SHELL = ['index.html', 'meal.html', 'recipes.html', 'houses.html', 'profile.html', 'person.html', 'analytics.html', 'messages.html', 'chat.html', 'settings.html', 'css/app.css', 'js/app.js', 'js/theme-mode.js', 'manifest.json', 'images/app-icon.svg', 'images/icon-192.png', 'images/icon-512.png', 'images/apple-touch-icon.png'];
 const BASE = new URL('./', self.registration.scope).pathname;
 
@@ -29,6 +29,41 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith(PREFIX) && key !== CACHE).map((key) => caches.delete(key)))));
   self.clients.claim();
+});
+
+// ---- Push notifications (sent by functions/index.js, switched on per device in js/push.js) ----
+// The messages are data-only ({ title, body, link, tag }), so this worker shows them itself: every push is shown (iPhones stop
+// delivering to an app that receives pushes without showing them), and one per chat or meal (tag) replaces the one before.
+// A link is only ever one of this app's own pages: anything else opens the calendar.
+const safeLink = (link) => (typeof link === 'string' && /^[a-z]+\.html(?:\?[\w=%.@|+-]*)?$/.test(link) ? link : 'index.html');
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch { payload = {}; }
+  const data = payload && typeof payload.data === 'object' && payload.data ? payload.data : payload; // FCM wraps it in { data }
+  const title = typeof data.title === 'string' && data.title ? data.title.slice(0, 120) : 'Splitskebab';
+  event.waitUntil(self.registration.showNotification(title, {
+    body: typeof data.body === 'string' ? data.body.slice(0, 300) : '',
+    icon: 'images/icon-192.png',
+    badge: 'images/icon-192.png',
+    tag: typeof data.tag === 'string' && data.tag ? data.tag.slice(0, 200) : undefined,
+    renotify: Boolean(data.tag),
+    data: { link: safeLink(data.link) },
+  }));
+});
+
+// A tap opens the page: in a window of the app that is already open (brought forward), or a new one.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(safeLink(event.notification.data?.link), self.registration.scope).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windows) => {
+    const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
+    if (open) {
+      await open.focus();
+      return open.navigate(url).catch(() => self.clients.openWindow(url));
+    }
+    return self.clients.openWindow(url);
+  }));
 });
 
 self.addEventListener('fetch', (event) => {

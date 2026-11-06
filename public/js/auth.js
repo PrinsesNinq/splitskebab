@@ -53,6 +53,8 @@ export async function signIn() {
 export async function signOutAndLeave() {
   forgetAccess();
   if (configured) {
+    // This device stops getting the person's notifications (while still signed in: only they may remove its document).
+    await import("./push.js").then((push) => push.disablePush()).catch(() => {});
     await fb.signOut(auth).catch(() => {});
     try {
       await store.terminate(db);

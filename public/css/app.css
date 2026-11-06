@@ -500,3 +500,10 @@
 @media (prefers-reduced-motion: reduce) {
   .circle-card__chevron { transition: none; }
 }
+
+/* Profile > Notifications: the kinds sit under the device switch, indented like its label. */
+.push-kinds {
+  margin: 0;
+  padding: 0 0 0 2.5em;
+  border: 0;
+}

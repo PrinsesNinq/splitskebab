@@ -7,6 +7,7 @@ import { people, person, saveMyProfile, saveMyIdentity, safeLink } from "./store
 import { ALLERGENS } from "./allergens.js";
 import { shrinkPhoto, safePhoto } from "./photo.js";
 import { getLang, t } from "./i18n.js";
+import { attachPushSettings } from "./push-settings.js";
 
 const user = await whenUser();
 const me = user.email.toLowerCase();
@@ -93,3 +94,4 @@ if (new URLSearchParams(location.search).get("welcome")) $("#welcome").classList
 
 stops.push(people.subscribe(() => render()));
 render();
+attachPushSettings($("#push-section"), me).catch((err) => console.warn("Notifications section:", err?.message || err));

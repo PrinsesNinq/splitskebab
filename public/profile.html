@@ -158,6 +158,33 @@
 
       <button type="submit" class="btn btn-primary w-100" id="profile-save" data-i18n="common.save">Save</button>
     </form>
+
+    <!-- Push notifications (js/push-settings.js): per device and saved at once, so outside the form and its Save button. Switches and
+         checks are Bootstrap's own markup (component "Checks, radios & switches"). -->
+    <section class="mt-4 pt-3 border-top" id="push-section">
+      <h2 class="h6" data-i18n="push.title">Notifications</h2>
+      <p class="small text-body-secondary" data-i18n="push.help">For this phone or computer: each device chooses for itself.</p>
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" role="switch" id="push-on" disabled>
+        <label class="form-check-label" for="push-on" data-i18n="push.on">Notifications on this device</label>
+      </div>
+      <fieldset class="push-kinds mt-2" id="push-kinds" hidden>
+        <legend class="visually-hidden" data-i18n="push.which">Which notifications</legend>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="push-messages" value="messages" checked>
+          <label class="form-check-label" for="push-messages" data-i18n="push.messages">New messages</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="push-meals" value="meals" checked>
+          <label class="form-check-label" for="push-meals" data-i18n="push.meals">Meal invitations, and a reminder the day before when you have not answered</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="push-money" value="money" checked>
+          <label class="form-check-label" for="push-money" data-i18n="push.money">Costs added to a meal you ate at</label>
+        </div>
+      </fieldset>
+      <p class="small text-body-secondary mt-2 mb-0" id="push-note" hidden></p>
+    </section>
   </main>
 
   <!-- This page's own script: inside #page-content, so it also runs when the page is reached by soft navigation. -->

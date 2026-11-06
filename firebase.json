@@ -45,6 +45,14 @@
       }
     ]
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22",
+      "ignore": ["node_modules", ".git", "*.log"]
+    }
+  ],
   "firestore": {
     "location": "eur3",
     "rules": "firestore.rules",
