@@ -16,9 +16,24 @@ const avatar = (p, cls = 'avatar') => (p.photoUrl
   : `<span class="${cls}" style="${cls === 'avatar' ? '--avatar-bg' : '--chip-color'}: ${colour(p.email)}">${esc(p.name.charAt(0).toUpperCase())}</span>`);
 const groupId = (name) => 'g-' + [...name].map((c) => c.charCodeAt(0).toString(36)).join('-'); // any name, as a safe id
 
+// ---- Admins only ----
+// The page shows nothing until the role is known, and someone who is not an admin (nor the bootstrap account, while there is no admin
+// yet) is sent to their profile. This is only the screen: every admin action and the admin data are refused by firestore.rules anyway.
+const pageParts = [document.querySelector('main.paper-tabs-box'), document.querySelector('sel-paper-tabs')?.closest('.container')].filter(Boolean);
+pageParts.forEach((el) => { el.hidden = true; });
+
+async function leaveForNonAdmins() {
+  const { go, toast } = await import('./ui.js');
+  const { t } = await import('./i18n.js');
+  toast(t('settings.adminsOnly'), 'warning');
+  go('profile.html');
+}
+
 // ---- Your role (General tab) ----
 async function showRole(user) {
-  const status = await adminStatus(user.email);
+  const status = await adminStatus(user.email).catch(() => ({ isAdmin: false, canBootstrap: false, hasAdmins: true }));
+  if (!status.isAdmin && !status.canBootstrap) { leaveForNonAdmins(); return; }
+  pageParts.forEach((el) => { el.hidden = false; });
   usersTab.hidden = !status.isAdmin;
   if (status.isAdmin) {
     roleBox.innerHTML = '<span class="badge text-bg-primary">Admin</span> You can manage this app: see the Users tab.';

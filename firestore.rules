@@ -74,7 +74,9 @@ service cloud.firestore {
     }
     // The admins' emails: only for invited people (anyone with a Google account can sign in, and must not see who the admins are).
     match /settings/admins {
-      allow read: if allowed();
+      // Only an admin reads the list (so nobody else learns who the admins are); anyone may see that it does not exist yet, which is how
+      // the bootstrap account knows it may become the first admin. firestore.rules' own isAdmin() reads it regardless of this rule.
+      allow read: if allowed() && (resource == null || me() in resource.data.emails);
       allow create: if isBootstrapAdmin() && !exists(/databases/$(database)/documents/settings/admins);
       allow update, delete: if isAdmin();
     }

@@ -391,6 +391,7 @@ export const DICT = {
     "tag.vegan": "Vegan",
     "tag.vegetarian": "Vegetarian",
 
+    "settings.adminsOnly": "Settings are only for admins.",
     "status.declined": "Not joining",
     "status.host": "Your meal",
     "status.invited": "Invited",
@@ -798,6 +799,7 @@ export const DICT = {
     "tag.vegan": "Vegan",
     "tag.vegetarian": "Vegetarisch",
 
+    "settings.adminsOnly": "Instellingen zijn alleen voor beheerders.",
     "status.declined": "Eet niet mee",
     "status.host": "Jouw maaltijd",
     "status.invited": "Uitgenodigd",

@@ -36,8 +36,8 @@ test("every app collection asks for an invitation, not just a sign-in", () => {
   assert.match(block("userProfiles/{email}"), /allow read: if allowed\(\);/, "profiles (allergies, payment links) only for invited people");
 });
 
-test("strangers who sign in cannot read who the admins are or the groups", () => {
-  assert.match(block("settings/admins"), /allow read: if allowed\(\);/);
+test("only admins read who the admins are; strangers cannot read the groups", () => {
+  assert.match(block("settings/admins"), /allow read: if allowed\(\) && \(resource == null \|\| me\(\) in resource\.data\.emails\);/, "only an admin (or anyone while there is no list yet)");
   assert.match(block("settings/groups"), /allow read: if allowed\(\);/);
 });
 
@@ -97,4 +97,21 @@ test("a blocked person gets nothing, and only admins block", () => {
   assert.match(rules, /function allowed\(\) \{[\s\S]*?notBlocked\(\)/, "allowed() checks the block");
   assert.match(block("blocked/{email}"), /allow write: if isAdmin\(\);/);
   assert.match(block("blocked/{email}"), /allow read: if isAdmin\(\) \|\| \(signedIn\(\) && me\(\) == email\);/, "you may see that you are blocked");
+});
+
+test("every admin action in Settings is refused to non-admins by the rules, not only hidden", () => {
+  assert.match(block("settings/admins"), /allow update, delete: if isAdmin\(\);/, "promote and demote");
+  assert.match(block("settings/admins"), /allow create: if isBootstrapAdmin\(\) && !exists/, "only the bootstrap account creates the list, once");
+  assert.match(block("settings/groups"), /allow write: if isAdmin\(\);/, "groups");
+  assert.match(block("users/{email}"), /allow update, delete: if isAdmin\(\);/, "change or remove an account");
+  assert.match(block("users/{email}"), /allow read: if isAdmin\(\) \|\| \(signedIn\(\) && me\(\) == email\);/, "the users list: admins, or only your own");
+  assert.match(block("blocked/{email}"), /allow write: if isAdmin\(\);/, "block and unblock");
+  assert.match(block("blocked/{email}"), /allow read: if isAdmin\(\) \|\| \(signedIn\(\) && me\(\) == email\);/, "the block list: admins, or only your own");
+  assert.match(block("userProfiles/{email}"), /allow delete: if isAdmin\(\);/, "delete someone's profile");
+});
+
+test("the Settings page sends non-admins away before showing anything", () => {
+  const js = fs.readFileSync(path.join(root, "public", "js", "settings.js"), "utf8");
+  assert.match(js, /pageParts\.forEach\(\(el\) => \{ el\.hidden = true; \}\);/, "hidden until the role is known");
+  assert.match(js, /if \(!status\.isAdmin && !status\.canBootstrap\) \{ leaveForNonAdmins\(\); return; \}/);
 });

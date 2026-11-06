@@ -81,7 +81,14 @@ export function forgetAccess() {
 
 /** Whether this email is in settings/admins, and whether that list exists at all yet. */
 export async function adminStatus(email) {
-  const snap = await store.getDoc(store.doc(db, "settings", "admins"));
+  let snap;
+  try {
+    snap = await store.getDoc(store.doc(db, "settings", "admins"));
+  } catch (err) {
+    // Only admins may read the list (firestore.rules): being refused means there is a list and I am not on it.
+    if (err?.code === "permission-denied") return { isAdmin: false, hasAdmins: true, canBootstrap: false };
+    throw err;
+  }
   const emails = snap.exists() ? snap.data().emails || [] : [];
   return { isAdmin: emails.includes(email.toLowerCase()), hasAdmins: snap.exists(), canBootstrap: !snap.exists() && email.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase() };
 }
