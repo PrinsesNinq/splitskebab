@@ -179,12 +179,28 @@ function startView(id) {
   function renderRsvp() {
     const joining = meal.participants.includes(me);
     const declined = meal.declined.includes(me);
-    $("#rsvp-question").textContent = joining ? t("meal.youJoin") : declined ? t("meal.youDecline") : t("meal.areYouJoining");
+    const reason = declined ? meal.declineReasons.get(me) : "";
+    $("#rsvp-question").textContent = joining ? t("meal.youJoin")
+      : declined ? (reason ? t("meal.youDeclineBecause", { reason }) : t("meal.youDecline")) : t("meal.areYouJoining");
     $("#rsvp-join").classList.toggle("btn-success", !joining);
     $("#rsvp-join").classList.toggle("btn-outline-success", joining);
     $("#rsvp-join").disabled = joining;
-    $("#rsvp-decline").disabled = declined;
+    // Already said no: the button changes (or adds) the reason instead.
+    $("#rsvp-decline-label").textContent = declined ? (reason ? t("meal.changeReason") : t("meal.addReason")) : t("meal.decline");
     $("#rsvp-bar").classList.toggle("rsvp-bar--open", !joining && !declined);
+  }
+
+  /** Opens the "want to say why?" field (with my current reason, when I gave one). */
+  function openDeclineForm() {
+    $("#decline-reason").value = meal.declined.includes(me) ? meal.declineReasons.get(me) || "" : "";
+    $("#decline-form").classList.remove("d-none");
+    $("#decline-reason").focus();
+    $("#rsvp-bar").scrollIntoView({ block: "nearest" });
+  }
+  const closeDeclineForm = () => $("#decline-form").classList.add("d-none");
+  async function sendDecline(reason) {
+    const done = await attempt(async () => { await declineMeal(id, me, reason); return true; });
+    if (done) closeDeclineForm();
   }
 
   function renderAllergies() {
@@ -209,13 +225,17 @@ function startView(id) {
     const rows = candidates().map((email) => {
       const p = person(email);
       const isIn = meal.participants.includes(email);
-      const said = meal.declined.includes(email) ? `<span class="badge text-bg-secondary">${esc(t("status.declined"))}</span>`
+      const declined = meal.declined.includes(email);
+      const said = declined ? `<span class="badge text-bg-secondary">${esc(t("status.declined"))}</span>`
         : !isIn && (meal.rsvp || meal.invited.includes(email)) ? `<span class="badge text-bg-warning">${esc(t("status.invited"))}</span>` : "";
+      // Their reason for not coming (written by them; shown as text, never as markup).
+      const reason = declined ? meal.declineReasons.get(email) : "";
       return `<label class="list-group-item d-flex align-items-center gap-2 px-0">
         <input class="form-check-input mt-0" type="checkbox" data-person="${esc(email)}" ${isIn ? "checked" : ""} aria-label="${esc(t("meal.eats", { name: p.name }))}">
         ${avatarHtml(p, "avatar avatar-sm")}
         <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}${email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
-        ${p.allergies.length ? `<span class="d-block small">${allergenBadges(p.allergies, { danger: chosenRecipe()?.allergens || [] })}</span>` : ""}</span>
+        ${p.allergies.length ? `<span class="d-block small">${allergenBadges(p.allergies, { danger: chosenRecipe()?.allergens || [] })}</span>` : ""}
+        ${reason ? `<span class="d-block small text-body-secondary decline-reason"><i class="bi bi-chat-left-quote" aria-hidden="true"></i> ${esc(reason)}</span>` : ""}</span>
         ${said}
       </label>`;
     });
@@ -384,12 +404,21 @@ function startView(id) {
 
   // ---- Wiring (once; every handler reads the latest meal) ----
   $("#rsvp-join").addEventListener("click", () => attempt(() => joinMeal(id, me)));
-  $("#rsvp-decline").addEventListener("click", () => attempt(() => declineMeal(id, me)));
+  $("#rsvp-decline").addEventListener("click", openDeclineForm);
+  $("#rsvp-join").addEventListener("click", closeDeclineForm);
+  $("#decline-form").addEventListener("submit", (e) => { e.preventDefault(); sendDecline($("#decline-reason").value); });
+  $("#decline-skip").addEventListener("click", () => sendDecline(""));
+  $("#decline-cancel").addEventListener("click", closeDeclineForm);
 
   $("#people-list").addEventListener("change", (e) => {
     const email = e.target.dataset.person;
     if (!email) return;
-    if (email === me) { attempt(() => (e.target.checked ? joinMeal(id, me) : declineMeal(id, me))); return; }
+    if (email === me) {
+      // Unticking myself is saying no: it asks for the (optional) reason first, like the button; ticking is joining.
+      if (e.target.checked) attempt(() => joinMeal(id, me));
+      else { e.target.checked = true; openDeclineForm(); }
+      return;
+    }
     const participants = new Set(meal.participants);
     if (e.target.checked) participants.add(email); else participants.delete(email);
     attempt(() => updateMeal(id, {

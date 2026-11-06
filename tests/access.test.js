@@ -64,6 +64,13 @@ test("everyone writes only their own costs for a meal, and only the payer retire
   assert.match(meals, /get\('costs', \{\}\)\.size\(\) == 0/, "a new meal starts without costs");
 });
 
+test("everyone writes only their own reason for not coming, of at most 200 characters", () => {
+  assert.match(block("meals/{id}"), /reasonsChangeOk\(request\.resource\.data, resource\.data\)/, "updates check the reasons");
+  const fn = /function reasonsChangeOk\(next, prev\) \{([\s\S]*?)\n    \}/.exec(rules)[1];
+  assert.match(fn, /n\.diff\(p\)\.affectedKeys\(\)\.hasOnly\(\[me\(\)\]\)/, "only my own reason changes");
+  assert.match(fn, /n\[me\(\)\] is string && n\[me\(\)\]\.size\(\) <= 200/);
+});
+
 test("an account is a users/ document: anyone may create their own with only the time in it, only admins change or delete it", () => {
   assert.match(rules, /function allowed\(\) \{[\s\S]*?exists\(\/databases\/\$\(database\)\/documents\/users\/\$\(me\(\)\)\)/);
   const users = block("users/{email}");

@@ -12,7 +12,8 @@
 //   friendships/{a|b}     { users: [a, b] (sorted), requester, status: "pending" | "accepted", createdAt, acceptedAt }
 //                         id is the two emails sorted and joined by "|", so a pair can only have one; both read and delete it, the other
 //                         one accepts it
-//   meals also have invited: [email], people asked to say yes or no (friends from outside the circle; with rsvp, everyone is asked)
+//   meals also have invited: [email], people asked to say yes or no (friends from outside the circle; with rsvp, everyone is asked),
+//   and declineReasons: { [email]: text }, why someone is not coming (optional, each writes only their own)
 //
 // Emails are lowercase everywhere. The live lists (people, my circles, my meals, user recipes) are started once and shared by every page:
 // with soft navigation the modules stay loaded, so switching pages shows the data at once.
@@ -129,6 +130,8 @@ export function toMeal(id, d) {
     participants: strings(d.participants),
     declined: strings(d.declined),
     invited: strings(d.invited),
+    declineReasons: new Map(d.declineReasons && typeof d.declineReasons === "object"
+      ? Object.entries(d.declineReasons).filter(([, r]) => typeof r === "string" && r.trim()).map(([e, r]) => [e, r.trim().slice(0, 200)]) : []),
     guests: Array.isArray(d.guests) ? d.guests.filter((g) => g && typeof g.id === "string" && typeof g.name === "string").map((g) => ({ id: g.id.slice(0, 40), name: g.name.trim().slice(0, 60) })) : [],
     rsvp: d.rsvp === true,
     recipe,
@@ -167,9 +170,20 @@ export async function createMeal(me, meal) {
 export const updateMeal = (id, patch) => updateDoc(doc(db, "meals", id), { ...patch, updatedAt: serverTimestamp() });
 export const deleteMeal = (id) => deleteDoc(doc(db, "meals", id));
 
-/** I join (and am no longer marked as not coming), or the other way round. */
-export const joinMeal = (id, me) => updateMeal(id, { participants: arrayUnion(me), declined: arrayRemove(me), viewers: arrayUnion(me) });
-export const declineMeal = (id, me) => updateMeal(id, { participants: arrayRemove(me), declined: arrayUnion(me) });
+export const DECLINE_REASON_MAX = 200;
+// My reason lives at declineReasons.{my email}; emails contain dots, so it is addressed with a FieldPath, not "declineReasons.x".
+const myReason = (me) => new FieldPath("declineReasons", me);
+
+/** I join: no longer marked as not coming, and my reason for not coming goes. */
+export const joinMeal = (id, me) => updateDoc(doc(db, "meals", id),
+  "participants", arrayUnion(me), "declined", arrayRemove(me), "viewers", arrayUnion(me), myReason(me), deleteField(), "updatedAt", serverTimestamp());
+
+/** I am not coming, with an optional reason everyone at the table sees (only mine is written: firestore.rules). */
+export function declineMeal(id, me, reason = "") {
+  const text = String(reason || "").trim().slice(0, DECLINE_REASON_MAX);
+  return updateDoc(doc(db, "meals", id),
+    "participants", arrayRemove(me), "declined", arrayUnion(me), myReason(me), text || deleteField(), "updatedAt", serverTimestamp());
+}
 export const setHave = (id, key, has) => updateMeal(id, { have: has ? arrayUnion(key) : arrayRemove(key) });
 /** Marks the payment from one person to another as paid (or not): settled holds "from>to" (money.js settleKey). */
 export const setSettled = (id, from, to, paid) => updateMeal(id, { settled: paid ? arrayUnion(settleKey(from, to)) : arrayRemove(settleKey(from, to)) });

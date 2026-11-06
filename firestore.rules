@@ -127,8 +127,9 @@ service cloud.firestore {
     // who joins, the recipe, the groceries and the cost. The host, the circle and the creation time never change; only the host deletes.
     function validMeal(d) {
       return d.keys().hasOnly(['title', 'date', 'time', 'circleId', 'circleName', 'host', 'viewers', 'participants', 'declined', 'invited',
-          'guests', 'rsvp', 'recipe', 'servings', 'have', 'cost', 'costs', 'settled', 'createdAt', 'updatedAt']) &&
+          'guests', 'rsvp', 'recipe', 'servings', 'have', 'cost', 'costs', 'settled', 'declineReasons', 'createdAt', 'updatedAt']) &&
         (!('costs' in d) || (d.costs is map && d.costs.size() <= 100)) &&
+        (!('declineReasons' in d) || (d.declineReasons is map && d.declineReasons.size() <= 100)) &&
         (!('invited' in d) || (d.invited is list && d.invited.size() <= 100)) &&
         d.title is string && d.title.size() <= 80 &&
         d.date is string && d.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}') &&
@@ -157,6 +158,13 @@ service cloud.firestore {
       return n.diff(p).affectedKeys().hasOnly([me()]) &&
         (!(me() in n) || (n[me()] is int && n[me()] > 0 && n[me()] <= 10000000));
     }
+    // Why someone is not coming: everyone writes only their own reason (declineReasons.{their email}), text of at most 200 characters.
+    function reasonsChangeOk(next, prev) {
+      let n = next.get('declineReasons', {});
+      let p = prev.get('declineReasons', {});
+      return n.diff(p).affectedKeys().hasOnly([me()]) &&
+        (!(me() in n) || (n[me()] is string && n[me()].size() <= 200));
+    }
     function legacyCostOk(next, prev) {
       return next.get('cost', null) == prev.get('cost', null) ||
         (next.get('cost', null) == null && prev.cost.paidBy == me());
@@ -174,6 +182,7 @@ service cloud.firestore {
         request.resource.data.circleId == resource.data.circleId &&
         request.resource.data.createdAt == resource.data.createdAt &&
         costsChangeOk(request.resource.data, resource.data) &&
+        reasonsChangeOk(request.resource.data, resource.data) &&
         legacyCostOk(request.resource.data, resource.data);
       allow delete: if allowed() && resource.data.host == me();
     }

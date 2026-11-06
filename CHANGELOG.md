@@ -17,3 +17,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Several people can add costs to one meal (each their own); the split works out who pays whom, in as few payments as possible
 - Fixed: the app no longer starts blank or with an empty calendar on a phone; data is kept on the device and shows at once
 - Anyone with a Google account can create their own account; admins can block someone
+- Saying you will not join a dinner can come with a reason, shown to everyone at the table

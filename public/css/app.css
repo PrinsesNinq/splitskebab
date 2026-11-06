@@ -345,6 +345,10 @@
 }
 
 /* ---- Meal page ---- */
+.decline-reason {
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
 .rsvp-bar--open {
   border: 2px solid var(--bs-warning);
 }
