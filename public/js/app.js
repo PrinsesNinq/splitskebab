@@ -6,7 +6,7 @@
 // person is invited to and has not answered yet.
 import "./pwa.js"; // installable app: the service worker and the navbar's Install button
 import { configured } from "./firebase-init.js";
-import { requireUser, signOutAndLeave, hasAccess, adminStatus } from "./auth.js";
+import { requireUser, signOutAndLeave, hasAccess, adminStatus, rememberedAccess, rememberAccess, forgetAccess } from "./auth.js";
 import { applyI18n, getLang, setLang, t, formatDay } from "./i18n.js";
 import { addNotification } from "../vendor/sel/elements/notification-bell.js";
 
@@ -49,6 +49,16 @@ function showNotInvited(user) {
   content.querySelector("#not-invited-out").textContent = t("nav.signOut");
   content.querySelector("#not-invited-out").addEventListener("click", signOutAndLeave);
   document.querySelector("#nav")?.setAttribute("hidden", "");
+}
+
+/** The first start on a device needs the server once (is this person invited?); without a connection, say so and offer to retry. */
+function showNoConnection() {
+  const content = document.querySelector("#page-content");
+  content.innerHTML = `<main class="container main-container not-invited"><h1 class="h4"></h1><p></p><button type="button" class="btn btn-primary" id="retry-btn"></button></main>`;
+  content.querySelector("h1").textContent = t("access.offlineTitle");
+  content.querySelector("p").textContent = t("access.offlineBody");
+  content.querySelector("#retry-btn").textContent = t("access.retry");
+  content.querySelector("#retry-btn").addEventListener("click", () => location.reload());
 }
 
 // ---- Notifications: meals I am invited to and have not answered, and friend requests ----
@@ -129,15 +139,28 @@ if (!configured) {
   document.querySelector("#current-user-email").textContent = user.email;
   document.querySelector("#current-user-initial").textContent = (user.displayName || user.email).charAt(0).toUpperCase();
   document.querySelector("#nav-sign-out-btn").addEventListener("click", signOutAndLeave);
-  if (!(await hasAccess(user.email))) {
-    showNotInvited(user);
-    show();
-  } else {
+
+  let started = false;
+  const start = () => {
+    if (started) return;
+    started = true;
     show();
     adminStatus(user.email).then((s) => { document.querySelector("#nav-settings-item")?.toggleAttribute("hidden", !s.isAdmin && !s.canBootstrap); }).catch(() => {});
     window.appUser = user; // for page scripts that start after this event (a page reached by soft navigation)
     document.dispatchEvent(new CustomEvent("app:user", { detail: { user } }));
     startInvites(user.email.toLowerCase());
     startMealSharing(user.email.toLowerCase());
+  };
+
+  if (rememberedAccess(user.email)) {
+    // Let in on this device before: start at once (the data comes from the offline copy), and check again in the background.
+    start();
+    hasAccess(user.email).then((ok) => {
+      if (ok === false) { forgetAccess(); showNotInvited(user); }
+    });
+  } else {
+    // The first time on this device: wait for the answer (it is remembered after).
+    const ok = await hasAccess(user.email);
+    if (ok) { rememberAccess(user.email); start(); } else if (ok === false) { showNotInvited(user); show(); } else { showNoConnection(); show(); }
   }
 }

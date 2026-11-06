@@ -40,9 +40,37 @@ export async function signIn() {
   return user;
 }
 
+/**
+ * Signs out and leaves nothing of this person on the device: the remembered invitation and Firestore's offline copy of their data
+ * (js/firebase-init.js) are wiped, so the next person on a shared phone starts clean.
+ */
 export async function signOutAndLeave() {
-  if (configured) await fb.signOut(auth);
+  forgetAccess();
+  if (configured) {
+    await fb.signOut(auth).catch(() => {});
+    try {
+      await store.terminate(db);
+      await store.clearIndexedDbPersistence(db);
+    } catch (err) {
+      console.warn("Could not wipe the offline copy:", err?.message || err); // another tab still has it open; it goes with the next sign-out
+    }
+  }
   location.replace("login.html");
+}
+
+// ---- Remembered invitation ----
+// Whether this person was let in, remembered on this device after the first check, so the app does not wait for two server reads
+// before every start (on a phone those can take many seconds). js/app.js checks again in the background each time and forgets it
+// when the admin took the access away. It only spares the waiting: firestore.rules decide what anyone can read.
+const ACCESS_KEY = "access-ok";
+export function rememberedAccess(email) {
+  try { return localStorage.getItem(ACCESS_KEY) === email.toLowerCase(); } catch { return false; }
+}
+export function rememberAccess(email) {
+  try { localStorage.setItem(ACCESS_KEY, email.toLowerCase()); } catch { /* checked again next time */ }
+}
+export function forgetAccess() {
+  try { localStorage.removeItem(ACCESS_KEY); } catch { /* nothing to forget */ }
 }
 
 /** Whether this email is in settings/admins, and whether that list exists at all yet. */
@@ -54,14 +82,26 @@ export async function adminStatus(email) {
 
 /**
  * Whether this person may use the app: an admin added them (Settings > Users, a users/{email} document), or they are an admin, or the
- * bootstrap account. The domain alone is not enough. firestore.rules (allowed()) enforces the same; this is only so the page can say so.
+ * bootstrap account. firestore.rules (allowed()) enforces the same; this is only so the page can say so. Returns true, false, or null
+ * when it could not be checked (no connection): js/app.js then keeps what it remembered, and never shuts someone out on a bad network.
  */
 export async function hasAccess(email) {
   const me = email.toLowerCase();
   if (me === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()) return true;
-  const own = await store.getDoc(store.doc(db, "users", me)).catch(() => null);
-  if (own?.exists()) return true;
-  return (await adminStatus(me).catch(() => ({ isAdmin: false }))).isAdmin;
+  // From the server, never the offline copy: "no document" must mean "not invited", not "not downloaded yet".
+  let own;
+  try {
+    own = await store.getDocFromServer(store.doc(db, "users", me));
+  } catch {
+    return null; // offline or the server did not answer: do not decide
+  }
+  if (own.exists()) return true;
+  try {
+    const admins = await store.getDocFromServer(store.doc(db, "settings", "admins"));
+    return admins.exists() && (admins.data().emails || []).includes(me);
+  } catch (err) {
+    return err?.code === "permission-denied" ? false : null; // not invited people may not read the admin list (firestore.rules)
+  }
 }
 
 /** Creates the admin list with this one account in it: only the bootstrap account may, and only once (firestore.rules). */

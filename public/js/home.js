@@ -1,4 +1,4 @@
-﻿// The calendar page: every meal I can see on a month calendar (or as a list), the meals of the day I tap below it, and what is coming up.
+// The calendar page: every meal I can see on a month calendar (or as a list), the meals of the day I tap below it, and what is coming up.
 // A meal I am invited to and have not answered is marked; tapping a meal opens it (meal.html).
 import { whenUser, esc, colour, onLeave, todayIso, go, avatarStackHtml } from "./ui.js";
 import { myMeals, myCircles, people, person } from "./store.js";
@@ -6,8 +6,8 @@ import { createCalendar, rememberView } from "./calendar.js";
 import { getLang, t, formatDay } from "./i18n.js";
 import { formatMoney, mealDebts } from "./money.js";
 
-const user = await whenUser();
-const me = user.email.toLowerCase();
+// Who I am arrives from js/app.js (whenUser); the calendar is drawn before that, so the page is never empty while it waits.
+let me = null;
 const lang = getLang();
 const $ = (sel) => document.querySelector(sel);
 
@@ -100,22 +100,6 @@ onLeave(() => {
   calendar?.destroy();
 });
 
-stops.push(myMeals(me).subscribe((list, err) => {
-  if (err) { $("#cal-error").textContent = t("error.load"); $("#cal-error").classList.remove("d-none"); return; }
-  meals = list;
-  calendar?.refetchEvents();
-  renderDay();
-  renderUpcoming();
-}));
-stops.push(myCircles(me).subscribe((circles) => {
-  if (!circles) return;
-  $("#no-circle").classList.toggle("d-none", circles.length > 0);
-}));
-// Names and photos arrive separately: redraw the lists when they do.
-stops.push(people.subscribe(() => { renderDay(); renderUpcoming(); }));
-
-
-
 $("#cal-today").addEventListener("click", () => { selected = todayIso(); calendar?.today(); renderDay(); });
 $("#cal-prev").addEventListener("click", () => calendar?.prev());
 $("#cal-next").addEventListener("click", () => calendar?.next());
@@ -134,26 +118,44 @@ for (const b of document.querySelectorAll("[data-view]")) {
   b.addEventListener("click", () => { rememberView(b.dataset.view); calendar?.changeView(b.dataset.view); });
 }
 
-try {
-  calendar = await createCalendar($("#calendar"), {
-    lang,
-    events,
-    initialDate: selected,
-    onDay(day) { selected = day; renderDay(); },
-    onMeal(id) { go(`meal.html?id=${encodeURIComponent(id)}`); },
-  });
-  if (leaving) {
-    calendar.destroy();
-    calendar = null;
-  } else {
-    calendar.on("datesSet", syncTitle);
-    syncTitle();
-  }
-} catch (err) {
+// The calendar starts loading now, in parallel with signing in: its grid shows at once, the meals fill in when they arrive.
+const calendarReady = createCalendar($("#calendar"), {
+  lang,
+  events,
+  initialDate: selected,
+  onDay(day) { selected = day; renderDay(); },
+  onMeal(id) { go(`meal.html?id=${encodeURIComponent(id)}`); },
+}).then((cal) => {
+  if (leaving) { cal.destroy(); return; }
+  calendar = cal;
+  calendar.on("datesSet", syncTitle);
+  syncTitle();
+  calendar.refetchEvents(); // the meals may have arrived while it loaded
+}).catch((err) => {
   console.error(err);
   $("#cal-error").textContent = err.message;
   $("#cal-error").classList.remove("d-none");
-}
+});
 
-renderDay();
-renderUpcoming();
+$("#day-title").textContent = formatDay(selected, { weekday: "long" });
+
+const user = await whenUser();
+if (!leaving) {
+  me = user.email.toLowerCase();
+  stops.push(myMeals(me).subscribe((list, err) => {
+    if (err) { $("#cal-error").textContent = t("error.load"); $("#cal-error").classList.remove("d-none"); return; }
+    meals = list;
+    calendar?.refetchEvents();
+    renderDay();
+    renderUpcoming();
+  }));
+  stops.push(myCircles(me).subscribe((circles) => {
+    if (!circles) return;
+    $("#no-circle").classList.toggle("d-none", circles.length > 0);
+  }));
+  // Names and photos arrive separately: redraw the lists when they do.
+  stops.push(people.subscribe(() => { renderDay(); renderUpcoming(); }));
+  renderDay();
+  renderUpcoming();
+}
+await calendarReady;

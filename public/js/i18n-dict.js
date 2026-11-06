@@ -2,6 +2,9 @@
 // tests/i18n.test.js fails on a key that a page uses but one of them lacks.
 export const DICT = {
   en: {
+    "access.offlineBody": "Splitskebab needs the internet once on this device to check you were invited. Check your connection and try again.",
+    "access.offlineTitle": "No connection",
+    "access.retry": "Try again",
     "access.title": "You are not on the list yet",
     "access.body": "Splitskebab is invite-only for now. Ask the admin to add {email} in Settings, then sign in again.",
 
@@ -296,6 +299,9 @@ export const DICT = {
   },
 
   nl: {
+    "access.offlineBody": "Splitskebab heeft op dit apparaat één keer internet nodig om te controleren of je bent uitgenodigd. Controleer je verbinding en probeer het opnieuw.",
+    "access.offlineTitle": "Geen verbinding",
+    "access.retry": "Opnieuw proberen",
     "access.title": "Je staat nog niet op de lijst",
     "access.body": "Splitskebab is voorlopig alleen op uitnodiging. Vraag de beheerder om {email} toe te voegen in Instellingen en log daarna opnieuw in.",
 
