@@ -28,6 +28,7 @@ document), admins can block someone in Settings > Users (firestore.rules allowed
 npm install               # first time
 npm test                  # unit tests (node:test): money, recipes, translations, rules/allergen and CDN-pin checks
 firebase deploy           # this folder's Firebase account is the Gmail owner (firebase login:use)
+                          # first bump APP_VERSION in public/js/version.js AND public/version.json: open apps reload to it
 npm run sel:check         # are the pulled components and rules current?
 ```
 

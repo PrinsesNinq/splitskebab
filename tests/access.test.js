@@ -67,7 +67,9 @@ test("everyone writes only their own costs for a meal, and only the payer retire
 test("the public profile holds only a name and a photo; allergies, payment link and friends are private", () => {
   assert.match(block("userProfiles/{email}"), /keys\(\)\.hasOnly\(\['displayName', 'photoUrl'\]\)/);
   const priv = block("privateProfiles/{email}");
-  assert.match(priv, /allow read: if allowed\(\) && \(me\(\) == email \|\| me\(\) in resource\.data\.readers\);/, "only me and my readers");
+  assert.match(priv, /allow get: if allowed\(\) && \(me\(\) == email \|\| me\(\) in resource\.data\.readers\);/, "only me and my readers");
+  assert.match(priv, /allow list: if allowed\(\) && me\(\) in resource\.data\.readers;/, "the query only by the readers condition it can prove");
+  assert.ok(!/allow read:/.test(priv), "no combined read rule: an id condition cannot be proven for a query");
   assert.match(priv, /allow create, update: if allowed\(\) && me\(\) == email &&/, "only I write mine (and so only I decide who reads it)");
   assert.match(priv, /hasOnly\(\['allergies', 'paymentLink', 'friends', 'readers'\]\)/);
   assert.match(rules, /d\.readers is list && d\.readers\.size\(\) <= 1500/, "the readers list is capped as in js/sharing.js");

@@ -115,7 +115,11 @@ service cloud.firestore {
     // housemates, people at their meals and their friends, kept up to date by their own app (js/app.js, js/sharing.js profileReaders).
     // A stranger who registers sees names and photos, nothing more. Each person writes only their own.
     match /privateProfiles/{email} {
-      allow read: if allowed() && (me() == email || me() in resource.data.readers);
+      // One profile: mine, or one that lists me as a reader. The list (the app's "every profile that lists me" query) only by the
+      // readers condition, which the query's own filter (readers array-contains me) proves: a condition on the document's id cannot
+      // be proven for a query, and would make Firestore refuse the whole list.
+      allow get: if allowed() && (me() == email || me() in resource.data.readers);
+      allow list: if allowed() && me() in resource.data.readers;
       allow create, update: if allowed() && me() == email &&
         request.resource.data.keys().hasOnly(['allergies', 'paymentLink', 'friends', 'readers']) && validPrivateProfile(request.resource.data);
       allow delete: if isAdmin() || (allowed() && me() == email);

@@ -10,11 +10,12 @@ import { requireUser, signOutAndLeave, accountStatus, register, adminStatus, rem
 import { applyI18n, getLang, setLang, t, formatDay } from "./i18n.js";
 import { addNotification } from "../vendor/sel/elements/notification-bell.js";
 import * as peopleStore from "./store.js";
+import { APP_VERSION } from "./version.js";
 
-// Marks the bottom bar's link of the current page as active (a meal belongs to the calendar).
+// Marks the bottom bar's link of the current page as active (a meal belongs to the calendar, someone's profile to Houses).
 function markCurrentPage() {
   const here = location.pathname.split("/").pop() || "index.html";
-  const page = here === "meal.html" ? "index.html" : here;
+  const page = here === "meal.html" ? "index.html" : here === "person.html" ? "houses.html" : here;
   for (const link of document.querySelectorAll("#nav .nav-link")) {
     const current = link.getAttribute("href") === page;
     link.classList.toggle("active", current);
@@ -26,6 +27,23 @@ function markCurrentPage() {
 function markLanguage() {
   for (const button of document.querySelectorAll("[data-lang]")) button.classList.toggle("active", button.dataset.lang === getLang());
 }
+
+// ---- A newer version is live: reload (an app left open on a phone must not run old code against new security rules) ----
+const RELOADED_KEY = "reloaded-for";
+async function checkVersion() {
+  try {
+    const res = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const { version } = await res.json();
+    if (typeof version !== "string" || version === APP_VERSION) return;
+    // Once per new version: if the reload still brings the old code (a cache in between), do not loop.
+    if (sessionStorage.getItem(RELOADED_KEY) === version) return;
+    sessionStorage.setItem(RELOADED_KEY, version);
+    location.reload();
+  } catch { /* offline: try again next time */ }
+}
+checkVersion();
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkVersion(); });
 
 applyI18n();
 markCurrentPage();

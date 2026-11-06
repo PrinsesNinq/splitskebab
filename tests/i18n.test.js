@@ -58,6 +58,12 @@ test("the allergen ids are the ones firestore.rules accepts", () => {
   assert.deepEqual(listed[1].split(",").map((s) => s.trim().replace(/'/g, "")), ALLERGEN_IDS);
 });
 
+test("the app's version matches the deployed version.json (bump both with every deploy)", async () => {
+  const { APP_VERSION } = await import("../public/js/version.js");
+  const deployed = JSON.parse(fs.readFileSync(path.join(pub, "version.json"), "utf8")).version;
+  assert.equal(deployed, APP_VERSION);
+});
+
 test("calendar styles target FullCalendar's own element", () => {
   // FullCalendar adds its "fc" class to the element it is created on (#calendar.cal-host), so ".cal-host .fc" (an fc inside it)
   // matches nothing: that once left the whole calendar unstyled.

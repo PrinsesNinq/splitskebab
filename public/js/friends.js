@@ -16,7 +16,7 @@ export function startFriends(me, stops) {
     const p = person(f.other);
     return `<li class="list-group-item d-flex align-items-center gap-2" data-friendship="${esc(f.id)}">
       ${avatarHtml(p, "avatar avatar-sm")}
-      <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}</span>
+      <span class="flex-grow-1 min-w-0"><a class="d-block text-truncate person-link" href="person.html?email=${encodeURIComponent(f.other)}">${esc(p.name)}</a>
         <span class="d-block small text-body-secondary text-truncate">${esc(f.other)}</span>
         ${p.allergies.length ? `<span class="d-block small">${allergenBadges(p.allergies)}</span>` : ""}</span>
       ${actions}
@@ -78,7 +78,7 @@ export function startFriends(me, stops) {
 
   const personRow = (p, detail) => `<li class="list-group-item d-flex align-items-center gap-2">
       ${avatarHtml(p, "avatar avatar-sm")}
-      <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}</span>
+      <span class="flex-grow-1 min-w-0"><a class="d-block text-truncate person-link" href="person.html?email=${encodeURIComponent(p.email)}">${esc(p.name)}</a>
         <span class="d-block small text-body-secondary text-truncate">${detail}</span></span>
       ${personAction(p.email)}
     </li>`;
