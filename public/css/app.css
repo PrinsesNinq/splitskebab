@@ -201,13 +201,13 @@
 .cal-host.fc .fc-col-header-cell,
 .cal-host.fc .fc-scrollgrid-section-header > td,
 .cal-host.fc .fc-scrollgrid-section-header > th { border: 0 !important; }
-/* The day header band, as in the ATLAS screenshot in both modes: deep purple, rounded, the gradient as a 4px line along its top, light
-   weekday letters. (ATLAS's light mode had a white band; Splitskebab keeps the dark one everywhere.) */
+/* The day header band, as in ATLAS: rounded, the gradient as a 4px line along its top. Light and translucent with purple weekday
+   letters in light mode, dark with light letters in dark mode. */
 .cal-host.fc .fc-scrollgrid-section-header > * {
-  --cal-band-bg: color-mix(in srgb, var(--bs-primary) 55%, #12041a);
+  --cal-band-bg: rgba(255, 255, 255, 0.6);
   background: var(--cal-band) top / 100% 4px no-repeat, var(--cal-band-bg);
   border-radius: 0.75rem;
-  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.18);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
@@ -232,9 +232,10 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--cal-accent);
   text-decoration: none;
 }
+[data-bs-theme="dark"] .gc-dow { color: rgba(255, 255, 255, 0.88); }
 
 /* Day cells: the number top right, other months dimmed, today in a filled circle of the accent colour. */
 .cal-host.fc .fc-daygrid-day { cursor: pointer; }
@@ -270,10 +271,11 @@
 /* List view: the same band look for the day headers. */
 .cal-host.fc .fc-list { border: 0; }
 .cal-host.fc .fc-list-day-cushion {
-  background: var(--cal-band) top / 100% 3px no-repeat, color-mix(in srgb, var(--bs-primary) 55%, #12041a);
+  background: var(--cal-band) top / 100% 3px no-repeat, rgba(255, 255, 255, 0.6);
   border-radius: 0.5rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--bs-body-color);
 }
+[data-bs-theme="dark"] .cal-host.fc .fc-list-day-cushion { color: rgba(255, 255, 255, 0.9); }
 [data-bs-theme="dark"] .cal-host.fc .fc-list-day-cushion {
   background: var(--cal-band) top / 100% 3px no-repeat, rgba(0, 0, 0, 0.3);
 }
