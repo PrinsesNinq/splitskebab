@@ -507,3 +507,46 @@
   padding: 0 0 0 2.5em;
   border: 0;
 }
+
+/* The install page on phones that opened the app in the browser (js/install-gate.js): covers everything, above the navbar and dialogs. */
+.install-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background: var(--bs-body-bg);
+}
+.install-gate__card {
+  width: 100%;
+  max-width: 24rem;
+  text-align: center;
+}
+.install-gate__logo {
+  border-radius: 1.25rem;
+  margin-bottom: 1rem;
+}
+.install-gate__steps {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  text-align: start;
+}
+.install-gate__step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+}
+.install-gate__icon {
+  flex: none;
+  font-size: 1.5rem;
+  color: var(--bs-primary);
+}
+.install-gate h1:focus { outline: none; }
