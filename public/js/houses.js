@@ -154,7 +154,7 @@ $("#circles").addEventListener("click", async (e) => {
     // Every open share between the two of them in this house's meals, both ways: the netted line is what was paid.
     const writes = [];
     for (const m of meals.filter((x) => x.circleId === circle.id)) {
-      for (const d of mealDebts(m)) if (!d.settled && ((d.from === a && d.to === b) || (d.from === b && d.to === a))) writes.push(() => setSettled(m.id, d.from, true));
+      for (const d of mealDebts(m)) if (!d.settled && ((d.from === a && d.to === b) || (d.from === b && d.to === a))) writes.push(() => setSettled(m.id, d.from, d.to, true));
     }
     await attempt(async () => { for (const w of writes) await w(); }, t("houses.settled"));
   }

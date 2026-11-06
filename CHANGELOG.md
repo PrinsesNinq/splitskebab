@@ -14,3 +14,4 @@ All notable changes are kept here in Keep a Changelog format.
 - 102 built-in recipes in English and Dutch, with filters: quick, vegetarian, vegan, budget, big group
 - Planning a meal: recipe and costs are clearly optional and can be added later; a Done button takes you back
 - Fixed: someone added to a house now also sees the meals planned before they joined
+- Several people can add costs to one meal (each their own); the split works out who pays whom, in as few payments as possible

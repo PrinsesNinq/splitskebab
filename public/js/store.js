@@ -5,7 +5,8 @@
 //   circles/{id}          { name, type: "house" | "group", members: [email], owner, createdAt }   members read and change, the owner deletes
 //   meals/{id}            { title, date "YYYY-MM-DD", time "HH:MM", circleId, circleName, host, viewers: [email], participants: [email],
 //                           declined: [email], guests: [{ id, name }], rsvp, recipe: { source, id } | null, servings, have: [key],
-//                           cost: { totalCents, paidBy } | null, settled: [eater id], createdAt, updatedAt }
+//                           costs: { [email]: cents } (each payer only writes their own), settled: ["from>to"], createdAt, updatedAt }
+//                         (older meals have cost: { totalCents, paidBy } and settled: [eater id]; money.js readCosts() reads both)
 //                         viewers (the circle's members when it was planned, plus anyone added) read and change it, the host deletes it
 //   recipes/{id}          { name, servings, minutes, ingredients: [{ name, qty, unit }], allergens, steps, owner, createdAt }
 //   friendships/{a|b}     { users: [a, b] (sorted), requester, status: "pending" | "accepted", createdAt, acceptedAt }
@@ -18,10 +19,12 @@
 import { SDK, db } from "./firebase-init.js";
 import { cleanAllergens } from "./allergens.js";
 import { missingViewers } from "./sharing.js";
+import { readCosts, settleKey } from "./money.js";
 
 const fs = await import(`${SDK}/firebase-firestore.js`);
 const {
   collection, doc, onSnapshot, query, where, orderBy, limit, addDoc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, serverTimestamp,
+  FieldPath, deleteField,
 } = fs;
 
 const text = (v, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -109,8 +112,9 @@ const TIME = /^\d{2}:\d{2}$/;
 
 /** A stored meal, checked field by field (every viewer can write it, so nothing in it is trusted). */
 export function toMeal(id, d) {
-  const cost = d.cost && Number.isInteger(d.cost.totalCents) && d.cost.totalCents > 0 && typeof d.cost.paidBy === "string"
-    ? { totalCents: d.cost.totalCents, paidBy: d.cost.paidBy } : null;
+  const { costs, settled } = readCosts(d);
+  // The older one-payer cost, kept apart only so its payer can retire it when they write their own entry (setMyCost).
+  const legacyPayer = d.cost && typeof d.cost.paidBy === "string" ? d.cost.paidBy : null;
   const recipe = d.recipe && (d.recipe.source === "builtin" || d.recipe.source === "user") && typeof d.recipe.id === "string"
     ? { source: d.recipe.source, id: d.recipe.id } : null;
   return {
@@ -130,8 +134,9 @@ export function toMeal(id, d) {
     recipe,
     servings: Number.isInteger(d.servings) && d.servings > 0 ? Math.min(d.servings, 50) : null,
     have: strings(d.have),
-    cost,
-    settled: strings(d.settled),
+    costs,
+    settledPairs: settled,
+    legacyPayer,
   };
 }
 
@@ -154,7 +159,7 @@ export function watchMeal(id, cb) {
 
 export async function createMeal(me, meal) {
   const ref = await addDoc(collection(db, "meals"), {
-    invited: [], ...meal, host: me, have: [], cost: null, settled: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    invited: [], ...meal, host: me, have: [], costs: {}, settled: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
   });
   return ref.id;
 }
@@ -166,7 +171,18 @@ export const deleteMeal = (id) => deleteDoc(doc(db, "meals", id));
 export const joinMeal = (id, me) => updateMeal(id, { participants: arrayUnion(me), declined: arrayRemove(me), viewers: arrayUnion(me) });
 export const declineMeal = (id, me) => updateMeal(id, { participants: arrayRemove(me), declined: arrayUnion(me) });
 export const setHave = (id, key, has) => updateMeal(id, { have: has ? arrayUnion(key) : arrayRemove(key) });
-export const setSettled = (id, eater, paid) => updateMeal(id, { settled: paid ? arrayUnion(eater) : arrayRemove(eater) });
+/** Marks the payment from one person to another as paid (or not): settled holds "from>to" (money.js settleKey). */
+export const setSettled = (id, from, to, paid) => updateMeal(id, { settled: paid ? arrayUnion(settleKey(from, to)) : arrayRemove(settleKey(from, to)) });
+
+/**
+ * My own costs for a meal (cents), or null to take them away. Only my entry is written: everyone adds their own receipt, and
+ * firestore.rules refuses a change to someone else's. Emails contain dots, so the field is addressed with a FieldPath, not "costs.x".
+ * If I paid an older meal's one-payer cost, writing mine retires it (my entry replaces it).
+ */
+export function setMyCost(meal, me, cents) {
+  const extra = meal.legacyPayer === me ? ["cost", null] : [];
+  return updateDoc(doc(db, "meals", meal.id), new FieldPath("costs", me), cents == null ? deleteField() : cents, "updatedAt", serverTimestamp(), ...extra);
+}
 /**
  * Gives everyone in a house or group access to its meals, also the ones planned before they joined. A meal is only readable by its
  * viewers (firestore.rules), and viewers is filled in when the meal is planned: without this, someone added to the house later sees

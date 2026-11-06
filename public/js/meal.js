@@ -6,11 +6,11 @@ import {
 } from "./ui.js";
 import {
   myCircles, people, person, watchMeal, createMeal, updateMeal, deleteMeal, joinMeal, declineMeal, setHave, setSettled, userRecipes,
-  myFriendships, friendEmails, inviteToMeal,
+  myFriendships, friendEmails, inviteToMeal, setMyCost,
 } from "./store.js";
 import { allRecipes, findRecipe, parseRecipeRef, ingredientHtml, ingredientText, getPantry } from "./recipe-view.js";
 import { groceryList, allergyConflicts, tableAllergies, rankByPantry, groceryKey } from "./recipe-logic.js";
-import { parseMoney, formatMoney, mealDebts, mealShares, eaters, guestId } from "./money.js";
+import { parseMoney, formatMoney, mealDebts, mealShares, mealTotal, eaters, guestId, settleKey } from "./money.js";
 import { allergenLabel } from "./allergens.js";
 import { getLang, t, formatDay } from "./i18n.js";
 
@@ -291,52 +291,57 @@ function startView(id) {
 
   function renderCost() {
     const ids = eaters(meal);
-    const payerOptions = [...new Set([...meal.participants, me])];
-    const payer = $("#cost-payer");
-    const current = meal.cost?.paidBy || payer.value || me;
-    payer.innerHTML = payerOptions.map((email) => `<option value="${esc(email)}">${esc(person(email).name)}</option>`).join("");
-    payer.value = payerOptions.includes(current) ? current : me;
-    if (meal.cost && document.activeElement !== $("#cost-total")) {
-      $("#cost-total").value = (meal.cost.totalCents / 100).toFixed(2).replace(".", lang === "nl" ? "," : ".");
-    }
-    $("#cost-clear").classList.toggle("d-none", !meal.cost);
-    // Without a cost the form stays folded behind "Add costs": the costs come after the shopping, not when planning.
-    const showForm = Boolean(meal.cost) || costFormOpen;
-    $("#cost-form").classList.toggle("d-none", !showForm);
-    $("#cost-empty").classList.toggle("d-none", showForm);
-    if (!meal.cost) {
-      $("#split-box").innerHTML = "";
-      return;
-    }
-    const shares = mealShares(meal);
-    const debts = mealDebts(meal);
-    const payerPerson = person(meal.cost.paidBy);
+    const mine = meal.costs.get(me);
     const guestName = (eid) => meal.guests.find((g) => guestId(g) === eid)?.name || "?";
     const nameOf = (eid) => (eid.startsWith("guest:") ? guestName(eid) : person(eid).name);
-    const ownShare = shares.get(meal.cost.paidBy);
+
+    // Who paid what: one line per person who added costs; mine can be changed.
+    $("#cost-list").innerHTML = [...meal.costs].sort(([a], [b]) => nameOf(a).localeCompare(nameOf(b))).map(([email, cents]) => `
+      <li class="list-group-item d-flex align-items-center gap-2 px-0">
+        ${avatarHtml(person(email), "avatar avatar-sm")}
+        <span class="flex-grow-1 min-w-0 text-truncate">${esc(t("pay.paidAmount", { name: nameOf(email) }))}${email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
+        <strong>${esc(formatMoney(cents, lang))}</strong>
+        ${email === me ? `<button type="button" class="btn btn-sm btn-link p-0" id="cost-edit" aria-label="${esc(t("common.edit"))}"><i class="bi bi-pencil" aria-hidden="true"></i></button>` : ""}
+      </li>`).join("");
+
+    // The form is folded behind a button until it is needed: the costs come after the shopping, not when planning.
+    if (mine && document.activeElement !== $("#cost-total") && !costFormOpen) $("#cost-total").value = (mine / 100).toFixed(2).replace(".", lang === "nl" ? "," : ".");
+    $("#cost-clear").classList.toggle("d-none", !mine);
+    $("#cost-form").classList.toggle("d-none", !costFormOpen);
+    $("#cost-empty").classList.toggle("d-none", costFormOpen || Boolean(mine));
+    $("#cost-empty-text").textContent = meal.costs.size ? t("meal.addYoursToo") : t("meal.noCostYet");
+
+    if (!meal.costs.size) { $("#split-box").innerHTML = ""; return; }
+    if (!ids.length) { $("#split-box").innerHTML = `<p class="small text-body-secondary mb-0">${esc(t("meal.nobodyEats"))}</p>`; return; }
+    const total = mealTotal(meal);
+    const shares = mealShares(meal);
+    const debts = mealDebts(meal);
     const rows = debts.map((d) => {
-      const isGuest = d.from.startsWith("guest:");
-      const action = d.settled ? "" : d.to === me && !isGuest
+      const creditor = person(d.to);
+      const involved = d.from === me || d.to === me;
+      const action = d.settled ? "" : d.to === me && !d.from.startsWith("guest:")
         ? `<button type="button" class="btn btn-sm btn-outline-primary" data-request="${esc(d.from)}"><i class="bi bi-send" aria-hidden="true"></i> ${esc(t("pay.request"))}</button>`
         : d.from === me
-          ? (payerPerson.paymentLink
-            ? `<a class="btn btn-sm btn-primary" href="${esc(payerPerson.paymentLink)}" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> ${esc(t("pay.payNow"))}</a>`
-            : `<span class="small text-body-secondary">${esc(t("pay.noLink", { name: payerPerson.name }))}</span>`)
+          ? (creditor.paymentLink
+            ? `<a class="btn btn-sm btn-primary" href="${esc(creditor.paymentLink)}" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> ${esc(t("pay.payNow"))}</a>`
+            : `<span class="small text-body-secondary">${esc(t("pay.noLink", { name: creditor.name }))}</span>`)
           : "";
-      return `<li class="list-group-item d-flex align-items-center gap-2 flex-wrap px-0 ${d.settled ? "is-settled" : ""}">
-        <span class="flex-grow-1 min-w-0">${esc(t("pay.owes", { from: nameOf(d.from), to: payerPerson.name }))}</span>
+      // Only the two people of a payment mark it paid (and a guest's, by the one they pay).
+      const settle = involved
+        ? `<button type="button" class="btn btn-sm ${d.settled ? "btn-success" : "btn-outline-success"}" data-settle-from="${esc(d.from)}" data-settle-to="${esc(d.to)}" aria-pressed="${d.settled}">
+            <i class="bi ${d.settled ? "bi-check-circle-fill" : "bi-circle"}" aria-hidden="true"></i> ${esc(d.settled ? t("pay.paid") : t("pay.markPaid"))}</button>`
+        : d.settled ? `<span class="badge text-bg-success">${esc(t("pay.paid"))}</span>` : "";
+      return `<li class="list-group-item d-flex align-items-center gap-2 flex-wrap px-0 ${d.settled ? "is-settled" : ""} ${involved ? "fw-semibold" : ""}">
+        <span class="flex-grow-1 min-w-0">${esc(t("pay.owes", { from: nameOf(d.from), to: creditor.name }))}</span>
         <strong>${esc(formatMoney(d.cents, lang))}</strong>
         ${action}
-        <button type="button" class="btn btn-sm ${d.settled ? "btn-success" : "btn-outline-success"}" data-settle="${esc(d.from)}" aria-pressed="${d.settled}">
-          <i class="bi ${d.settled ? "bi-check-circle-fill" : "bi-circle"}" aria-hidden="true"></i> ${esc(d.settled ? t("pay.paid") : t("pay.markPaid"))}</button>
+        ${settle}
       </li>`;
     });
     $("#split-box").innerHTML = `
-      <p class="mb-2">${esc(t("pay.summary", { total: formatMoney(meal.cost.totalCents, lang), n: ids.length, share: formatMoney(Math.max(...shares.values()), lang) }))}</p>
-      ${ownShare ? `<p class="small text-body-secondary mb-2">${esc(t("pay.payerShare", { name: payerPerson.name, share: formatMoney(ownShare, lang) }))}</p>` : ""}
-      <ul class="list-group list-group-flush">${rows.join("")}</ul>`;
+      <p class="mb-2">${esc(t("pay.summary", { total: formatMoney(total, lang), n: ids.length, share: formatMoney(Math.max(...shares.values()), lang) }))}</p>
+      ${rows.length ? `<ul class="list-group list-group-flush">${rows.join("")}</ul>` : `<p class="small text-body-secondary mb-0">${esc(t("pay.allEven"))}</p>`}`;
   }
-
   function renderRecipeOptions() {
     const at = eaterPeople();
     const term = $("#recipe-search").value.trim().toLowerCase();
@@ -395,7 +400,7 @@ function startView(id) {
     const button = e.target.closest("[data-remove-guest]");
     if (!button) return;
     const gid = button.dataset.removeGuest;
-    attempt(() => updateMeal(id, { guests: meal.guests.filter((g) => g.id !== gid), settled: meal.settled.filter((s) => s !== `guest:${gid}`) }));
+    attempt(() => updateMeal(id, { guests: meal.guests.filter((g) => g.id !== gid), settled: [...meal.settledPairs].filter((s) => !s.startsWith(`guest:${gid}>`)) }));
   });
   $("#add-extra-form").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -480,41 +485,49 @@ function startView(id) {
 
   $("#cost-add").addEventListener("click", () => {
     costFormOpen = true;
+    $("#cost-total").value = "";
     renderCost();
     $("#cost-total").focus();
   });
+  $("#cost-list").addEventListener("click", (e) => {
+    if (!e.target.closest("#cost-edit")) return;
+    costFormOpen = true;
+    const mine = meal.costs.get(me);
+    $("#cost-total").value = mine ? (mine / 100).toFixed(2).replace(".", lang === "nl" ? "," : ".") : "";
+    renderCost();
+    $("#cost-total").focus();
+  });
+  $("#cost-cancel").addEventListener("click", () => { costFormOpen = false; renderCost(); });
 
-  $("#cost-form").addEventListener("submit", (e) => {
+  $("#cost-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const cents = parseMoney($("#cost-total").value);
     $("#cost-total").classList.toggle("is-invalid", cents == null);
     if (cents == null) { toast(t("meal.badAmount"), "warning"); return; }
-    if (!eaters(meal).length) { toast(t("meal.nobodyEats"), "warning"); return; }
-    attempt(() => updateMeal(id, { cost: { totalCents: cents, paidBy: $("#cost-payer").value }, settled: [] }), t("meal.costSaved"));
+    const done = await attempt(async () => { await setMyCost(meal, me, cents); return true; }, t("meal.costSaved"));
+    if (done) { costFormOpen = false; renderCost(); }
   });
-  $("#cost-clear").addEventListener("click", () => {
+  $("#cost-clear").addEventListener("click", async () => {
     if (!window.confirm(t("meal.confirmClearCost"))) return;
-    $("#cost-total").value = "";
-    costFormOpen = false;
-    attempt(() => updateMeal(id, { cost: null, settled: [] }));
+    const done = await attempt(async () => { await setMyCost(meal, me, null); return true; });
+    if (done) { costFormOpen = false; $("#cost-total").value = ""; renderCost(); }
   });
   $("#split-box").addEventListener("click", (e) => {
-    const settle = e.target.closest("[data-settle]");
+    const settle = e.target.closest("[data-settle-from]");
     if (settle) {
-      const eater = settle.dataset.settle;
-      attempt(() => setSettled(id, eater, !meal.settled.includes(eater)));
+      const { settleFrom: from, settleTo: to } = settle.dataset;
+      attempt(() => setSettled(id, from, to, !meal.settledPairs.has(settleKey(from, to))));
       return;
     }
     const request = e.target.closest("[data-request]");
     if (request) {
-      const debt = mealDebts(meal).find((d) => d.from === request.dataset.request);
+      const debt = mealDebts(meal).find((d) => d.from === request.dataset.request && d.to === me);
       if (!debt) return;
       const mine = person(me);
       const vars = { name: person(debt.from).name, amount: formatMoney(debt.cents, lang), title: meal.title, day: formatDay(meal.date), link: mine.paymentLink };
       shareText(mine.paymentLink ? t("pay.requestText", vars) : t("pay.requestTextNoLink", vars));
     }
   });
-
   // ---- Live data ----
   stops.push(watchMeal(id, (next, err) => {
     if (err || !next) {

@@ -4,7 +4,7 @@ import { whenUser, esc, colour, onLeave, todayIso, go, avatarStackHtml } from ".
 import { myMeals, myCircles, people, person } from "./store.js";
 import { createCalendar, rememberView } from "./calendar.js";
 import { getLang, t, formatDay } from "./i18n.js";
-import { formatMoney, mealShares } from "./money.js";
+import { formatMoney, mealDebts } from "./money.js";
 
 const user = await whenUser();
 const me = user.email.toLowerCase();
@@ -37,9 +37,10 @@ function mealRow(meal, { showDate = false } = {}) {
   const status = myStatus(meal);
   const eaters = meal.participants.map((email) => person(email));
   const guests = meal.guests.length ? ` <span class="text-body-secondary small">+${meal.guests.length}</span>` : "";
-  const myShare = mealShares(meal).get(me);
-  const cost = meal.cost && myShare && meal.cost.paidBy !== me && !meal.settled.includes(me)
-    ? `<span class="badge text-bg-danger-subtle text-danger-emphasis">${esc(t("home.youOwe", { amount: formatMoney(myShare, lang) }))}</span>` : "";
+  // What I still have to pay for this meal (to one or more of the people who did the groceries).
+  const iOwe = mealDebts(meal).filter((d) => d.from === me && !d.settled).reduce((s, d) => s + d.cents, 0);
+  const cost = iOwe
+    ? `<span class="badge text-bg-danger-subtle text-danger-emphasis">${esc(t("home.youOwe", { amount: formatMoney(iOwe, lang) }))}</span>` : "";
   return `<a class="list-group-item list-group-item-action meal-row" href="meal.html?id=${encodeURIComponent(meal.id)}" style="--meal-color: ${colour(meal.circleId)}">
     <div class="d-flex align-items-center gap-2">
       <span class="meal-row__when">${showDate ? `<span class="d-block small fw-semibold">${esc(formatDay(meal.date))}</span>` : ""}<span class="small text-body-secondary">${esc(meal.time || t("meal.noTime"))}</span></span>

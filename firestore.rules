@@ -111,7 +111,8 @@ service cloud.firestore {
     // who joins, the recipe, the groceries and the cost. The host, the circle and the creation time never change; only the host deletes.
     function validMeal(d) {
       return d.keys().hasOnly(['title', 'date', 'time', 'circleId', 'circleName', 'host', 'viewers', 'participants', 'declined', 'invited',
-          'guests', 'rsvp', 'recipe', 'servings', 'have', 'cost', 'settled', 'createdAt', 'updatedAt']) &&
+          'guests', 'rsvp', 'recipe', 'servings', 'have', 'cost', 'costs', 'settled', 'createdAt', 'updatedAt']) &&
+        (!('costs' in d) || (d.costs is map && d.costs.size() <= 100)) &&
         (!('invited' in d) || (d.invited is list && d.invited.size() <= 100)) &&
         d.title is string && d.title.size() <= 80 &&
         d.date is string && d.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}') &&
@@ -126,21 +127,38 @@ service cloud.firestore {
         (d.recipe == null || (d.recipe is map && d.recipe.keys().hasOnly(['source', 'id']) && d.recipe.source in ['builtin', 'user'] && d.recipe.id is string && d.recipe.id.size() <= 100)) &&
         (d.servings == null || (d.servings is int && d.servings >= 1 && d.servings <= 50)) &&
         d.have is list && d.have.size() <= 100 &&
-        (d.cost == null || (d.cost is map && d.cost.keys().hasOnly(['totalCents', 'paidBy']) && d.cost.totalCents is int &&
+        (!('cost' in d) || d.cost == null || (d.cost is map && d.cost.keys().hasOnly(['totalCents', 'paidBy']) && d.cost.totalCents is int &&
           d.cost.totalCents > 0 && d.cost.totalCents <= 10000000 && d.cost.paidBy is string)) &&
         d.settled is list && d.settled.size() <= 130;
+    }
+
+    // Costs: everyone who did groceries adds their own amount (costs.{their email}); nobody changes someone else's. A changed entry
+    // is a whole number of cents between 1 and 100,000 euros. The older one-payer cost (cost: { totalCents, paidBy }) only stays as it
+    // is, or is retired (null) by its own payer when they write their entry.
+    function costsChangeOk(next, prev) {
+      let n = next.get('costs', {});
+      let p = prev.get('costs', {});
+      return n.diff(p).affectedKeys().hasOnly([me()]) &&
+        (!(me() in n) || (n[me()] is int && n[me()] > 0 && n[me()] <= 10000000));
+    }
+    function legacyCostOk(next, prev) {
+      return next.get('cost', null) == prev.get('cost', null) ||
+        (next.get('cost', null) == null && prev.cost.paidBy == me());
     }
 
     match /meals/{id} {
       allow read: if allowed() && me() in resource.data.viewers;
       allow create: if allowed() && validMeal(request.resource.data) && request.resource.data.host == me() &&
         me() in request.resource.data.viewers &&
+        request.resource.data.get('costs', {}).size() == 0 && request.resource.data.get('cost', null) == null &&
         me() in get(/databases/$(database)/documents/circles/$(request.resource.data.circleId)).data.members;
       allow update: if allowed() && me() in resource.data.viewers && validMeal(request.resource.data) &&
         me() in request.resource.data.viewers &&
         request.resource.data.host == resource.data.host &&
         request.resource.data.circleId == resource.data.circleId &&
-        request.resource.data.createdAt == resource.data.createdAt;
+        request.resource.data.createdAt == resource.data.createdAt &&
+        costsChangeOk(request.resource.data, resource.data) &&
+        legacyCostOk(request.resource.data, resource.data);
       allow delete: if allowed() && resource.data.host == me();
     }
 

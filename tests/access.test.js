@@ -54,6 +54,16 @@ test("a friend request only goes to someone with access, once per pair, and only
   assert.match(update, /affectedKeys\(\)\.hasOnly\(\['status', 'acceptedAt'\]\)/, "accepting changes nothing else");
 });
 
+test("everyone writes only their own costs for a meal, and only the payer retires an older one-payer cost", () => {
+  const meals = block("meals/{id}");
+  assert.match(meals, /costsChangeOk\(request\.resource\.data, resource\.data\)/, "updates check the costs");
+  assert.match(meals, /legacyCostOk\(request\.resource\.data, resource\.data\)/);
+  assert.match(rules, /n\.diff\(p\)\.affectedKeys\(\)\.hasOnly\(\[me\(\)\]\)/, "only my own entry changes");
+  assert.match(rules, /n\[me\(\)\] is int && n\[me\(\)\] > 0 && n\[me\(\)\] <= 10000000/, "a whole number of cents, up to 100,000 euros");
+  assert.match(rules, /next\.get\('cost', null\) == null && prev\.cost\.paidBy == me\(\)/);
+  assert.match(meals, /get\('costs', \{\}\)\.size\(\) == 0/, "a new meal starts without costs");
+});
+
 test("an invitation is a users/ document that only admins write", () => {
   assert.match(rules, /function allowed\(\) \{[\s\S]*?exists\(\/databases\/\$\(database\)\/documents\/users\/\$\(me\(\)\)\)/);
   assert.match(block("users/{email}"), /allow write: if isAdmin\(\);/);
