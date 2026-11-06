@@ -28,3 +28,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Messages: chat with housemates, people from your meals and friends; send feedback to the team, admins answer from an inbox
 - Push notifications, offered the first time you open the app and changed per device on your profile: new messages, meal invitations with a reminder the day before, and costs added to a meal you ate at
 - On phones, opening Splitskebab in the browser asks you to install it on your home screen first (needed for notifications on an iPhone)
+- Share button in the top bar (and on the Friends tab): send anyone an invitation with the link to Splitskebab

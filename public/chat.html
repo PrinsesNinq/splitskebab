@@ -30,6 +30,8 @@
       <div class="d-flex align-items-center gap-2 nav-actions">
         <!-- Shown only when the browser offers installing the app (js/pwa.js). -->
         <button type="button" id="install-app-btn" class="btn btn-sm btn-light" hidden data-i18n="nav.install">Install</button>
+        <!-- Share the app (js/app.js): the phone's share sheet with an invitation and the link, or copied on a computer. -->
+        <button type="button" class="btn btn-sm btn-outline-light" data-share-app aria-label="Invite someone to Splitskebab" data-i18n-aria-label="share.button"><i class="bi bi-share" aria-hidden="true"></i></button>
         <sel-notification-bell class="dropdown" filters='[["all","All"],["invites","Invites"],["friends","Friends"]]'>
           <button type="button" class="btn btn-sm btn-outline-light position-relative notification-bell-btn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications" data-i18n-aria-label="nav.notifications">
             <i class="ti" data-icon="bell"></i>

@@ -8,6 +8,7 @@ import "./pwa.js"; // installable app: the service worker and the navbar's Insta
 import { configured } from "./firebase-init.js";
 import { requireUser, signOutAndLeave, accountStatus, register, adminStatus, rememberedAccess, rememberAccess, forgetAccess } from "./auth.js";
 import { applyI18n, getLang, setLang, t, formatDay } from "./i18n.js";
+import { shareText } from "./ui.js";
 import { addNotification } from "../vendor/sel/elements/notification-bell.js";
 import * as peopleStore from "./store.js";
 import { APP_VERSION } from "./version.js";
@@ -55,6 +56,14 @@ document.addEventListener("click", (event) => {
   if (!button || button.dataset.lang === getLang()) return;
   setLang(button.dataset.lang);
   location.reload();
+});
+
+// ---- Sharing the app: any [data-share-app] button (the navbar's, the Friends tab's) sends an invitation with the link ----
+// The link is the app's start page on this site: whoever opens it signs in with Google and creates their own account (js/auth.js).
+// Nothing is awaited before the share sheet opens: an iPhone only allows it straight from the tap.
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("[data-share-app]")) return;
+  shareText(t("share.text", { url: new URL("./", location.href).href }));
 });
 
 const show = () => document.documentElement.classList.remove("auth-pending"); // hidden until now: see the inline script in each <head>

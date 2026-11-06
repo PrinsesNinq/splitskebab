@@ -420,6 +420,9 @@ export const DICT = {
     "unit.tbsp": "tbsp",
     "unit.tsp": "tsp",
 
+    "share.button": "Invite someone to Splitskebab",
+    "share.inviteFriend": "Not on Splitskebab yet? Invite them",
+    "share.text": "Join me on Splitskebab! We plan dinners together, see each other's allergies and split the costs. Sign in with your Google account: {url}",
     "push.title": "Notifications",
     "push.offerTitle": "Turn on notifications?",
     "push.offerBody": "Hear about new messages, meals you are invited to and costs to pay back. You can change this any time on your profile.",
@@ -858,6 +861,9 @@ export const DICT = {
     "unit.tbsp": "el",
     "unit.tsp": "tl",
 
+    "share.button": "Nodig iemand uit voor Splitskebab",
+    "share.inviteFriend": "Nog niet op Splitskebab? Nodig ze uit",
+    "share.text": "Doe mee met Splitskebab! We plannen samen etentjes, zien elkaars allergieën en verdelen de kosten. Log in met je Google-account: {url}",
     "push.title": "Meldingen",
     "push.offerTitle": "Meldingen aanzetten?",
     "push.offerBody": "Hoor het meteen bij nieuwe berichten, maaltijden waarvoor je bent uitgenodigd en kosten om terug te betalen. Je kunt dit altijd aanpassen op je profiel.",
