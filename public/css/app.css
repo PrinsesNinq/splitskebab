@@ -201,16 +201,29 @@
 .cal-host .fc .fc-col-header-cell,
 .cal-host .fc .fc-scrollgrid-section-header > td,
 .cal-host .fc .fc-scrollgrid-section-header > th { border: 0 !important; }
-/* The day header band: translucent, rounded, the gradient as a 4px line along its top. */
+/* The day header band, as in the ATLAS screenshot in both modes: deep purple, rounded, the gradient as a 4px line along its top, light
+   weekday letters. (ATLAS's light mode had a white band; Splitskebab keeps the dark one everywhere.) */
 .cal-host .fc .fc-scrollgrid-section-header > * {
-  background: var(--cal-band) top / 100% 4px no-repeat, rgba(255, 255, 255, 0.6);
+  --cal-band-bg: color-mix(in srgb, var(--bs-primary) 55%, #12041a);
+  background: var(--cal-band) top / 100% 4px no-repeat, var(--cal-band-bg);
   border-radius: 0.75rem;
-  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.18);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
 [data-bs-theme="dark"] .cal-host .fc .fc-scrollgrid-section-header > * {
-  background: var(--cal-band) top / 100% 4px no-repeat, rgba(0, 0, 0, 0.3);
+  --cal-band-bg: rgba(0, 0, 0, 0.3);
+}
+/* FullCalendar draws the weekdays as links: no underline, no link colour, no background of their own. */
+.cal-host .fc .fc-col-header,
+.cal-host .fc .fc-col-header-cell { background: transparent !important; }
+.cal-host .fc .fc-col-header-cell a,
+.cal-host .fc .fc-col-header-cell a:hover,
+.cal-host .fc .fc-col-header-cell-cushion {
+  color: inherit;
+  text-decoration: none !important;
+  border: 0;
+  box-shadow: none;
 }
 .cal-host .fc .fc-scrollgrid-section-body > td { padding-top: 0.4rem; }
 .cal-host .fc .fc-col-header-cell-cushion { padding: 0.55rem 0.1rem 0.45rem; text-decoration: none; }
@@ -219,16 +232,16 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--cal-accent);
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
 }
-[data-bs-theme="dark"] .gc-dow { color: rgba(255, 255, 255, 0.85); }
 
 /* Day cells: the number top right, other months dimmed, today in a filled circle of the accent colour. */
 .cal-host .fc .fc-daygrid-day { cursor: pointer; }
 .cal-host .fc .fc-daygrid-day-frame { min-height: 3.6rem; }
 .cal-host .fc .fc-daygrid-day-number {
   color: var(--bs-body-color);
-  text-decoration: none;
+  text-decoration: none !important;
   font-weight: 600;
   padding: 0.2rem 0.3rem;
 }
@@ -257,13 +270,15 @@
 /* List view: the same band look for the day headers. */
 .cal-host .fc .fc-list { border: 0; }
 .cal-host .fc .fc-list-day-cushion {
-  background: var(--cal-band) top / 100% 3px no-repeat, rgba(255, 255, 255, 0.6);
+  background: var(--cal-band) top / 100% 3px no-repeat, color-mix(in srgb, var(--bs-primary) 55%, #12041a);
   border-radius: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
 }
 [data-bs-theme="dark"] .cal-host .fc .fc-list-day-cushion {
   background: var(--cal-band) top / 100% 3px no-repeat, rgba(0, 0, 0, 0.3);
 }
-.cal-host .fc .fc-list-day-cushion a { color: var(--bs-body-color); text-decoration: none; }
+.cal-host .fc .fc-list-day-cushion a,
+.cal-host .fc .fc-list-day-cushion a:hover { color: inherit; text-decoration: none !important; }
 /* A meal on the calendar: the colour of its house or group (--meal-color, set per meal by js/calendar.js). */
 .cal-host .fc .fc-event.meal {
   --meal-color: var(--bs-primary);
