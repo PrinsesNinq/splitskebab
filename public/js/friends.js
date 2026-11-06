@@ -1,7 +1,8 @@
-// The Friends tab of the houses page: adding a friend by email (only someone with access to Splitskebab; firestore.rules checks it),
-// accepting or declining requests, cancelling mine, and removing a friend. A friend can be invited to any meal (js/meal.js).
+// The Friends tab of the houses page: finding people by name (or email) and the friends of my friends, asking them to be friends (only
+// someone with an account; firestore.rules checks it), accepting or declining requests, cancelling mine, and removing a friend. A friend can be invited to any meal (js/meal.js).
 import { esc, attempt, avatarHtml, allergenBadges, toast } from "./ui.js";
-import { people, person, myFriendships, requestFriend, acceptFriend, removeFriendship } from "./store.js";
+import { people, person, myFriendships, friendEmails, requestFriend, acceptFriend, removeFriendship } from "./store.js";
+import { searchPeople, friendsOfFriends } from "./people-search.js";
 import { t } from "./i18n.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -42,38 +43,90 @@ export function startFriends(me, stops) {
     badge.textContent = String(incoming.length);
     badge.classList.toggle("d-none", !incoming.length);
 
-    // Suggestions: everyone with a profile who is not me and not already a friend or asked.
-    const taken = new Set([me, ...friendships.map((f) => f.other)]);
-    const known = people.value ? [...people.value.values()].filter((p) => !taken.has(p.email)) : [];
-    $("#friend-suggestions").innerHTML = known.map((p) => `<option value="${esc(p.email)}">${esc(p.name)}</option>`).join("");
+    renderSearch();
+    renderSuggestions();
   }
 
-  $("#friend-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const input = $("#friend-email");
-    const email = input.value.trim().toLowerCase();
-    const valid = EMAIL.test(email) && email !== me;
-    input.classList.toggle("is-invalid", !valid);
-    if (!valid) return;
+  /** Asks someone to be my friend (or says yes, when they already asked me). Returns true when something changed. */
+  async function addFriend(email) {
     const existing = friendships.find((f) => f.other === email);
-    if (existing?.status === "accepted") { toast(t("friends.already", { name: person(email).name }), "info"); return; }
-    // They already asked me: adding them is saying yes.
+    if (existing?.status === "accepted") { toast(t("friends.already", { name: person(email).name }), "info"); return false; }
     if (existing && existing.requester !== me) {
-      if (await attempt(async () => { await acceptFriend(existing.id); return true; }, t("friends.nowFriends", { name: person(email).name }))) input.value = "";
-      return;
+      return Boolean(await attempt(async () => { await acceptFriend(existing.id); return true; }, t("friends.nowFriends", { name: person(email).name })));
     }
-    if (existing) { toast(t("friends.stillWaiting", { name: person(email).name }), "info"); return; }
+    if (existing) { toast(t("friends.stillWaiting", { name: person(email).name }), "info"); return false; }
     try {
       await requestFriend(me, email);
       toast(t("friends.requested", { name: person(email).name }));
-      input.value = "";
+      return true;
     } catch (err) {
       console.error(err);
-      // The rules refuse a request to someone without access (or a document that already exists).
+      // The rules refuse a request to someone without an account (or a document that already exists).
       toast(err?.code === "permission-denied" ? t("friends.notOnApp", { email }) : t("error.generic"), "danger");
+      return false;
     }
-  });
+  }
 
+  /** What I can do with someone in a search result or suggestion: add, accept, wait, or nothing (already friends). */
+  function personAction(email) {
+    const f = friendships.find((x) => x.other === email);
+    if (f?.status === "accepted") return `<span class="badge text-bg-success">${esc(t("friends.isFriend"))}</span>`;
+    if (f && f.requester === me) return `<span class="badge text-bg-light border">${esc(t("friends.asked"))}</span>`;
+    const label = f ? t("friends.accept") : t("friends.add");
+    return `<button type="button" class="btn btn-sm btn-primary text-nowrap" data-add-friend="${esc(email)}"><i class="bi bi-person-plus" aria-hidden="true"></i> ${esc(label)}</button>`;
+  }
+
+  const personRow = (p, detail) => `<li class="list-group-item d-flex align-items-center gap-2">
+      ${avatarHtml(p, "avatar avatar-sm")}
+      <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}</span>
+        <span class="d-block small text-body-secondary text-truncate">${detail}</span></span>
+      ${personAction(p.email)}
+    </li>`;
+
+  /** "Friend of Elise and Sam" / "Friend of Elise, Sam and 2 others": escaped HTML. */
+  function viaText(via) {
+    const names = via.map((email) => person(email).name);
+    const shown = names.length > 2 ? `${names.slice(0, 2).join(", ")} +${names.length - 2}` : names.join(t("friends.and"));
+    return esc(t("friends.friendOf", { names: shown }));
+  }
+
+  function renderSearch() {
+    const query = $("#friend-search").value.trim();
+    const results = searchPeople(query, people.value, me);
+    const mine = new Set(friendEmails(friendships));
+    const rows = results.map((p) => {
+      const common = (p.friends || []).filter((x) => mine.has(x));
+      return personRow(p, common.length ? viaText(common) : esc(p.email));
+    });
+    // A full email of someone not found by name: offer to send the request anyway (the rules check they have an account).
+    const email = query.toLowerCase();
+    if (EMAIL.test(email) && email !== me && !results.some((p) => p.email === email)) {
+      rows.push(`<li class="list-group-item d-flex align-items-center gap-2">
+        <span class="avatar avatar-sm avatar-placeholder" aria-hidden="true"><i class="bi bi-envelope" aria-hidden="true"></i></span>
+        <span class="flex-grow-1 min-w-0 text-truncate">${esc(email)}</span>
+        <button type="button" class="btn btn-sm btn-primary text-nowrap" data-add-friend="${esc(email)}"><i class="bi bi-person-plus" aria-hidden="true"></i> ${esc(t("friends.add"))}</button>
+      </li>`);
+    }
+    $("#friend-results").innerHTML = rows.join("") || (query.length >= 2 ? `<li class="list-group-item small text-body-secondary">${esc(t("friends.noResults"))}</li>` : "");
+  }
+
+  function renderSuggestions() {
+    const mine = friendEmails(friendships);
+    const pending = friendships.filter((f) => f.status === "pending").map((f) => f.other);
+    const list = friendsOfFriends(me, mine, pending, people.value);
+    $("#friend-suggest").innerHTML = list.length
+      ? `<h2 class="h6">${esc(t("friends.mayKnow"))}</h2><ul class="list-group">${list.map(({ person: p, via }) => personRow(p, viaText(via))).join("")}</ul>`
+      : "";
+  }
+
+  $("#friend-form").addEventListener("submit", (e) => e.preventDefault());
+  $("#friend-search").addEventListener("input", renderSearch);
+  $("#friends-pane").addEventListener("click", async (e) => {
+    const add = e.target.closest("[data-add-friend]");
+    if (!add) return;
+    add.disabled = true;
+    if (!(await addFriend(add.dataset.addFriend))) add.disabled = false;
+  });
   $("#friends-pane").addEventListener("click", (e) => {
     const item = e.target.closest("[data-friendship]");
     if (!item) return;

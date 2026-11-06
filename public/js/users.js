@@ -6,6 +6,7 @@
 //   settings/groups        { names: [...] }, the groups there are
 // Emails are the document ids, lowercase.
 import { SDK, db } from "./firebase-init.js";
+import { safePhoto } from "./photo.js";
 
 const {
   collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, writeBatch, serverTimestamp,
@@ -15,7 +16,7 @@ const {
 // record from breaking the whole list (a name that is not text once stopped the sort, and with it the Users tab).
 const text = (v) => (typeof v === "string" ? v.trim() : "");
 const strings = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x) : []);
-const photo = (v) => (typeof v === "string" && /^https:\/\//.test(v) && v.length <= 500 ? v : null);
+const photo = safePhoto; // js/photo.js: a Google photo or a small picture the person chose
 
 /**
  * Everyone the app knows, kept up to date: onChange({ people, groups }) on every change, once all four sources have answered.

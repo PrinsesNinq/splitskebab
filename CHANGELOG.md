@@ -18,3 +18,5 @@ All notable changes are kept here in Keep a Changelog format.
 - Fixed: the app no longer starts blank or with an empty calendar on a phone; data is kept on the device and shows at once
 - Anyone with a Google account can create their own account; admins can block someone
 - Saying you will not join a dinner can come with a reason, shown to everyone at the table
+- Profile: change your name and photo; a ? explains how to get a payment link
+- Friends: search people by name, and see friends of your friends

@@ -1,7 +1,9 @@
 // Everything Splitskebab keeps in Firestore, and the live lists the pages share. Who may read and write what is enforced in
 // firestore.rules; this module only shapes the data.
 //
-//   userProfiles/{email}  { displayName, photoUrl, allergies: [allergen id], paymentLink }   every invited user reads, each writes their own
+//   userProfiles/{email}  { displayName, photoUrl, allergies: [allergen id], paymentLink, friends: [email] }   every user reads, each writes
+//                         their own (photoUrl: their Google photo or a small picture they chose, js/photo.js; friends: kept up to date
+//                         by js/app.js from their accepted friendships, so others can see friends of friends)
 //   circles/{id}          { name, type: "house" | "group", members: [email], owner, createdAt }   members read and change, the owner deletes
 //   meals/{id}            { title, date "YYYY-MM-DD", time "HH:MM", circleId, circleName, host, viewers: [email], participants: [email],
 //                           declined: [email], guests: [{ id, name }], rsvp, recipe: { source, id } | null, servings, have: [key],
@@ -20,6 +22,7 @@
 import { SDK, db } from "./firebase-init.js";
 import { cleanAllergens } from "./allergens.js";
 import { missingViewers } from "./sharing.js";
+import { safePhoto } from "./photo.js";
 import { readCosts, settleKey } from "./money.js";
 
 const fs = await import(`${SDK}/firebase-firestore.js`);
@@ -30,7 +33,7 @@ const {
 
 const text = (v, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const strings = (v) => (Array.isArray(v) ? [...new Set(v.filter((x) => typeof x === "string" && x))] : []);
-const photo = (v) => (typeof v === "string" && /^https:\/\//.test(v) && v.length <= 500 ? v : null);
+const photo = safePhoto;
 /** A payment link people may follow: https only (never javascript: or data:), and of a sane size. */
 export const safeLink = (v) => (typeof v === "string" && /^https:\/\/[^\s"'<>]+$/i.test(v.trim()) && v.trim().length <= 300 ? v.trim() : "");
 
@@ -65,6 +68,7 @@ function toPerson(email, d) {
     photoUrl: photo(d.photoUrl),
     allergies: cleanAllergens(d.allergies),
     paymentLink: safeLink(d.paymentLink),
+    friends: strings(d.friends).slice(0, 500),
   };
 }
 
@@ -76,6 +80,14 @@ export const people = shared((emit, fail) => onSnapshot(collection(db, "userProf
 export function person(email, map = people.value) {
   return map?.get(email) || toPerson(email, {});
 }
+
+/** My name and photo as others see them (photoUrl: a safe https address or small picture data URL, or null for my initial). */
+export const saveMyIdentity = (email, { displayName, photoUrl }) =>
+  setDoc(doc(db, "userProfiles", email), { displayName: text(displayName, 100) || null, photoUrl: safePhoto(photoUrl) }, { merge: true });
+
+/** My list of friends on my profile (js/app.js keeps it in step with my accepted friendships), for friends-of-friends suggestions. */
+export const saveMyFriendList = (email, friends) =>
+  setDoc(doc(db, "userProfiles", email), { friends: [...new Set(friends)].sort().slice(0, 500) }, { merge: true });
 
 export const saveMyProfile = (email, { allergies, paymentLink }) =>
   setDoc(doc(db, "userProfiles", email), { allergies: cleanAllergens(allergies), paymentLink: safeLink(paymentLink) }, { merge: true });

@@ -97,12 +97,17 @@
 
       <div class="tab-pane fade" id="friends-pane" role="tabpanel" aria-labelledby="friends-tab" tabindex="0">
         <p class="small text-body-secondary" data-i18n="friends.help">Friends are people you eat with now and then without living together. You can invite them to your meals, and they can invite you to theirs.</p>
-        <form class="input-group mb-3" id="friend-form" novalidate>
-          <input class="form-control" type="email" id="friend-email" list="friend-suggestions" inputmode="email" maxlength="200" autocomplete="off" placeholder="Email of a friend" data-i18n-placeholder="friends.addPlaceholder" aria-label="Email of a friend" data-i18n-aria-label="friends.addPlaceholder">
-          <button type="submit" class="btn btn-primary" data-i18n="friends.add">Add friend</button>
+        <!-- Find people by name (or email): the results show as you type, each with Add. -->
+        <form class="mb-2" id="friend-form" role="search" novalidate>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+            <input class="form-control" type="search" id="friend-search" maxlength="200" autocomplete="off" placeholder="Search by name or email" data-i18n-placeholder="friends.searchPlaceholder" aria-label="Search by name or email" data-i18n-aria-label="friends.searchPlaceholder" aria-controls="friend-results">
+          </div>
         </form>
-        <datalist id="friend-suggestions"></datalist>
+        <ul class="list-group mb-3" id="friend-results" aria-live="polite"></ul>
         <section id="friend-requests" class="mb-3" aria-live="polite"></section>
+        <!-- Friends of my friends I am not friends with yet: the quickest way to find someone. -->
+        <section id="friend-suggest" class="mb-3"></section>
         <h2 class="h6" data-i18n="friends.yourFriends">Your friends</h2>
         <ul class="list-group mb-3" id="friends-list"></ul>
         <section id="friend-outgoing"></section>

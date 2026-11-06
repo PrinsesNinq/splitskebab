@@ -1,14 +1,17 @@
-// My profile: the allergies everyone who eats with me is warned about, my payment link (for the payment requests I send) and the
-// language. Name and photo come from the Google account (js/auth.js writes them at every sign-in).
-import { whenUser, esc, onLeave, attempt, avatarHtml } from "./ui.js";
-import { people, person, saveMyProfile, safeLink } from "./store.js";
+// My profile: my name and photo as others see them, the allergies everyone who eats with me is warned about, my payment link (for the
+// payment requests I send, with a "?" that explains how to get one) and the language. Google fills in the name and photo at the first
+// sign-in (js/auth.js); after that they are mine to change here.
+import { whenUser, esc, onLeave, attempt, avatarHtml, toast } from "./ui.js";
+import { people, person, saveMyProfile, saveMyIdentity, safeLink } from "./store.js";
 import { ALLERGENS } from "./allergens.js";
+import { shrinkPhoto, safePhoto } from "./photo.js";
 import { getLang, t } from "./i18n.js";
 
 const user = await whenUser();
 const me = user.email.toLowerCase();
 const $ = (sel) => document.querySelector(sel);
 let dirty = false; // the person changed something: a live update must not overwrite it
+let pendingPhoto; // undefined: unchanged; null: removed; a string: the new photo (saved with Save)
 const stops = [];
 onLeave(() => stops.forEach((stop) => stop()));
 
@@ -19,18 +22,49 @@ function renderGrid(selected) {
     <label class="btn btn-outline-danger allergen-toggle" for="al-${a.id}"><span class="allergen-toggle__icon" aria-hidden="true">${a.icon}</span>${esc(a[lang] || a.en)}</label>`).join("");
 }
 
+/** The photo shown now: the one just chosen (not saved yet) or the saved one. */
+const shownPhoto = () => (pendingPhoto === undefined ? person(me).photoUrl : pendingPhoto);
+
+function renderPhoto() {
+  const p = person(me);
+  const name = $("#display-name").value.trim() || p.name;
+  $("#photo-preview").innerHTML = avatarHtml({ email: me, name, photoUrl: shownPhoto() }, "avatar avatar-lg");
+  $("#photo-remove").hidden = !shownPhoto();
+  $("#photo-google").hidden = !safePhoto(user.photoURL) || shownPhoto() === user.photoURL;
+}
+
 function render() {
   const p = person(me);
   $("#profile-avatar").innerHTML = avatarHtml({ ...p, name: p.name || user.displayName || me }, "avatar avatar-lg");
   $("#profile-name").textContent = p.name;
   $("#profile-email").textContent = me;
-  if (dirty) return;
-  renderGrid(p.allergies);
-  $("#payment-link").value = p.paymentLink;
+  if (!dirty) {
+    renderGrid(p.allergies);
+    $("#payment-link").value = p.paymentLink;
+    $("#display-name").value = p.name;
+  }
+  renderPhoto();
 }
 
 $("#profile-form").addEventListener("input", () => { dirty = true; });
 $("#profile-form").addEventListener("change", () => { dirty = true; });
+$("#display-name").addEventListener("input", renderPhoto); // the initial in the preview follows the name
+
+$("#photo-file").addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = ""; // choosing the same file again still fires change
+  if (!file) return;
+  try {
+    pendingPhoto = await shrinkPhoto(file);
+    dirty = true;
+    renderPhoto();
+    toast(t("profile.photoReady"), "info");
+  } catch (err) {
+    toast(err?.message === "too-large" ? t("profile.photoTooLarge") : t("profile.photoNotImage"), "warning");
+  }
+});
+$("#photo-google").addEventListener("click", () => { pendingPhoto = user.photoURL; dirty = true; renderPhoto(); });
+$("#photo-remove").addEventListener("click", () => { pendingPhoto = null; dirty = true; renderPhoto(); });
 
 $("#profile-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -38,11 +72,20 @@ $("#profile-form").addEventListener("submit", async (e) => {
   const link = safeLink(raw);
   $("#payment-link").classList.toggle("is-invalid", Boolean(raw) && !link);
   if (raw && !link) return;
+  const displayName = $("#display-name").value.trim();
+  $("#display-name").classList.toggle("is-invalid", !displayName);
+  if (!displayName) return;
   $("#profile-save").disabled = true;
   const allergies = [...document.querySelectorAll("#allergen-grid input:checked")].map((x) => x.value);
-  const ok = await attempt(async () => { await saveMyProfile(me, { allergies, paymentLink: link }); return true; }, t("common.saved"));
+  const ok = await attempt(async () => {
+    await Promise.all([
+      saveMyProfile(me, { allergies, paymentLink: link }),
+      saveMyIdentity(me, { displayName, photoUrl: shownPhoto() }),
+    ]);
+    return true;
+  }, t("common.saved"));
   $("#profile-save").disabled = false;
-  if (ok) dirty = false;
+  if (ok) { dirty = false; pendingPhoto = undefined; }
 });
 
 if (new URLSearchParams(location.search).get("welcome")) $("#welcome").classList.remove("d-none");

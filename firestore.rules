@@ -55,11 +55,16 @@ service cloud.firestore {
       return !(field in d) || d[field] == null || (d[field] is string && d[field].size() <= max);
     }
 
-    // What a person may write about themselves: text of a sane size, a photo that is null or an https address, their allergies, and a
-    // payment link that is empty or an https address (it ends up as a link other people tap).
+    // What a person may write about themselves: a name of a sane size, a photo that is null, an https address (their Google photo) or a
+    // small JPEG/PNG/WebP picture they chose (a data: URL of at most 60,000 characters, about 45 KB: the app shrinks it to a small
+    // square first), their allergies, a payment link that is empty or an https address (it ends up as a link other people tap), and
+    // their own list of friends (so others can see friends of friends).
     function validProfile(d) {
       return optionalString(d, 'displayName', 200) &&
-        (!('photoUrl' in d) || d.photoUrl == null || (d.photoUrl is string && d.photoUrl.size() <= 500 && d.photoUrl.matches('https://.*'))) &&
+        (!('photoUrl' in d) || d.photoUrl == null || (d.photoUrl is string && (
+          (d.photoUrl.size() <= 500 && d.photoUrl.matches('https://.*')) ||
+          (d.photoUrl.size() <= 60000 && d.photoUrl.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+'))))) &&
+        (!('friends' in d) || (d.friends is list && d.friends.size() <= 500)) &&
         (!('allergies' in d) || isAllergenList(d.allergies)) &&
         (!('paymentLink' in d) || (d.paymentLink is string && d.paymentLink.size() <= 300 && (d.paymentLink == '' || d.paymentLink.matches('https://[^\\s"<>]+'))));
     }
@@ -99,7 +104,7 @@ service cloud.firestore {
     match /userProfiles/{email} {
       allow read: if allowed();
       allow create, update: if signedIn() && me() == email &&
-        request.resource.data.keys().hasOnly(['displayName', 'photoUrl', 'allergies', 'paymentLink']) && validProfile(request.resource.data);
+        request.resource.data.keys().hasOnly(['displayName', 'photoUrl', 'allergies', 'paymentLink', 'friends']) && validProfile(request.resource.data);
       allow delete: if isAdmin();
     }
 

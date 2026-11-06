@@ -81,6 +81,22 @@
     </div>
 
     <form id="profile-form" novalidate>
+      <!-- Name and photo as others see them. A chosen picture is shrunk on the phone to a small square (js/photo.js). -->
+      <section class="mb-4">
+        <h2 class="h6" data-i18n="profile.identity">Name and photo</h2>
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <span id="photo-preview" class="flex-none"></span>
+          <div class="d-flex flex-wrap gap-2">
+            <label class="btn btn-sm btn-outline-primary mb-0" for="photo-file"><i class="bi bi-camera" aria-hidden="true"></i> <span data-i18n="profile.changePhoto">Change photo</span></label>
+            <input type="file" id="photo-file" accept="image/*" class="visually-hidden">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="photo-google" data-i18n="profile.googlePhoto">Use my Google photo</button>
+            <button type="button" class="btn btn-sm btn-link text-danger px-0" id="photo-remove" data-i18n="profile.removePhoto">Remove photo</button>
+          </div>
+        </div>
+        <label class="form-label small" for="display-name" data-i18n="profile.displayName">Name others see</label>
+        <input class="form-control" id="display-name" maxlength="100" autocomplete="name">
+      </section>
+
       <section class="mb-4">
         <h2 class="h6" data-i18n="profile.allergies">My allergies</h2>
         <p class="small text-body-secondary" data-i18n="profile.allergiesHelp">Everyone who plans a meal with you sees these, and recipes that contain them are marked in red.</p>
@@ -89,7 +105,22 @@
       </section>
 
       <section class="mb-4">
-        <h2 class="h6" data-i18n="profile.payment">Payment link</h2>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <h2 class="h6 mb-0" data-i18n="profile.payment">Payment link</h2>
+          <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle help-btn" data-bs-toggle="collapse" data-bs-target="#payment-help" aria-expanded="false" aria-controls="payment-help" aria-label="How do I get a payment link?" data-i18n-aria-label="profile.paymentHelpButton">?</button>
+        </div>
+        <!-- How to get one (Bootstrap collapse). Permanent links work best: a bank's payment request link often expires. -->
+        <div class="collapse" id="payment-help">
+          <div class="card card-body small mb-2 payment-help">
+            <p class="mb-2" data-i18n="profile.paymentHelpIntro">A payment link opens a page where your housemates pay you in a few taps. Choose one of these:</p>
+            <ul class="mb-2 ps-3">
+              <li class="mb-1"><strong>PayPal.Me</strong> — <span data-i18n="profile.paymentHelpPaypal">in the PayPal app or on paypal.com, look for PayPal.Me and pick a name. Your link is then paypal.me/yourname: it never expires and works for any amount.</span></li>
+              <li class="mb-1"><strong>bunq.me</strong> — <span data-i18n="profile.paymentHelpBunq">if you bank with bunq, your link is bunq.me/yourname (see your profile in the bunq app). It also never expires.</span></li>
+              <li><strong>Tikkie / <span data-i18n="profile.paymentHelpBankApp">your banking app</span></strong> — <span data-i18n="profile.paymentHelpTikkie">create a payment request (betaalverzoek), tap share and choose copy link, then paste it here. These links often expire after a while, so you may have to replace it later.</span></li>
+            </ul>
+            <p class="mb-0 text-body-secondary" data-i18n="profile.paymentHelpPaste">Paste the full link (starting with https://) below and press Save.</p>
+          </div>
+        </div>
         <label class="form-label small text-body-secondary" for="payment-link" data-i18n="profile.paymentHelp">Your Tikkie, bunq.me or other payment link. It goes into the payment requests you send, so housemates pay you with one tap.</label>
         <input class="form-control" type="url" id="payment-link" inputmode="url" maxlength="300" autocomplete="off" placeholder="https://bunq.me/yourname">
         <div class="invalid-feedback" data-i18n="profile.paymentInvalid">Use a link that starts with https://</div>

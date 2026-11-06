@@ -171,6 +171,21 @@ async function startMealSharing(me) {
   myMeals(me).subscribe((list) => { if (list) { meals = list; run(); } });
 }
 
+// ---- My friend list on my profile, in step with my accepted friendships (for friends-of-friends suggestions, js/friends.js) ----
+async function startFriendListSync(me) {
+  const { myFriendships, friendEmails, people, saveMyFriendList } = await import("./store.js");
+  let friends = null;
+  let profiles = null;
+  const sync = () => {
+    if (!friends || !profiles || !profiles.has(me)) return; // my profile exists after the first sign-in
+    const stored = [...profiles.get(me).friends].sort().join("|");
+    const actual = [...new Set(friends)].sort().join("|");
+    if (stored !== actual) saveMyFriendList(me, friends).catch((err) => console.warn("Could not update my friend list:", err?.code || err));
+  };
+  myFriendships(me).subscribe((list) => { if (list) { friends = friendEmails(list); sync(); } });
+  people.subscribe((map) => { if (map) { profiles = map; sync(); } });
+}
+
 if (!configured) {
   // Not connected to Firebase yet: say so above the content instead of sending everyone to a sign-in that cannot work.
   document.querySelector("#site-nav").insertAdjacentHTML("afterend", '<div class="container mt-3"><div class="alert alert-warning mb-0">Firebase is not set up yet: fill in <code>public/js/config.js</code> (or create the project with sel-new). The pages work, signing in does not.</div></div>');
@@ -191,6 +206,7 @@ if (!configured) {
     document.dispatchEvent(new CustomEvent("app:user", { detail: { user } }));
     startInvites(user.email.toLowerCase());
     startMealSharing(user.email.toLowerCase());
+    startFriendListSync(user.email.toLowerCase());
   };
 
   // What to show for each account status (js/auth.js accountStatus): the app, "create your account", "blocked", or "no connection".

@@ -36,7 +36,13 @@ export async function signIn() {
   }
   // Name and photo for the rest of the app to show next to this person (readable by every invited user, see firestore.rules). Merged: the
   // same document holds the allergies and payment link the person set on their profile page, which a sign-in must not wipe.
-  await store.setDoc(store.doc(db, "userProfiles", user.email.toLowerCase()), { displayName: user.displayName || null, photoUrl: user.photoURL || null }, { merge: true }).catch(() => {});
+  // Google fills in only what the person did not set themselves (they can change their name and photo on the profile page).
+  const ref = store.doc(db, "userProfiles", user.email.toLowerCase());
+  const existing = await store.getDoc(ref).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}));
+  const fill = {};
+  if (!existing.displayName && user.displayName) fill.displayName = user.displayName;
+  if (!("photoUrl" in existing) && user.photoURL) fill.photoUrl = user.photoURL;
+  if (Object.keys(fill).length) await store.setDoc(ref, fill, { merge: true }).catch(() => {});
   return user;
 }
 

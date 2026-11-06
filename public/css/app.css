@@ -374,6 +374,17 @@
   text-decoration: line-through;
 }
 
+/* ---- Profile page ---- */
+.help-btn {
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  font-weight: 700;
+  line-height: 1;
+}
+.payment-help li strong { white-space: nowrap; }
+.flex-none { flex: none; }
+
 /* ---- Recipes page ---- */
 .recipe-tag {
   font-weight: 600;
