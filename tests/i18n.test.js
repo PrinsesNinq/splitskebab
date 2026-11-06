@@ -58,6 +58,14 @@ test("the allergen ids are the ones firestore.rules accepts", () => {
   assert.deepEqual(listed[1].split(",").map((s) => s.trim().replace(/'/g, "")), ALLERGEN_IDS);
 });
 
+test("calendar styles target FullCalendar's own element", () => {
+  // FullCalendar adds its "fc" class to the element it is created on (#calendar.cal-host), so ".cal-host .fc" (an fc inside it)
+  // matches nothing: that once left the whole calendar unstyled.
+  const css = fs.readFileSync(path.join(pub, "css", "app.css"), "utf8");
+  assert.ok(!/\.cal-host \.fc\b/.test(css), 'use ".cal-host.fc", not ".cal-host .fc"');
+  assert.ok(/\.cal-host\.fc\b/.test(css));
+});
+
 test("the CDN scripts are pinned with an integrity hash", () => {
   const calendar = fs.readFileSync(path.join(pub, "js", "calendar.js"), "utf8");
   const srcs = [...calendar.matchAll(/src: "(https:[^"]+)",\s*integrity: "(sha384-[A-Za-z0-9+/=]{64})"/g)];
