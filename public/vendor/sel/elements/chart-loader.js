@@ -1,4 +1,4 @@
-/* Chart.js loader - Aperam Theme v0.3.4 */
+/* Chart.js loader - Aperam Theme v0.5.2 */
 /* Chart.js loader: the one place the charts of the library get Chart.js from. A chart component imports ensureChartJs and waits for it before it
  * draws; it never adds its own <script> tag. Because every chart type shares this module, a page with a line graph, a bar chart and a donut
  * loads Chart.js ONCE, even when all of them connect at the same moment (each used to keep its own "loading" flag and inserted a script of

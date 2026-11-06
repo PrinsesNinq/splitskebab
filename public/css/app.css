@@ -1,3 +1,6 @@
+/* Colours: use var(--primary) / var(--secondary) (or var(--bs-primary), which follows it), never --bs-primary-rgb or a hex: the colour
+   theme picked on the profile page (component "Colour themes") changes --primary at run time, and only what reads it follows. */
+
 /* This project's own styling. The brand, the page background, the navbar and the main container come from the library theme
    (vendor/sel/theme/theme.css, generated: never edit it). Anything reusable belongs in the library, not here. */
 
@@ -61,10 +64,10 @@
 }
 .bottom-nav .nav-link.active {
   color: var(--bs-primary);
-  background: rgba(var(--bs-primary-rgb), 0.1);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
 }
 [data-bs-theme="dark"] .bottom-nav .nav-link.active {
-  color: var(--bs-primary-text-emphasis);
+  color: color-mix(in srgb, var(--primary) 45%, white);
 }
 @media (min-width: 768px) {
   .bottom-nav {
@@ -92,7 +95,7 @@
   padding: 0.75rem 1.1rem;
   border-radius: 2rem;
   font-weight: 600;
-  box-shadow: 0 0.5rem 1.25rem rgba(var(--bs-primary-rgb), 0.4);
+  box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--primary) 40%, transparent);
 }
 @media (min-width: 768px) {
   .fab { bottom: 6rem; }
@@ -119,7 +122,7 @@
   --cal-band-text: #fff;
 }
 [data-bs-theme="dark"] .main-container[data-calendar] {
-  --cal-accent: var(--bs-primary-text-emphasis);
+  --cal-accent: color-mix(in srgb, var(--primary) 45%, white);
 }
 
 .cal-toolbar { gap: 0.15rem; }
@@ -194,8 +197,8 @@
   --fc-page-bg-color: transparent;
   --fc-border-color: rgba(255, 255, 255, 0.35);
   --fc-neutral-bg-color: rgba(255, 255, 255, 0.3);
-  --fc-today-bg-color: rgba(var(--bs-primary-rgb), 0.08);
-  --fc-list-event-hover-bg-color: rgba(var(--bs-primary-rgb), 0.08);
+  --fc-today-bg-color: color-mix(in srgb, var(--primary) 8%, transparent);
+  --fc-list-event-hover-bg-color: color-mix(in srgb, var(--primary) 8%, transparent);
   --fc-now-indicator-color: var(--cal-accent);
   font-size: 0.85rem;
 }

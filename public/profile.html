@@ -12,6 +12,10 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#6b1f7e">
   <link rel="icon" href="images/app-icon.svg" type="image/svg+xml">
+  <!-- Phones: the home screen icon on iPhone (Safari ignores SVG there), the name under it, and full-screen once installed. -->
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="Splitskebab">
+  <meta name="mobile-web-app-capable" content="yes">
   <!-- Light / dark mode: follows the system until the "Dark mode" switch in the account menu is used (loaded here so the page does not flash). -->
   <script src="js/theme-mode.js"></script>
   <!-- Hidden until js/app.js knows who is signed in (no flash of the page before the sign-in page); shown after 8 s whatever happens. -->
@@ -124,6 +128,24 @@
         <label class="form-label small text-body-secondary" for="payment-link" data-i18n="profile.paymentHelp">Your Tikkie, bunq.me or other payment link. It goes into the payment requests you send, so housemates pay you with one tap.</label>
         <input class="form-control" type="url" id="payment-link" inputmode="url" maxlength="300" autocomplete="off" placeholder="https://bunq.me/yourname">
         <div class="invalid-feedback" data-i18n="profile.paymentInvalid">Use a link that starts with https://</div>
+      </section>
+
+      <!-- Colour theme (component "Colour themes"): one swatch per <data>, saved on this device and applied right away. "default" is the
+           theme's own colours. Keep this list the same as THEMES in js/theme-mode.js, which applies it before every page paints. Dark mode
+           stays the switch in the account menu (no dark-mode attribute here). -->
+      <section class="mb-4">
+        <h2 class="h6" data-i18n="profile.colourTheme">Colour theme</h2>
+        <p class="small text-body-secondary" data-i18n="profile.colourThemeHelp">Pick the colours of the app on this device.</p>
+        <sel-colour-themes class="colour-themes">
+          <data value="default" data-label="Splitskebab"></data>
+          <data value="midnight" data-label="Midnight" data-primary="#1e3a5f" data-secondary="#f0a500"></data>
+          <data value="forest" data-label="Forest" data-primary="#2d5a27" data-secondary="#74c69d"></data>
+          <data value="ocean" data-label="Ocean" data-primary="#0a4f6e" data-secondary="#00b4d8"></data>
+          <data value="crimson" data-label="Crimson" data-primary="#8b0000" data-secondary="#ff6b35"></data>
+          <data value="plum" data-label="Plum" data-primary="#5b2a86" data-secondary="#ffb703"></data>
+          <data value="lagoon" data-label="Lagoon" data-primary="#0f766e" data-secondary="#f6c177"></data>
+          <data value="graphite" data-label="Graphite" data-primary="#343a40" data-secondary="#f4a261"></data>
+        </sel-colour-themes>
       </section>
 
       <section class="mb-4">

@@ -1,4 +1,4 @@
-/* Vertical Bar Chart - Aperam Theme v0.3.4 */
+/* Vertical Bar Chart - Aperam Theme v0.5.2 */
 /* Vertical bar chart: <sel-vertical-bar-chart-2> draws a single-series
  * Chart.js bar chart (period axis along the bottom, currency-formatted
  * value up the side) onto its own authored, empty

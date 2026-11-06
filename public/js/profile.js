@@ -1,6 +1,7 @@
 // My profile: my name and photo as others see them, the allergies everyone who eats with me is warned about, my payment link (for the
 // payment requests I send, with a "?" that explains how to get one) and the language. Google fills in the name and photo at the first
 // sign-in (js/auth.js); after that they are mine to change here.
+import "../vendor/sel/elements/colour-themes.js"; // the colour theme swatches (component "Colour themes")
 import { whenUser, esc, onLeave, attempt, avatarHtml, toast } from "./ui.js";
 import { people, person, saveMyProfile, saveMyIdentity, safeLink } from "./store.js";
 import { ALLERGENS } from "./allergens.js";

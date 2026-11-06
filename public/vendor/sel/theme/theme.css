@@ -1,4 +1,4 @@
-/*! Aperam Theme v0.3.4 | Bootstrap 5.3.8 | built with Shared Element Library */
+/*! Aperam Theme v0.5.2 | Bootstrap 5.3.8 | built with Shared Element Library */
 /*!
  * Bootstrap  v5.3.8 (https://getbootstrap.com/)
  * Copyright 2011-2025 The Bootstrap Authors
@@ -12,7 +12,7 @@
 /* Nunito (Google Fonts, SIL Open Font License 1.1) */
 @font-face { font-family: "Nunito"; font-style: normal; font-weight: 200 1000; font-display: swap; src: url(fonts/nunito-latin-ext.woff2) format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 @font-face { font-family: "Nunito"; font-style: normal; font-weight: 200 1000; font-display: swap; src: url(fonts/nunito-latin.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-:root{--glass-bg: rgba(255, 255, 255, 0.5);--glass-bg-strong: rgba(255, 255, 255, 0.8);--glass-stripe: rgb(226 228 230 / 47%);--glass-stripe-strong: rgb(226 228 230 / 75%);--glass-border: rgba(255, 255, 255, 0.7);--glass-solid: #ffffff;--glass-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);--card-bg: rgba(255, 255, 255, 0.9);--main-content-gradient: linear-gradient(45deg, #ffd8d8, #ffffff61);--primary-text: var(--bs-primary);--rating-star: #f5a623;--rating-star-empty: #dee2e6}[data-bs-theme=dark]{--glass-bg: rgba(33, 37, 41, 0.5);--glass-bg-strong: rgba(33, 37, 41, 0.8);--glass-stripe: rgb(73 80 87 / 40%);--glass-stripe-strong: rgb(73 80 87 / 65%);--glass-border: rgba(255, 255, 255, 0.14);--glass-solid: #2b3035;--glass-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);--card-bg: rgba(33, 37, 41, 0.9);--main-content-gradient: linear-gradient(45deg, rgba(40, 18, 52, 0.93), rgba(26, 29, 33, 0.9));--primary-text: var(--bs-primary-text-emphasis);--rating-star: #f5b342;--rating-star-empty: #495057}:root{--page-background: var(--bg-gradient) fixed}[data-bs-theme=dark]{--page-background: linear-gradient(135deg, #280730, #6b1f7e, #280730)}body{background:rgba(0,0,0,0)}html::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;background:var(--bg-gradient) fixed;background-size:cover}html::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(135deg, #280730, #6b1f7e, #280730);background-size:cover;opacity:0;transition:opacity .5s ease}html[data-bs-theme=dark]::after{opacity:1}@media(prefers-reduced-motion: reduce){html::after{transition:none}}.main-container{background:var(--main-content-gradient);padding:2rem;border-radius:1.2rem;box-shadow:var(--glass-shadow, 0 12px 35px rgba(0, 0, 0, 0.25));margin-bottom:var(--page-gap, 1.5rem);min-height:calc(100vh - var(--navbar-height, 56px) - 2*var(--page-gap, 1.5rem))}@media(max-width: 575.98px){.main-container{padding:1rem;border-radius:1rem}}:root{--primary: #6b1f7e;--secondary: #f47b21;--tertiary: #d291bf;--page-gap: 1.5rem;--bg-gradient: linear-gradient(135deg, var(--primary), var(--tertiary), var(--secondary));--main-content-gradient: linear-gradient(45deg, #ffd8d8, #ffffff61);--bs-primary: var(--primary);--bs-primary-rgb: 107, 31, 126;--bs-secondary: var(--secondary);--bs-secondary-rgb: 244, 123, 33;--bs-link-color: var(--primary);--bs-link-color-rgb: 107, 31, 126;--bs-link-hover-color: color-mix(in srgb, var(--primary) 80%, black);--bs-link-hover-color-rgb: 86, 25, 101}[data-bs-theme=dark]{--main-content-gradient: linear-gradient(45deg, rgba(22, 6, 29, 0.78), rgba(80, 28, 98, 0.38));--bs-link-color: #c4a5cb;--bs-link-color-rgb: 196, 165, 203;--bs-link-hover-color: #d6bddb;--bs-link-hover-color-rgb: 214, 189, 219;--bs-primary-text-emphasis: #d6bddb;--bs-code-color: #f5aacd}:root:not([data-bs-theme=dark]),[data-bs-theme=light]{--bs-code-color: #8a1850;--bs-secondary-color: rgba(33, 37, 41, 0.85)}html{background:var(--primary)}[data-bs-theme=dark] .text-primary{color:var(--primary-text) !important}body{display:flow-root;min-height:100vh}[data-bs-theme=dark] .text-bg-dark{background-color:RGBA(73, 80, 87, var(--bs-bg-opacity, 1)) !important}.breadcrumb{display:inline-flex;background-color:var(--glass-bg, rgba(255, 255, 255, 0.5));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:.4rem .85rem;border-radius:.5rem}.breadcrumb-item.active{color:var(--bs-breadcrumb-item-active-color)}.btn.btn-outline-primary{--outline-tone: var(--bs-primary)}.btn.btn-outline-secondary{--outline-tone: var(--bs-secondary)}.btn.btn-outline-success{--outline-tone: var(--bs-success)}.btn.btn-outline-danger{--outline-tone: var(--bs-danger)}.btn.btn-outline-warning{--outline-tone: var(--bs-warning)}.btn.btn-outline-info{--outline-tone: var(--bs-info)}.btn.btn-outline-dark{--outline-tone: var(--bs-dark)}.btn[class*=btn-outline-]:not(.btn-outline-light){--bs-btn-bg: color-mix(in srgb, var(--outline-tone) 12%, transparent);--bs-btn-disabled-bg: color-mix(in srgb, var(--outline-tone) 8%, transparent)}.btn.btn-outline-secondary,.btn.btn-outline-warning,.btn.btn-outline-info,.btn.btn-outline-success{--bs-btn-color: color-mix(in srgb, var(--outline-tone) 40%, black);--bs-btn-border-color: color-mix(in srgb, var(--outline-tone) 80%, black);--bs-btn-disabled-color: color-mix(in srgb, var(--outline-tone) 40%, black)}.btn.btn-outline-primary{--bs-btn-color: color-mix(in srgb, var(--outline-tone) 85%, black);--bs-btn-disabled-color: color-mix(in srgb, var(--outline-tone) 85%, black)}.btn.btn-outline-danger{--bs-btn-color: color-mix(in srgb, var(--outline-tone) 58%, black);--bs-btn-disabled-color: color-mix(in srgb, var(--outline-tone) 58%, black)}[data-bs-theme=dark] .btn[class*=btn-outline-]:not(.btn-outline-light){--bs-btn-color: color-mix(in srgb, var(--outline-tone) 35%, white);--bs-btn-border-color: color-mix(in srgb, var(--outline-tone) 65%, white);--bs-btn-disabled-color: color-mix(in srgb, var(--outline-tone) 35%, white);--bs-btn-disabled-border-color: color-mix(in srgb, var(--outline-tone) 65%, white)}.card-header,.card-footer{border:none}.card{--bs-card-bg: var(--card-bg);--bs-card-border-color: var(--glass-border);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}.dropdown-menu{--bs-dropdown-link-hover-bg: rgba(var(--bs-primary-rgb), 0.12)}.list-group{--bs-list-group-bg: transparent;--bs-list-group-action-hover-bg: rgba(var(--bs-body-color-rgb), 0.08)}.modal-content{--bs-modal-bg: rgba(var(--bs-body-bg-rgb), 0.95)}.modal-header{position:sticky;top:0;z-index:2;background-color:var(--bs-modal-bg);border-top-left-radius:var(--bs-modal-inner-border-radius);border-top-right-radius:var(--bs-modal-inner-border-radius)}@media(min-width: 576px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 540px)}}@media(min-width: 768px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 720px)}}@media(min-width: 992px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 960px)}}@media(min-width: 1200px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 1140px)}}@media(min-width: 1400px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 1320px)}}.modal-content>form{display:flex;flex:1 1 auto;flex-direction:column;min-height:0}.modal-dialog.modal-fullscreen{width:auto}.modal-fullscreen .modal-content{background:var(--bs-body-bg)}sel-modal-expand{display:inline-flex;margin-left:auto}sel-modal-expand[hidden]{display:none}.modal-header sel-modal-expand:not([hidden])~.btn-close{margin-left:.25rem}.modal.modal-resizing{overflow:hidden}.modal-dialog.is-resizing .modal-content{overflow:hidden}.modal-expand{display:inline-flex;align-items:center;justify-content:center;padding:.5rem;border:0;border-radius:var(--bs-border-radius);background:rgba(0,0,0,0);color:var(--bs-body-color);opacity:.55;transition:opacity .15s ease,background-color .15s ease}.modal-expand:hover,.modal-expand:focus-visible{opacity:1;background-color:rgba(var(--bs-body-color-rgb), 0.08)}.modal-expand:focus-visible{outline:0;box-shadow:0 0 0 .25rem rgba(var(--bs-primary-rgb), 0.25)}.modal-expand__icon--collapse,.modal-expand[aria-pressed=true] .modal-expand__icon--expand{display:none}.modal-expand[aria-pressed=true] .modal-expand__icon--collapse{display:block}@media(prefers-reduced-motion: reduce){.modal-expand{transition:none}}.nav-tabs{--bs-nav-tabs-link-active-color: var(--primary-text, var(--bs-primary));--bs-nav-tabs-link-active-border-color: var(--tertiary, var(--bs-border-color)) var(--tertiary, var(--bs-border-color)) var(--bs-body-bg);--bs-nav-tabs-link-hover-border-color: transparent}.nav-tabs .nav-link:hover:not(.active){color:var(--primary-text, var(--bs-primary))}.min-w-0{min-width:0 !important}.text-pre-line{white-space:pre-line !important}.bg-glass{background-color:var(--glass-bg) !important}.hover-tint:hover,.hover-tint:focus-visible{background-color:rgba(var(--bs-body-color-rgb), 0.05)}.btn-plain{padding:0;border:0;background:none;color:inherit;font:inherit;text-align:start}.text-rating-star{color:var(--rating-star) !important}
+:root{--glass-bg: rgba(255, 255, 255, 0.5);--glass-bg-strong: rgba(255, 255, 255, 0.8);--glass-stripe: rgb(226 228 230 / 47%);--glass-stripe-strong: rgb(226 228 230 / 75%);--glass-border: rgba(255, 255, 255, 0.7);--glass-solid: #ffffff;--glass-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);--card-bg: rgba(255, 255, 255, 0.9);--main-content-gradient: linear-gradient(45deg, #ffd8d8, #ffffff61);--primary-text: var(--bs-primary);--rating-star: #f5a623;--rating-star-empty: #dee2e6}[data-bs-theme=dark]{--glass-bg: rgba(33, 37, 41, 0.5);--glass-bg-strong: rgba(33, 37, 41, 0.8);--glass-stripe: rgb(73 80 87 / 40%);--glass-stripe-strong: rgb(73 80 87 / 65%);--glass-border: rgba(255, 255, 255, 0.14);--glass-solid: #2b3035;--glass-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);--card-bg: rgba(33, 37, 41, 0.9);--main-content-gradient: linear-gradient(45deg, rgba(40, 18, 52, 0.93), rgba(26, 29, 33, 0.9));--primary-text: var(--bs-primary-text-emphasis);--rating-star: #f5b342;--rating-star-empty: #495057}:root{--page-background: var(--bg-gradient) fixed}[data-bs-theme=dark]{--page-background: linear-gradient(135deg, #280730, #6b1f7e, #280730)}body{background:rgba(0,0,0,0)}html::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;background:var(--bg-gradient) fixed;background-size:cover}html::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(135deg, #280730, #6b1f7e, #280730);background-size:cover;opacity:0;transition:opacity .5s ease}html[data-bs-theme=dark]::after{opacity:1}@media(prefers-reduced-motion: reduce){html::after{transition:none}}.main-container{background:var(--main-content-gradient);padding:2rem;border-radius:1.2rem;box-shadow:var(--glass-shadow, 0 12px 35px rgba(0, 0, 0, 0.25));margin-bottom:var(--page-gap, 1.5rem);min-height:calc(100vh - var(--navbar-height, 56px) - 2*var(--page-gap, 1.5rem))}@media(max-width: 575.98px){.main-container{padding:1rem;border-radius:1rem}}:root{--primary: #6b1f7e;--secondary: #f47b21;--tertiary: #d291bf;--page-gap: 1.5rem;--bg-gradient: linear-gradient(135deg, var(--primary), var(--tertiary), var(--secondary));--main-content-gradient: linear-gradient(45deg, #ffd8d8, #ffffff61);--bs-primary: var(--primary);--bs-primary-rgb: 107, 31, 126;--bs-secondary: var(--secondary);--bs-secondary-rgb: 244, 123, 33;--bs-link-color: var(--primary);--bs-link-color-rgb: 107, 31, 126;--bs-link-hover-color: color-mix(in srgb, var(--primary) 80%, black);--bs-link-hover-color-rgb: 86, 25, 101}[data-bs-theme=dark]{--main-content-gradient: linear-gradient(45deg, rgba(22, 6, 29, 0.78), rgba(80, 28, 98, 0.38));--bs-link-color: #c4a5cb;--bs-link-color-rgb: 196, 165, 203;--bs-link-hover-color: #d6bddb;--bs-link-hover-color-rgb: 214, 189, 219;--bs-primary-text-emphasis: #d6bddb;--bs-code-color: #f5aacd}:root:not([data-bs-theme=dark]),[data-bs-theme=light]{--bs-code-color: #8a1850;--bs-secondary-color: rgba(33, 37, 41, 0.85)}html{background:var(--primary)}[data-bs-theme=dark] .text-primary{color:var(--primary-text) !important}body{display:flow-root;min-height:100vh}[data-bs-theme=dark] .text-bg-dark{background-color:RGBA(73, 80, 87, var(--bs-bg-opacity, 1)) !important}.breadcrumb{display:inline-flex;background-color:var(--glass-bg, rgba(255, 255, 255, 0.5));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:.4rem .85rem;border-radius:.5rem}.breadcrumb-item.active{color:var(--bs-breadcrumb-item-active-color)}.btn.btn-outline-primary{--outline-tone: var(--bs-primary)}.btn.btn-outline-secondary{--outline-tone: var(--bs-secondary)}.btn.btn-outline-success{--outline-tone: var(--bs-success)}.btn.btn-outline-danger{--outline-tone: var(--bs-danger)}.btn.btn-outline-warning{--outline-tone: var(--bs-warning)}.btn.btn-outline-info{--outline-tone: var(--bs-info)}.btn.btn-outline-dark{--outline-tone: var(--bs-dark)}.btn[class*=btn-outline-]:not(.btn-outline-light){--bs-btn-bg: color-mix(in srgb, var(--outline-tone) 12%, transparent);--bs-btn-disabled-bg: color-mix(in srgb, var(--outline-tone) 8%, transparent)}.btn.btn-outline-secondary,.btn.btn-outline-warning,.btn.btn-outline-info,.btn.btn-outline-success{--bs-btn-color: color-mix(in srgb, var(--outline-tone) 40%, black);--bs-btn-border-color: color-mix(in srgb, var(--outline-tone) 80%, black);--bs-btn-disabled-color: color-mix(in srgb, var(--outline-tone) 40%, black)}.btn.btn-outline-primary{--bs-btn-color: color-mix(in srgb, var(--outline-tone) 85%, black);--bs-btn-disabled-color: color-mix(in srgb, var(--outline-tone) 85%, black)}.btn.btn-outline-danger{--bs-btn-color: color-mix(in srgb, var(--outline-tone) 58%, black);--bs-btn-disabled-color: color-mix(in srgb, var(--outline-tone) 58%, black)}[data-bs-theme=dark] .btn[class*=btn-outline-]:not(.btn-outline-light){--bs-btn-color: color-mix(in srgb, var(--outline-tone) 35%, white);--bs-btn-border-color: color-mix(in srgb, var(--outline-tone) 65%, white);--bs-btn-disabled-color: color-mix(in srgb, var(--outline-tone) 35%, white);--bs-btn-disabled-border-color: color-mix(in srgb, var(--outline-tone) 65%, white)}.card-header,.card-footer{border:none}.card{--bs-card-bg: var(--card-bg);--bs-card-border-color: var(--glass-border);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}.dropdown-menu{--bs-dropdown-link-hover-bg: rgba(var(--bs-primary-rgb), 0.12)}.list-group{--bs-list-group-bg: transparent;--bs-list-group-disabled-bg: transparent;--bs-list-group-action-hover-bg: rgba(var(--bs-body-color-rgb), 0.08)}.list-group:where(:not(.list-group-flush,.striped-list)){background-color:var(--glass-bg)}.modal-content{--bs-modal-bg: rgba(var(--bs-body-bg-rgb), 0.95)}.modal-header{position:sticky;top:0;z-index:2;background-color:var(--bs-modal-bg);border-top-left-radius:var(--bs-modal-inner-border-radius);border-top-right-radius:var(--bs-modal-inner-border-radius)}@media(min-width: 576px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 540px)}}@media(min-width: 768px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 720px)}}@media(min-width: 992px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 960px)}}@media(min-width: 1200px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 1140px)}}@media(min-width: 1400px){.modal-dialog.modal-container{--bs-modal-width: var(--modal-container-width, 1320px)}}.modal-content>form{display:flex;flex:1 1 auto;flex-direction:column;min-height:0}.modal-dialog.modal-fullscreen{width:auto}.modal-fullscreen .modal-content{background:var(--bs-body-bg)}sel-modal-expand{display:inline-flex;margin-left:auto}sel-modal-expand[hidden]{display:none}.modal-header sel-modal-expand:not([hidden])~.btn-close{margin-left:.25rem}.modal.modal-resizing{overflow:hidden}.modal-dialog.is-resizing .modal-content{overflow:hidden}.modal-expand{display:inline-flex;align-items:center;justify-content:center;padding:.5rem;border:0;border-radius:var(--bs-border-radius);background:rgba(0,0,0,0);color:var(--bs-body-color);opacity:.55;transition:opacity .15s ease,background-color .15s ease}.modal-expand:hover,.modal-expand:focus-visible{opacity:1;background-color:rgba(var(--bs-body-color-rgb), 0.08)}.modal-expand:focus-visible{outline:0;box-shadow:0 0 0 .25rem rgba(var(--bs-primary-rgb), 0.25)}.modal-expand__icon--collapse,.modal-expand[aria-pressed=true] .modal-expand__icon--expand{display:none}.modal-expand[aria-pressed=true] .modal-expand__icon--collapse{display:block}@media(prefers-reduced-motion: reduce){.modal-expand{transition:none}}.nav-tabs{--tabs-radius: 0.9rem;--tabs-gap: 0.35rem;--tabs-dip: 4px;--tabs-bg: rgba(255, 255, 255, 0.25);--tabs-hover-bg: rgba(255, 255, 255, 0.4);--bs-nav-tabs-border-width: 0;--bs-nav-tabs-border-radius: var(--tabs-radius);--bs-nav-tabs-link-active-color: var(--primary-text, var(--bs-primary));--bs-nav-tabs-link-active-bg: var(--glass-bg);gap:var(--tabs-gap)}.nav-tabs .nav-link{background-color:var(--tabs-bg);color:var(--bs-secondary-color);font-weight:600;transform:translateY(var(--tabs-dip));transition:transform .15s ease,background-color .15s ease,color .15s ease}.nav-tabs .nav-link:hover:not(.active,.disabled),.nav-tabs .nav-link:focus-visible:not(.active){color:var(--primary-text, var(--bs-primary));background-color:var(--tabs-hover-bg);transform:translateY(calc(var(--tabs-dip) / 2))}.nav-tabs .nav-link.active{transform:none;box-shadow:0 -4px 10px rgba(0,0,0,.08)}.nav-tabs .nav-link:focus-visible{box-shadow:none;outline:2px solid var(--primary-text, var(--bs-primary));outline-offset:-4px}.nav-tabs .nav-link.disabled{opacity:.6}.nav-tabs+.tab-content{--tabs-panel-radius: 0.9rem;--tabs-panel-padding: 1rem;position:relative;background-color:var(--glass-bg);border-radius:0 var(--tabs-panel-radius) var(--tabs-panel-radius) var(--tabs-panel-radius);padding:var(--tabs-panel-padding)}[data-bs-theme=dark] .nav-tabs{--tabs-bg: rgba(255, 255, 255, 0.07);--tabs-hover-bg: rgba(255, 255, 255, 0.13)}@media(prefers-reduced-motion: reduce){.nav-tabs .nav-link{transition:none}}.min-w-0{min-width:0 !important}.text-pre-line{white-space:pre-line !important}.bg-glass{background-color:var(--glass-bg) !important}.hover-tint:hover,.hover-tint:focus-visible{background-color:rgba(var(--bs-body-color-rgb), 0.05)}.btn-plain{padding:0;border:0;background:none;color:inherit;font:inherit;text-align:start}.text-rating-star{color:var(--rating-star) !important}
 /* List Striped Glass */
 /* App-wide striped list: add `striped-list` to any Bootstrap .list-group or
    .table and its rows go borderless, alternating translucent white and a
@@ -1692,27 +1692,36 @@ sel-insert-divider {
 
 .pill-remove:hover { opacity: 1; }
 
-/* Insert divider: an almost invisible strip that reveals an accent line and a "+" on hover. */
+/* Insert divider: an invisible strip on the seam between two rows that reveals an accent line and a "+" on hover. It takes no room:
+	 its 14px are pulled back with negative margins, so the rows touch and the strip lies over the border between them (half on each row),
+	 which is also the zone a pointer has to hit. */
 .insert-divider {
 	position: relative;
-	z-index: 1;
-	height: 1px;
+	z-index: 3;
+	height: 14px;
+	margin: -7px 0;
 	cursor: pointer;
 }
 
-/* The strip itself is 1px tall, so a taller invisible zone around it makes it easy to hit with a pointer. */
-.insert-divider::after {
-	content: "";
-	position: absolute;
-	inset: -8px 0;
+/* Bootstrap drops the top border of a row that follows a row; a divider in between breaks that rule, so it is repeated here (one border
+	 between the rows, never two). An active row keeps its full border, as Bootstrap does it. */
+.list-group > .insert-divider + .list-group-item {
+	border-top-width: 0;
+}
+
+.list-group > .insert-divider + .list-group-item.active {
+	margin-top: calc(-1 * var(--bs-list-group-border-width));
+	border-top-width: var(--bs-list-group-border-width);
 }
 
 .insert-divider-line {
-	/* Keeps this exact size always: it (plus its margin) is most of what makes the row hoverable. The animated fill lives on ::before
-		 so scaling it to nothing never shrinks this element's own hit area (transforms affect hit testing). */
-	position: relative;
+	/* Centred on the seam (the middle of the strip) and as wide as the list. The animated fill lives on ::before, so scaling it to nothing
+		 never moves the line. */
+	position: absolute;
+	top: calc(50% - 1.5px);
+	left: 0;
+	right: 0;
 	height: 3px;
-	margin: 3px 0.5rem;
 }
 
 .insert-divider-line::before {
@@ -1728,21 +1737,39 @@ sel-insert-divider {
 	transition: opacity 0.2s ease, transform 0.25s ease;
 }
 
+/* The "+" circle sits on the end of the line, centred on the seam and half over the list's right edge. The cross is two bars, centred
+	 exactly; the "+" text in the markup stays for screen readers and old markup but is not drawn (a font puts the glyph too low). */
 .insert-divider-plus {
 	position: absolute;
 	right: 0;
 	top: 50%;
-	width: 16px;
-	height: 16px;
-	line-height: 15px;
+	width: 18px;
+	height: 18px;
 	transform: translate(50%, -50%);
 	border-radius: 50%;
 	background-color: var(--bs-primary);
 	color: #fff;
-	font-size: 12px;
-	text-align: center;
+	font-size: 0;
 	opacity: 0;
 	transition: opacity 0.15s ease;
+}
+
+.insert-divider-plus::before,
+.insert-divider-plus::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 10px;
+	height: 2px;
+	border-radius: 1px;
+	background-color: currentColor;
+	transform: translate(-50%, -50%);
+}
+
+.insert-divider-plus::after {
+	width: 2px;
+	height: 10px;
 }
 
 .insert-divider:hover .insert-divider-line::before,
@@ -1755,6 +1782,91 @@ sel-insert-divider {
 	.token-pill,
 	.insert-divider-line::before,
 	.insert-divider-plus { transition: none; }
+}
+
+
+/* Stat block */
+/* Stat block. --stat-color is the glow colour (set it per card to match its accent). */
+sel-stat-block {
+	display: block;
+}
+
+.stat-block {
+	border-radius: 0.5rem;
+	padding: 0.25rem 0.5rem;
+	margin: -0.25rem -0.5rem;
+	transition: box-shadow 0.2s ease;
+}
+
+.stat-block:hover {
+	box-shadow: 1px 1px 3px 0 color-mix(in srgb, var(--stat-color, var(--bs-primary)) 55%, transparent);
+}
+
+/* Addable: the whole block is the add action. */
+.stat-block-addable {
+	cursor: pointer;
+	transition: background-color 0.15s ease, box-shadow 0.2s ease;
+}
+
+.stat-block-addable:hover,
+.stat-block-addable:focus-visible {
+	background-color: rgba(var(--bs-body-color-rgb), 0.02);
+}
+
+.stat-block-addable:focus-visible { outline: 2px solid var(--stat-color, var(--bs-primary)); outline-offset: 2px; }
+
+/* The plus is collapsed to ZERO width (not just invisible) so it takes no part in centring the count above the label while hidden:
+	 opacity alone would still reserve its space. Growing its width on hover is also what nudges the count left to make room. */
+.stat-block-add-icon {
+	display: inline-block;
+	overflow: hidden;
+	max-width: 0;
+	margin-left: 0;
+	opacity: 0;
+	color: var(--stat-color, var(--primary-text, var(--bs-primary)));
+	transform: scale(0.3) rotate(-90deg);
+	transition: opacity 0.2s ease, transform 0.2s ease, max-width 0.2s ease, margin-left 0.2s ease;
+}
+
+.stat-block-addable:hover .stat-block-add-icon,
+.stat-block-addable:focus-visible .stat-block-add-icon {
+	max-width: 1.5rem;
+	margin-left: 0.35rem;
+	opacity: 1;
+	transform: scale(1) rotate(0deg);
+	animation: stat-block-add-pop 0.5s ease;
+}
+
+@keyframes stat-block-add-pop {
+	0% { transform: scale(0.3) rotate(-90deg); }
+	50% { transform: scale(1.35) rotate(10deg); }
+	100% { transform: scale(1) rotate(0deg); }
+}
+
+.stat-block-disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* Demo page: the cards' accent is --stat-color, set on each card. */
+.stat-block-demo {
+	max-width: 36rem;
+}
+
+.stat-block-demo .card {
+	border-top: 4px solid var(--stat-color);
+}
+
+/* No hover at all (touch only): keep the plus visible. A narrow desktop window still has hover, so it keeps the animation. */
+@media (hover: none) {
+	.stat-block-add-icon {
+		max-width: 1.5rem;
+		margin-left: 0.35rem;
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.stat-block,
+	.stat-block-add-icon { transition: none; animation: none; }
 }
 
 
@@ -1842,6 +1954,229 @@ sel-vertical-bar-chart-2 > data {
 
 .vertical-bar-chart-2-legend-label {
 	font-size: 0.9rem;
+	color: var(--bs-body-color);
+}
+
+
+/* Colour Themes */
+sel-colour-themes {
+	display: block;
+}
+
+sel-colour-themes > data {
+	display: none;
+}
+
+.colour-themes-demo {
+	max-width: 28rem;
+}
+
+.colour-themes-swatches {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+}
+
+.colour-themes-swatch {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.35rem 0.6rem;
+	border: 2px solid var(--bs-border-color);
+	border-radius: var(--bs-border-radius);
+	background: var(--card-bg, var(--bs-body-bg));
+	color: inherit;
+	font: inherit;
+	font-size: 0.85rem;
+	cursor: pointer;
+	transition: border-color 0.15s ease;
+}
+
+.colour-themes-swatch:hover {
+	border-color: var(--bs-secondary-color);
+}
+
+.colour-themes-swatch.is-active {
+	border-color: var(--primary, var(--bs-primary));
+}
+
+.colour-themes-swatch-preview {
+	display: block;
+	width: 1.4rem;
+	height: 1.4rem;
+	border-radius: var(--bs-border-radius-sm);
+	flex-shrink: 0;
+}
+
+.colour-themes-dark-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+	margin-top: 1rem;
+	cursor: pointer;
+}
+
+/* Demo only: text in the primary colour. In dark mode it is lightened with color-mix so it stays readable on the
+   primary-tinted page, and it keeps following the picked theme at runtime (--primary-text is compiled once, so it would not). */
+.colour-themes-demo-primary-text {
+	color: var(--primary);
+}
+
+[data-bs-theme="dark"] .colour-themes-demo-primary-text {
+	color: color-mix(in srgb, var(--primary) 35%, white);
+}
+
+/* A picked theme (anything but the "theme defaults" swatch) also re-derives the page background, the main container and
+   the glass surfaces from its colours. These rules only apply while <sel-colour-themes> has set data-sel-colour-theme on
+   <html>; without it the theme's own light and dark defaults (Tokens page, "Light / dark variables" and "Background")
+   apply exactly as compiled. Specificity: html[attr] beats the compiled :root, html[attr][data-bs-theme] beats the
+   compiled [data-bs-theme="dark"], and html[attr]::after beats the compiled html::after dark layer. */
+html[data-sel-colour-theme] {
+	--sel-theme-tint: color-mix(in srgb, white 90%, var(--primary) 10%);
+	--sel-theme-tint-stripe: color-mix(in srgb, #e2e4e6 85%, var(--primary) 15%);
+	--glass-bg: color-mix(in srgb, var(--sel-theme-tint) 50%, transparent);
+	--glass-bg-strong: color-mix(in srgb, var(--sel-theme-tint) 80%, transparent);
+	--glass-stripe: color-mix(in srgb, var(--sel-theme-tint-stripe) 47%, transparent);
+	--glass-stripe-strong: color-mix(in srgb, var(--sel-theme-tint-stripe) 75%, transparent);
+	--glass-solid: color-mix(in srgb, white 88%, var(--primary) 12%);
+	--card-bg: color-mix(in srgb, var(--sel-theme-tint) 90%, transparent);
+	--main-content-gradient: linear-gradient(45deg, color-mix(in srgb, var(--secondary) 20%, #ffd8d8), color-mix(in srgb, var(--sel-theme-tint) 38%, transparent));
+}
+
+html[data-sel-colour-theme][data-bs-theme="dark"] {
+	--sel-theme-tint: color-mix(in srgb, #212529 88%, var(--primary) 12%);
+	--sel-theme-tint-stripe: color-mix(in srgb, #495057 85%, var(--primary) 15%);
+	--glass-bg: color-mix(in srgb, var(--sel-theme-tint) 50%, transparent);
+	--glass-bg-strong: color-mix(in srgb, var(--sel-theme-tint) 80%, transparent);
+	--glass-stripe: color-mix(in srgb, var(--sel-theme-tint-stripe) 40%, transparent);
+	--glass-stripe-strong: color-mix(in srgb, var(--sel-theme-tint-stripe) 65%, transparent);
+	--glass-solid: color-mix(in srgb, #2b3035 85%, var(--primary) 15%);
+	--card-bg: color-mix(in srgb, var(--sel-theme-tint) 90%, transparent);
+	--main-content-gradient: linear-gradient(45deg, color-mix(in srgb, color-mix(in srgb, var(--primary) 55%, black) 93%, transparent), color-mix(in srgb, color-mix(in srgb, #1a1d21 92%, var(--secondary) 8%) 90%, transparent));
+	--page-background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 55%, black), color-mix(in srgb, var(--tertiary) 55%, black), color-mix(in srgb, var(--secondary) 55%, black));
+}
+
+/* The dark page layer the theme paints (html::after) is a literal gradient, so it is overridden here. The light layer
+   already follows --primary / --secondary / --tertiary through --bg-gradient. */
+html[data-sel-colour-theme]::after {
+	background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 55%, black), color-mix(in srgb, var(--tertiary) 55%, black), color-mix(in srgb, var(--secondary) 55%, black));
+	background-size: cover;
+}
+
+/* A picked theme also has to reach the parts of Bootstrap that the theme build resolved to literal hex at compile
+   time — the switch/checkbox tick, the active item of dropdowns, nav pills and list groups, progress bars, primary and
+   outline-primary buttons, focus rings and borders on inputs, the range thumb, dark mode's link colour. Bootstrap
+   compiles several components this way, so without these they'd stay the compiled brand colour while everything written
+   against --primary changed. Scoped to a picked theme (html[data-sel-colour-theme]) like the rest of this file, so the
+   "theme defaults" swatch leaves the compiled theme exactly as shipped; the derived shades are color-mix()ed from the
+   live primary the way the theme derives its own. Copy this block along with the rest of the CSS tab. */
+html[data-sel-colour-theme] .form-check-input:checked,
+html[data-sel-colour-theme] .form-check-input[type=checkbox]:indeterminate {
+	background-color: var(--primary);
+	border-color: var(--primary);
+}
+
+html[data-sel-colour-theme] .form-check-input:focus,
+html[data-sel-colour-theme] .form-control:focus,
+html[data-sel-colour-theme] .form-select:focus {
+	border-color: color-mix(in srgb, var(--primary) 50%, white);
+	box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+html[data-sel-colour-theme] {
+	--bs-focus-ring-color: color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+html[data-sel-colour-theme] .dropdown-menu {
+	--bs-dropdown-link-active-bg: var(--primary);
+}
+
+html[data-sel-colour-theme] .nav-pills {
+	--bs-nav-pills-link-active-bg: var(--primary);
+}
+
+html[data-sel-colour-theme] .list-group {
+	--bs-list-group-active-bg: var(--primary);
+	--bs-list-group-active-border-color: var(--primary);
+}
+
+html[data-sel-colour-theme] .progress,
+html[data-sel-colour-theme] .progress-stacked {
+	--bs-progress-bar-bg: var(--primary);
+}
+
+html[data-sel-colour-theme] .pagination {
+	--bs-pagination-active-bg: var(--primary);
+	--bs-pagination-active-border-color: var(--primary);
+}
+
+html[data-sel-colour-theme] .btn-primary {
+	--bs-btn-bg: var(--primary);
+	--bs-btn-border-color: var(--primary);
+	--bs-btn-hover-bg: color-mix(in srgb, var(--primary) 85%, black);
+	--bs-btn-hover-border-color: color-mix(in srgb, var(--primary) 80%, black);
+	--bs-btn-active-bg: color-mix(in srgb, var(--primary) 80%, black);
+	--bs-btn-active-border-color: color-mix(in srgb, var(--primary) 75%, black);
+	--bs-btn-disabled-bg: var(--primary);
+	--bs-btn-disabled-border-color: var(--primary);
+}
+
+html[data-sel-colour-theme] .btn-outline-primary {
+	--bs-btn-color: var(--primary);
+	--bs-btn-border-color: var(--primary);
+	--bs-btn-hover-bg: var(--primary);
+	--bs-btn-hover-border-color: var(--primary);
+	--bs-btn-active-bg: var(--primary);
+	--bs-btn-active-border-color: var(--primary);
+	--bs-btn-disabled-color: var(--primary);
+	--bs-btn-disabled-border-color: var(--primary);
+}
+
+html[data-sel-colour-theme] .border-primary {
+	border-color: var(--primary) !important;
+}
+
+html[data-sel-colour-theme] .form-range::-webkit-slider-thumb {
+	background-color: var(--primary);
+}
+
+html[data-sel-colour-theme] .form-range::-moz-range-thumb {
+	background-color: var(--primary);
+}
+
+/* Dark mode's link colour is a baked light purple — the same lightening, from the live primary. */
+html[data-sel-colour-theme][data-bs-theme="dark"] {
+	--bs-link-color: color-mix(in srgb, var(--primary) 35%, white);
+	--bs-link-hover-color: color-mix(in srgb, var(--primary) 20%, white);
+}
+
+/* Demo only: the LIBRARY-ONLY "New theme" tool (see the HTML tab). Not part of the component, do not copy into a project. */
+.colour-themes-demo-new > summary {
+	cursor: pointer;
+	color: var(--bs-secondary-color);
+}
+
+.colour-themes-demo-new-form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: end;
+	gap: 0.6rem;
+	margin: 0.6rem 0;
+}
+
+.colour-themes-demo-new-form label {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.colour-themes-demo-new-code {
+	white-space: pre-wrap;
+	word-break: break-all;
+	padding: 0.5rem;
+	border-radius: var(--bs-border-radius-sm);
+	background: var(--glass-bg);
 	color: var(--bs-body-color);
 }
 

@@ -12,6 +12,10 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#6b1f7e">
   <link rel="icon" href="images/app-icon.svg" type="image/svg+xml">
+  <!-- Phones: the home screen icon on iPhone (Safari ignores SVG there), the name under it, and full-screen once installed. -->
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="Splitskebab">
+  <meta name="mobile-web-app-capable" content="yes">
   <!-- Light / dark mode: follows the system until the "Dark mode" switch in the account menu is used (loaded here so the page does not flash). -->
   <script src="js/theme-mode.js"></script>
   <!-- Hidden until js/app.js knows who is signed in (no flash of the page before the sign-in page); shown after 8 s whatever happens. -->

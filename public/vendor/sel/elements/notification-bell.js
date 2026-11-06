@@ -1,4 +1,4 @@
-/* Notification bell - Aperam Theme v0.3.4 */
+/* Notification bell - Aperam Theme v0.5.2 */
 /* Notification bell: <sel-notification-bell class="dropdown" filters='[["all","All"],["mentions","Mentions"]]'> (see the HTML tab for the markup
  * and events). State lives in the DOM: every .notification-item has data-category and data-read, so you can render the list on the
  * server or from code - the element redraws its badge and filter chips whenever the list changes. The chips are drawn by Lit.

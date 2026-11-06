@@ -1,4 +1,4 @@
-/* Drag board - Aperam Theme v0.3.4 */
+/* Drag board - Aperam Theme v0.5.2 */
 /* Drag board: <sel-board> turns .board-column groups of .board-chip items into a kanban-style board (see the HTML tab for the markup).
  * Fires "board:change" on the board: detail = { item, from, to, action } with action "add" (copied out of the source column), "move"
  * (between groups) or "remove" (back to the source). "board:edit" { column } comes from a column's edit button.

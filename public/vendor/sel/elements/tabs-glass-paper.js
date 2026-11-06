@@ -1,4 +1,4 @@
-/* Tabs Glass Paper - Aperam Theme v0.3.4 */
+/* Tabs Glass Paper - Aperam Theme v0.5.2 */
 /* Paper tabs behaviour (the tabs themselves are plain Bootstrap tabs). Wrap the tab strip in <sel-paper-tabs>: it adds edge fades to a
  * strip that scrolls sideways, turns the mouse wheel into sideways scrolling, and keeps the selected tab in view.
  * wireScrollFade(el, options) is the same thing for any scrollable element you wire yourself; it returns a dispose function. */

@@ -1,4 +1,4 @@
-/* List Striped Glass - Aperam Theme v0.3.4 */
+/* List Striped Glass - Aperam Theme v0.5.2 */
 /* Striped list element: <sel-striped-list> around a .striped-list (list group or table).
  *
  * Collapsed list (limit="10"): shows the first rows, fades the list out towards the bottom and adds a chevron button that reveals the

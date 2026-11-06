@@ -1,4 +1,4 @@
-/* Page transitions - Aperam Theme v0.3.4 */
+/* Page transitions - Aperam Theme v0.5.2 */
 /* Page transitions. The animation itself is CSS (see the CSS tab): a fade-and-rise between pages with the navbar (.page-transition-static)
  * standing still, through the browser's View Transitions API.
  *

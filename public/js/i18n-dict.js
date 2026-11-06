@@ -150,6 +150,7 @@ export const DICT = {
     "houses.youAreOwed": "You get back",
     "houses.youOwe": "You owe",
 
+    "install.ios": "To install Splitskebab: tap the Share button (the square with the arrow up) at the bottom of Safari, then choose Add to Home Screen.",
     "invite.text": "Are you joining {title} on {day}? ({circle})",
 
     "login.button": "Sign in with Google",
@@ -269,6 +270,8 @@ export const DICT = {
     "profile.welcomeBody": "Tick your allergies so everyone you eat with knows, and add your payment link. Then create a house, or ask a housemate to add you.",
     "profile.welcomeTitle": "Welcome to Splitskebab!",
     "profile.changePhoto": "Change photo",
+    "profile.colourTheme": "Colour theme",
+    "profile.colourThemeHelp": "Pick the colours of the app on this device.",
     "profile.displayName": "Name others see",
     "profile.googlePhoto": "Use my Google photo",
     "profile.identity": "Name and photo",
@@ -524,6 +527,7 @@ export const DICT = {
     "houses.youAreOwed": "Je krijgt terug",
     "houses.youOwe": "Je moet betalen",
 
+    "install.ios": "Splitskebab installeren: tik onderin Safari op de Deel-knop (het vierkant met het pijltje omhoog) en kies Zet op beginscherm.",
     "invite.text": "Eet je mee met {title} op {day}? ({circle})",
 
     "login.button": "Inloggen met Google",
@@ -643,6 +647,8 @@ export const DICT = {
     "profile.welcomeBody": "Vink je allergieën aan zodat iedereen met wie je eet het weet, en voeg je betaallink toe. Maak daarna een huis aan, of vraag een huisgenoot je toe te voegen.",
     "profile.welcomeTitle": "Welkom bij Splitskebab!",
     "profile.changePhoto": "Foto wijzigen",
+    "profile.colourTheme": "Kleurenthema",
+    "profile.colourThemeHelp": "Kies de kleuren van de app op dit apparaat.",
     "profile.displayName": "Naam die anderen zien",
     "profile.googlePhoto": "Mijn Google-foto gebruiken",
     "profile.identity": "Naam en foto",

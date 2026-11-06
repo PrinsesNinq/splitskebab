@@ -47,12 +47,13 @@
     "pulledAt": "2026-11-06T07:12:00.966Z"
   },
   "elements": {
-    "version": "0.3.4",
+    "version": "0.5.2",
     "requested": "latest",
     "out": "public/vendor/sel",
     "components": [
       "board",
       "chart-loader",
+      "colour-themes",
       "notification-bell",
       "page-transitions",
       "striped-list",
@@ -61,50 +62,54 @@
     ],
     "roots": [
       "board",
+      "colour-themes",
       "notification-bell",
       "page-transitions",
       "striped-list",
       "tabs-glass-paper",
       "vertical-bar-chart-2"
     ],
-    "pulledAt": "2026-11-06T13:05:04.007Z",
+    "pulledAt": "2026-11-06T13:45:08.916Z",
     "icons": true,
     "files": {
       "theme-lit.js": "800e79a94a91e359c983dd287251210cfcb59efbba9dff221bea1bdfd0e21c16",
-      "theme-icons.js": "dbf0656b1dea29cbf526b78df58e593d4b7cea6351224ca36b4146a9f05f6960",
-      "elements/striped-list.js": "5457f5777c213104b018b89bf0c1aa0beb98a8cd1311a47ecd30088a02c34b78",
-      "elements/tabs-glass-paper.js": "42d82c1da54bc6b5917e72b3ba98c5dd5851f1859a3827615ca5e526e59a9e92",
-      "elements/board.js": "160b751b045e749e8bc1ca07a01b1f482985a4d3525956255bf42e6d0fe61958",
-      "elements/page-transitions.js": "dfb5253006ddd7f2c095c320c006b3562fbeaa0238182c0c1e7272df8cf9dbbe",
-      "elements/notification-bell.js": "6f5fcda849cd12c73867b3418fbff682116702e3123c9cc62bd4d4c999ae3550",
-      "elements/vertical-bar-chart-2.js": "498b373e78784ae953d7443f061da9243729d383d85032738cca61fc13b899a0",
-      "elements/chart-loader.js": "a8a95e38862576230e0ce3614d1edeafad69c2e34aca1bbd40484da286b1c31f"
+      "theme-icons.js": "edf204d4a77e5d329f569cc0a9ef2e688cb0e22f2f24d12dc155bde6090fbd2a",
+      "elements/striped-list.js": "b5f729f1e1e0c21b820521017506aaf0fe828b5a1f2743dbfd46e35874107cbd",
+      "elements/tabs-glass-paper.js": "695235ed2e0fe3719d6540a5adcf9e9273bd043dee5708590f6ce5cdb5a68cc9",
+      "elements/board.js": "ca9de11dbcbd2e23fe79bbd6a536b93fd5e22349e77b6ac5faeaef04cac51a1e",
+      "elements/page-transitions.js": "6a23042f1b284dcf02006a65c5a4b5ddf5d41d05bb1d2300c2f5b87991e82663",
+      "elements/notification-bell.js": "55eb87dacf5a7661b5e126ed58937bf40b7b7f60cb9cec5bfa27977a299d540e",
+      "elements/vertical-bar-chart-2.js": "8d15cc4a37dfda4238a2534f6b4f2683dc242dabaf8bcfff73c99d563b54da3a",
+      "elements/colour-themes.js": "96e846474b2839e6c2135c1743637c55c12151c48cd9b4f448e8eb41cadd5479",
+      "elements/chart-loader.js": "ce9c2dfec2a76451b7888bb7e53ef08e1ab156c6696ad3b8e56485fde225943c"
     }
   },
   "mode": "theme",
   "theme_files": {
-    "version": "0.3.4",
+    "version": "0.5.2",
     "requested": "latest",
     "out": "public/vendor/sel/theme",
     "components": [
       "add-tile",
       "avatar-stack",
       "board",
+      "colour-themes",
       "log-in-screen",
       "mention-autocomplete",
       "navbar-gradient",
       "notification-bell",
       "page-transitions",
       "reorder-pills",
+      "stat-block",
       "stepper-wizard",
       "striped-list",
       "tabs-glass-paper",
       "tags",
       "vertical-bar-chart-2"
     ],
-    "pulledAt": "2026-11-06T13:05:04.171Z",
+    "pulledAt": "2026-11-06T13:45:09.118Z",
     "files": {
-      "theme.css": "c8ce9b8e3e51008f4dbaa41c73639524702ae29bc9463b38d662fd73feeaf8b1",
+      "theme.css": "912dd8a2f9c36feea9c5193d3eada273c29d2f6c1653672f9b835ee30caae0b9",
       "bootstrap.bundle.min.js": "af0f8daeeb46b647a7216cd38b320f6ee124933aeef83a31d284f76d69145824",
       "fonts/bootstrap-icons.woff2": "6c75710364a1ca5604267716f6d28997b26319fdb078cf11e0b42ab66ff2ea61",
       "fonts/bootstrap-icons.woff": "f55513b7b591cb84a3b87ff0e34ea24d4831d6fedc22e54b911ca64b5b544a15",
@@ -128,6 +133,7 @@
     }
   },
   "keep": [
-    "vertical-bar-chart-2"
+    "vertical-bar-chart-2",
+    "colour-themes"
   ]
 }
