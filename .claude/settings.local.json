@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(git push:*)"
+      "PowerShell(git push:*)",
+      "Bash(git push:*)"
     ]
   }
 }

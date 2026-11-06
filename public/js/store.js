@@ -17,6 +17,7 @@
 // with soft navigation the modules stay loaded, so switching pages shows the data at once.
 import { SDK, db } from "./firebase-init.js";
 import { cleanAllergens } from "./allergens.js";
+import { missingViewers } from "./sharing.js";
 
 const fs = await import(`${SDK}/firebase-firestore.js`);
 const {
@@ -166,6 +167,18 @@ export const joinMeal = (id, me) => updateMeal(id, { participants: arrayUnion(me
 export const declineMeal = (id, me) => updateMeal(id, { participants: arrayRemove(me), declined: arrayUnion(me) });
 export const setHave = (id, key, has) => updateMeal(id, { have: has ? arrayUnion(key) : arrayRemove(key) });
 export const setSettled = (id, eater, paid) => updateMeal(id, { settled: paid ? arrayUnion(eater) : arrayRemove(eater) });
+/**
+ * Gives everyone in a house or group access to its meals, also the ones planned before they joined. A meal is only readable by its
+ * viewers (firestore.rules), and viewers is filled in when the meal is planned: without this, someone added to the house later sees
+ * none of its meals. Run by any member's app (js/app.js); it only writes when someone is missing, so it settles after one round.
+ * Meals older than 60 days are left alone (no point in sharing old dinners, and it keeps the writes few).
+ */
+export async function shareCircleMeals(circles, meals, today) {
+  const todo = missingViewers(circles, meals, today);
+  await Promise.all(todo.map(({ id, missing }) => updateDoc(doc(db, "meals", id), { viewers: arrayUnion(...missing) })));
+  return todo.length;
+}
+
 /** Asks people (friends from outside the circle) to say yes or no: they can see the meal from now on. */
 export const inviteToMeal = (id, emails) => updateMeal(id, { viewers: arrayUnion(...emails), invited: arrayUnion(...emails) });
 

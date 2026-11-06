@@ -141,7 +141,11 @@ function startNew() {
       declined: [], invited: guestsFromOutside, guests: [], rsvp: rsvp.checked, recipe, servings: null,
     }));
     $("#new-save").disabled = false;
-    if (id) go(`meal.html?id=${encodeURIComponent(id)}`);
+    if (id) {
+      // Planned: the recipe and the costs are for later, and the next page says so too.
+      toast(t("meal.planned"));
+      go(`meal.html?id=${encodeURIComponent(id)}`);
+    }
   });
 }
 
@@ -154,6 +158,7 @@ function startView(id) {
   let recipes = allRecipes([]);
   let sort = "all";
   let friends = [];
+  let costFormOpen = false; // "Add costs" was pressed
 
   const eaterPeople = () => meal.participants.map((email) => person(email));
   const chosenRecipe = () => findRecipe(meal.recipe, recipes);
@@ -295,8 +300,12 @@ function startView(id) {
       $("#cost-total").value = (meal.cost.totalCents / 100).toFixed(2).replace(".", lang === "nl" ? "," : ".");
     }
     $("#cost-clear").classList.toggle("d-none", !meal.cost);
+    // Without a cost the form stays folded behind "Add costs": the costs come after the shopping, not when planning.
+    const showForm = Boolean(meal.cost) || costFormOpen;
+    $("#cost-form").classList.toggle("d-none", !showForm);
+    $("#cost-empty").classList.toggle("d-none", showForm);
     if (!meal.cost) {
-      $("#split-box").innerHTML = ids.length ? "" : `<p class="small text-body-secondary mb-0">${esc(t("meal.nobodyEats"))}</p>`;
+      $("#split-box").innerHTML = "";
       return;
     }
     const shares = mealShares(meal);
@@ -469,6 +478,12 @@ function startView(id) {
     shareText(text);
   });
 
+  $("#cost-add").addEventListener("click", () => {
+    costFormOpen = true;
+    renderCost();
+    $("#cost-total").focus();
+  });
+
   $("#cost-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const cents = parseMoney($("#cost-total").value);
@@ -480,6 +495,7 @@ function startView(id) {
   $("#cost-clear").addEventListener("click", () => {
     if (!window.confirm(t("meal.confirmClearCost"))) return;
     $("#cost-total").value = "";
+    costFormOpen = false;
     attempt(() => updateMeal(id, { cost: null, settled: [] }));
   });
   $("#split-box").addEventListener("click", (e) => {

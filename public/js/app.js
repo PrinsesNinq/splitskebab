@@ -95,6 +95,31 @@ async function startInvites(me) {
   people.subscribe(() => render()); // names arrive separately
 }
 
+// ---- Housemates see the house's meals, also the ones planned before they joined (store.js shareCircleMeals) ----
+async function startMealSharing(me) {
+  const { myCircles, myMeals, shareCircleMeals } = await import("./store.js");
+  const { todayIso } = await import("./ui.js");
+  let circles = null;
+  let meals = null;
+  let busy = false;
+  let again = false;
+  const run = async () => {
+    if (!circles || !meals) return;
+    if (busy) { again = true; return; } // one round at a time; the snapshot after our own writes triggers the next
+    busy = true;
+    try {
+      await shareCircleMeals(circles, meals, todayIso());
+    } catch (err) {
+      console.warn("Sharing the house's meals with new housemates did not work:", err?.code || err);
+    } finally {
+      busy = false;
+      if (again) { again = false; run(); }
+    }
+  };
+  myCircles(me).subscribe((list) => { if (list) { circles = list; run(); } });
+  myMeals(me).subscribe((list) => { if (list) { meals = list; run(); } });
+}
+
 if (!configured) {
   // Not connected to Firebase yet: say so above the content instead of sending everyone to a sign-in that cannot work.
   document.querySelector("#site-nav").insertAdjacentHTML("afterend", '<div class="container mt-3"><div class="alert alert-warning mb-0">Firebase is not set up yet: fill in <code>public/js/config.js</code> (or create the project with sel-new). The pages work, signing in does not.</div></div>');
@@ -113,5 +138,6 @@ if (!configured) {
     window.appUser = user; // for page scripts that start after this event (a page reached by soft navigation)
     document.dispatchEvent(new CustomEvent("app:user", { detail: { user } }));
     startInvites(user.email.toLowerCase());
+    startMealSharing(user.email.toLowerCase());
   }
 }

@@ -3,7 +3,8 @@
 A mobile-first web app (installable PWA) for students who live together: plan meals per house or group on a calendar, pick a recipe and
 get the grocery list, see everyone's allergies (recipes that contain them are marked red), and split the receipt equally with payment
 requests. English and Dutch. Runs on Firebase project `splitskebab-1fb8` (owned by a personal Gmail account, Firestore in eur3, hosting at
-https://splitskebab-1fb8.web.app). Sign-in: Google accounts on @aperam.com that an admin added in Settings > Users (invite-only).
+https://splitskebab-1fb8.web.app). Sign-in: any Google account, but only people an admin added in Settings > Users get access
+(invite-only, firestore.rules allowed()).
 
 ## Stack and layout
 

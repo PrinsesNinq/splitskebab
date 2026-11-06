@@ -180,7 +180,7 @@
       <section class="card mb-3">
         <div class="card-body">
           <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-            <h2 class="h6 mb-0"><i class="bi bi-journal-text" aria-hidden="true"></i> <span data-i18n="meal.recipe">Recipe</span></h2>
+            <h2 class="h6 mb-0"><i class="bi bi-journal-text" aria-hidden="true"></i> <span data-i18n="meal.recipe">Recipe</span> <span class="badge text-bg-light border fw-normal" data-i18n="meal.optional">optional</span></h2>
             <button type="button" class="btn btn-sm btn-outline-primary" id="choose-recipe" data-bs-toggle="modal" data-bs-target="#recipe-modal" data-i18n="meal.chooseRecipe">Choose a recipe</button>
           </div>
           <div id="recipe-box"><p class="text-body-secondary small mb-0" data-i18n="meal.noRecipe">No recipe yet. Pick one to get the grocery list.</p></div>
@@ -212,8 +212,13 @@
 
       <section class="card mb-3">
         <div class="card-body">
-          <h2 class="h6"><i class="bi bi-wallet2" aria-hidden="true"></i> <span data-i18n="meal.cost">Cost and splitting</span></h2>
-          <form id="cost-form" class="row g-2 align-items-end" novalidate>
+          <h2 class="h6"><i class="bi bi-wallet2" aria-hidden="true"></i> <span data-i18n="meal.cost">Cost and splitting</span> <span class="badge text-bg-light border fw-normal" data-i18n="meal.afterShopping">after shopping</span></h2>
+          <!-- No cost yet: just a button, so nobody thinks it has to be filled in now. The form opens with it (or when there is a cost). -->
+          <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap" id="cost-empty">
+            <p class="small text-body-secondary mb-0" data-i18n="meal.noCostYet">No costs yet. Add the receipt total once the groceries are done; everyone sees their share then.</p>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="cost-add"><i class="bi bi-receipt" aria-hidden="true"></i> <span data-i18n="meal.addCost">Add costs</span></button>
+          </div>
+          <form id="cost-form" class="row g-2 align-items-end d-none" novalidate>
             <div class="col-6">
               <label class="form-label small" for="cost-total" data-i18n="meal.total">Total of the receipt</label>
               <div class="input-group">
@@ -234,6 +239,10 @@
           <div id="split-box" class="mt-3"></div>
         </div>
       </section>
+
+      <!-- Everything above is saved the moment it changes: this only takes you back. -->
+      <p class="small text-body-secondary text-center mb-2" data-i18n="meal.autoSaved">Everything is saved as you go: come back any time to add the recipe or the costs.</p>
+      <a href="index.html" class="btn btn-primary w-100" id="meal-done"><i class="bi bi-check2" aria-hidden="true"></i> <span data-i18n="meal.done">Done</span></a>
     </div>
   </main>
 

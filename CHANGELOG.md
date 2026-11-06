@@ -12,3 +12,5 @@ All notable changes are kept here in Keep a Changelog format.
 - Friends: send and accept friend requests, invite friends from outside your house to a meal
 - "What can I make" ranks by what you have (main ingredients count most, swaps like spaghetti for penne), never by the shortest list
 - 102 built-in recipes in English and Dutch, with filters: quick, vegetarian, vegan, budget, big group
+- Planning a meal: recipe and costs are clearly optional and can be added later; a Done button takes you back
+- Fixed: someone added to a house now also sees the meals planned before they joined
