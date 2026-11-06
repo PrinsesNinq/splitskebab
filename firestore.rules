@@ -33,6 +33,13 @@ service cloud.firestore {
       return signedIn() && (exists(/databases/$(database)/documents/users/$(me())) || isAdmin() || isBootstrapAdmin());
     }
 
+    // Whether an email (someone else's) has access to Splitskebab: only they can be asked to be friends.
+    function isInvited(email) {
+      return exists(/databases/$(database)/documents/users/$(email)) ||
+        email == 'nino.otten@aperam.com' ||
+        (exists(/databases/$(database)/documents/settings/admins) && email in get(/databases/$(database)/documents/settings/admins).data.emails);
+    }
+
     function isAllergenList(v) {
       return v is list && v.size() <= 14 &&
         v.hasOnly(['gluten', 'crustaceans', 'eggs', 'fish', 'peanuts', 'soy', 'milk', 'nuts', 'celery', 'mustard', 'sesame', 'sulphites', 'lupin', 'molluscs']);
@@ -103,8 +110,9 @@ service cloud.firestore {
     // Meals. viewers (the circle's members when it was planned, plus anyone added) see and change it: anyone at the table can change
     // who joins, the recipe, the groceries and the cost. The host, the circle and the creation time never change; only the host deletes.
     function validMeal(d) {
-      return d.keys().hasOnly(['title', 'date', 'time', 'circleId', 'circleName', 'host', 'viewers', 'participants', 'declined', 'guests',
-          'rsvp', 'recipe', 'servings', 'have', 'cost', 'settled', 'createdAt', 'updatedAt']) &&
+      return d.keys().hasOnly(['title', 'date', 'time', 'circleId', 'circleName', 'host', 'viewers', 'participants', 'declined', 'invited',
+          'guests', 'rsvp', 'recipe', 'servings', 'have', 'cost', 'settled', 'createdAt', 'updatedAt']) &&
+        (!('invited' in d) || (d.invited is list && d.invited.size() <= 100)) &&
         d.title is string && d.title.size() <= 80 &&
         d.date is string && d.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}') &&
         d.time is string && (d.time == '' || d.time.matches('[0-9]{2}:[0-9]{2}')) &&
@@ -134,6 +142,27 @@ service cloud.firestore {
         request.resource.data.circleId == resource.data.circleId &&
         request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if allowed() && resource.data.host == me();
+    }
+
+    // Friendships: one document per pair, its id the two emails sorted and joined by "|" (so there is never a second one). Either
+    // person reads it and deletes it (decline, cancel, unfriend); only the one who was asked accepts it, and accepting changes nothing
+    // else. Both people must have access to Splitskebab.
+    match /friendships/{id} {
+      allow read: if allowed() && me() in resource.data.users;
+      allow create: if allowed() &&
+        request.resource.data.keys().hasOnly(['users', 'requester', 'status', 'createdAt']) &&
+        request.resource.data.users is list && request.resource.data.users.size() == 2 &&
+        request.resource.data.users[0] is string && request.resource.data.users[1] is string &&
+        request.resource.data.users[0] < request.resource.data.users[1] &&
+        id == request.resource.data.users[0] + '|' + request.resource.data.users[1] &&
+        me() in request.resource.data.users &&
+        request.resource.data.requester == me() &&
+        request.resource.data.status == 'pending' &&
+        isInvited(request.resource.data.users[0]) && isInvited(request.resource.data.users[1]);
+      allow update: if allowed() && me() in resource.data.users && me() != resource.data.requester &&
+        resource.data.status == 'pending' && request.resource.data.status == 'accepted' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt']);
+      allow delete: if allowed() && me() in resource.data.users;
     }
 
     // Users' own recipes: everyone invited reads them, the author writes them.

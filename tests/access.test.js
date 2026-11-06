@@ -28,7 +28,7 @@ test("the app and the rules agree on the sign-in domain", () => {
 });
 
 test("every app collection asks for an invitation, not just a sign-in", () => {
-  for (const p of ["circles/{id}", "meals/{id}", "recipes/{id}"]) {
+  for (const p of ["circles/{id}", "meals/{id}", "recipes/{id}", "friendships/{id}"]) {
     const allows = block(p).match(/allow [a-z, ]+: if [^;]+;/g);
     assert.ok(allows?.length, `${p} has rules`);
     for (const a of allows) assert.ok(a.includes("allowed()"), `${p}: ${a}`);
@@ -39,6 +39,19 @@ test("every app collection asks for an invitation, not just a sign-in", () => {
 test("strangers who sign in cannot read who the admins are or the groups", () => {
   assert.match(block("settings/admins"), /allow read: if allowed\(\);/);
   assert.match(block("settings/groups"), /allow read: if allowed\(\);/);
+});
+
+test("a friend request only goes to someone with access, once per pair, and only the other one accepts it", () => {
+  const f = block("friendships/{id}");
+  const create = /allow create: if ([\s\S]*?);\n/.exec(f)[1];
+  assert.match(create, /isInvited\(request\.resource\.data\.users\[0\]\) && isInvited\(request\.resource\.data\.users\[1\]\)/, "both people have access");
+  assert.match(create, /users\[0\] < request\.resource\.data\.users\[1\]/, "the pair is sorted");
+  assert.match(create, /id == request\.resource\.data\.users\[0\] \+ '\|' \+ request\.resource\.data\.users\[1\]/, "the id is the pair: one document per pair");
+  assert.match(create, /requester == me\(\)/);
+  assert.match(create, /status == 'pending'/, "nobody creates an accepted friendship");
+  const update = /allow update: if ([\s\S]*?);\n/.exec(f)[1];
+  assert.match(update, /me\(\) != resource\.data\.requester/, "the requester cannot accept their own request");
+  assert.match(update, /affectedKeys\(\)\.hasOnly\(\['status', 'acceptedAt'\]\)/, "accepting changes nothing else");
 });
 
 test("an invitation is a users/ document that only admins write", () => {

@@ -21,7 +21,7 @@ const stops = [];
 function myStatus(meal) {
   if (meal.participants.includes(me)) return meal.host === me ? "host" : "joining";
   if (meal.declined.includes(me)) return "declined";
-  if (meal.rsvp) return "invited";
+  if (meal.rsvp || meal.invited.includes(me)) return "invited";
   return "none";
 }
 

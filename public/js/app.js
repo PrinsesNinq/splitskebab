@@ -51,25 +51,35 @@ function showNotInvited(user) {
   document.querySelector("#nav")?.setAttribute("hidden", "");
 }
 
-// ---- Notifications: meals I am invited to and have not answered ----
+// ---- Notifications: meals I am invited to and have not answered, and friend requests ----
 const SEEN_KEY = "seen-invites";
 const seen = () => { try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]")); } catch { return new Set(); } };
 
 async function startInvites(me) {
   const bell = document.querySelector("sel-notification-bell");
   if (!bell) return;
-  const { myMeals } = await import("./store.js");
+  const { myMeals, myFriendships, awaitsMyAnswer, person, people } = await import("./store.js");
   const { todayIso } = await import("./ui.js");
+  let meals = [];
+  let friendships = [];
   bell.addEventListener("notification:seen", (event) => {
     const ids = [...seen(), ...(event.detail?.ids || [])].slice(-200);
     try { localStorage.setItem(SEEN_KEY, JSON.stringify(ids)); } catch { /* the badge comes back next visit */ }
   });
-  const render = (meals) => {
-    if (!meals) return;
+  const render = () => {
     const today = todayIso();
     const read = seen();
     bell.querySelectorAll(".notification-item").forEach((el) => el.remove());
-    const invites = meals.filter((m) => m.rsvp && m.date >= today && m.host !== me && !m.participants.includes(me) && !m.declined.includes(me));
+    for (const f of friendships.filter((x) => x.status === "pending" && x.requester !== me)) {
+      addNotification(bell, {
+        id: `friend-${f.id}`,
+        category: "friends",
+        text: t("friends.requestText", { name: person(f.other).name }),
+        href: "houses.html#friends",
+        read: read.has(`friend-${f.id}`),
+      });
+    }
+    const invites = meals.filter((m) => m.date >= today && awaitsMyAnswer(m, me));
     for (const meal of invites) {
       addNotification(bell, {
         id: `invite-${meal.id}`,
@@ -80,7 +90,9 @@ async function startInvites(me) {
       });
     }
   };
-  myMeals(me).subscribe(render);
+  myMeals(me).subscribe((list) => { if (list) { meals = list; render(); } });
+  myFriendships(me).subscribe((list) => { if (list) { friendships = list; render(); } });
+  people.subscribe(() => render()); // names arrive separately
 }
 
 if (!configured) {

@@ -26,7 +26,7 @@
       <div class="d-flex align-items-center gap-2 nav-actions">
         <!-- Shown only when the browser offers installing the app (js/pwa.js). -->
         <button type="button" id="install-app-btn" class="btn btn-sm btn-light" hidden data-i18n="nav.install">Install</button>
-        <sel-notification-bell class="dropdown" filters='[["all","All"],["invites","Invites"]]'>
+        <sel-notification-bell class="dropdown" filters='[["all","All"],["invites","Invites"],["friends","Friends"]]'>
           <button type="button" class="btn btn-sm btn-outline-light position-relative notification-bell-btn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications" data-i18n-aria-label="nav.notifications">
             <i class="ti" data-icon="bell"></i>
             <span class="notification-badge badge rounded-pill text-bg-danger d-none"></span>
@@ -65,18 +65,48 @@
   <sel-soft-nav exclude="login.html"></sel-soft-nav>
 
   <div id="page-content">
-  <main class="container main-container has-bottom-nav">
-    <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-      <h1 class="h4 mb-0" data-i18n="houses.title">Houses and groups</h1>
-      <button type="button" class="btn btn-primary btn-sm" id="new-circle-btn" data-bs-toggle="modal" data-bs-target="#circle-modal"><i class="bi bi-plus-lg" aria-hidden="true"></i> <span data-i18n="houses.new">New</span></button>
-    </div>
+  <!-- Tabs (component "Tabs Glass Paper"): houses and groups, and friends (people you eat with now and then, outside a house). -->
+  <div class="container">
+    <sel-paper-tabs class="paper-tabs-wrap">
+      <ul class="nav paper-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link paper-tab active" id="houses-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#houses-pane" aria-controls="houses-pane" aria-selected="true" data-i18n="houses.title">Houses and groups</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link paper-tab" id="friends-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#friends-pane" aria-controls="friends-pane" aria-selected="false"><span data-i18n="friends.title">Friends</span> <span class="badge rounded-pill text-bg-danger d-none" id="friend-request-count"></span></button>
+        </li>
+      </ul>
+    </sel-paper-tabs>
+  </div>
+
+  <main class="container main-container paper-tabs-box has-bottom-nav">
     <div class="alert alert-danger d-none" id="houses-error" role="alert"></div>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="houses-pane" role="tabpanel" aria-labelledby="houses-tab" tabindex="0">
+        <div class="d-flex align-items-center justify-content-end mb-3">
+          <button type="button" class="btn btn-primary btn-sm" id="new-circle-btn" data-bs-toggle="modal" data-bs-target="#circle-modal"><i class="bi bi-plus-lg" aria-hidden="true"></i> <span data-i18n="houses.new">New</span></button>
+        </div>
 
-    <!-- What I owe and am owed, over every house and group. -->
-    <section class="card card-body mb-3 balance-summary" id="balance-summary" aria-live="polite"></section>
+        <!-- What I owe and am owed, over every house and group. -->
+        <section class="card card-body mb-3 balance-summary" id="balance-summary" aria-live="polite"></section>
 
-    <div class="d-flex flex-column gap-3" id="circles">
-      <p class="text-body-secondary" data-i18n="common.loading">Loading...</p>
+        <div class="d-flex flex-column gap-3" id="circles">
+          <p class="text-body-secondary" data-i18n="common.loading">Loading...</p>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="friends-pane" role="tabpanel" aria-labelledby="friends-tab" tabindex="0">
+        <p class="small text-body-secondary" data-i18n="friends.help">Friends are people you eat with now and then without living together. You can invite them to your meals, and they can invite you to theirs.</p>
+        <form class="input-group mb-3" id="friend-form" novalidate>
+          <input class="form-control" type="email" id="friend-email" list="friend-suggestions" inputmode="email" maxlength="200" autocomplete="off" placeholder="Email of a friend" data-i18n-placeholder="friends.addPlaceholder" aria-label="Email of a friend" data-i18n-aria-label="friends.addPlaceholder">
+          <button type="submit" class="btn btn-primary" data-i18n="friends.add">Add friend</button>
+        </form>
+        <datalist id="friend-suggestions"></datalist>
+        <section id="friend-requests" class="mb-3" aria-live="polite"></section>
+        <h2 class="h6" data-i18n="friends.yourFriends">Your friends</h2>
+        <ul class="list-group mb-3" id="friends-list"></ul>
+        <section id="friend-outgoing"></section>
+      </div>
     </div>
   </main>
 

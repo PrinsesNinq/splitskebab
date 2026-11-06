@@ -1,5 +1,8 @@
 // Houses and groups: the ones I am in, their members (with their allergies), adding someone, and what everyone owes everyone for the
-// meals of that house or group, netted per pair, with "request" (a message with my payment link) and "mark as paid".
+// meals of that house or group, netted per pair, with "request" (a message with my payment link) and "mark as paid". The Friends tab is
+// js/friends.js.
+import "../vendor/sel/elements/tabs-glass-paper.js";
+import { startFriends } from "./friends.js";
 import { whenUser, esc, onLeave, attempt, avatarHtml, avatarStackHtml, allergenBadges, shareText, toast } from "./ui.js";
 import { myCircles, myMeals, people, person, createCircle, renameCircle, addMember, removeMember, deleteCircle, setSettled } from "./store.js";
 import { adminStatus } from "./auth.js";
@@ -198,3 +201,6 @@ stops.push(myCircles(me).subscribe((list, err) => {
 }));
 stops.push(myMeals(me).subscribe((list) => { if (list) { meals = list; render(); } }));
 stops.push(people.subscribe(() => render()));
+
+startFriends(me, stops);
+if (location.hash === "#friends") window.bootstrap.Tab.getOrCreateInstance($("#friends-tab")).show();

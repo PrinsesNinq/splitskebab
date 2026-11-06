@@ -8,6 +8,10 @@
 //                           cost: { totalCents, paidBy } | null, settled: [eater id], createdAt, updatedAt }
 //                         viewers (the circle's members when it was planned, plus anyone added) read and change it, the host deletes it
 //   recipes/{id}          { name, servings, minutes, ingredients: [{ name, qty, unit }], allergens, steps, owner, createdAt }
+//   friendships/{a|b}     { users: [a, b] (sorted), requester, status: "pending" | "accepted", createdAt, acceptedAt }
+//                         id is the two emails sorted and joined by "|", so a pair can only have one; both read and delete it, the other
+//                         one accepts it
+//   meals also have invited: [email], people asked to say yes or no (friends from outside the circle; with rsvp, everyone is asked)
 //
 // Emails are lowercase everywhere. The live lists (people, my circles, my meals, user recipes) are started once and shared by every page:
 // with soft navigation the modules stay loaded, so switching pages shows the data at once.
@@ -119,6 +123,7 @@ export function toMeal(id, d) {
     viewers: strings(d.viewers),
     participants: strings(d.participants),
     declined: strings(d.declined),
+    invited: strings(d.invited),
     guests: Array.isArray(d.guests) ? d.guests.filter((g) => g && typeof g.id === "string" && typeof g.name === "string").map((g) => ({ id: g.id.slice(0, 40), name: g.name.trim().slice(0, 60) })) : [],
     rsvp: d.rsvp === true,
     recipe,
@@ -148,7 +153,7 @@ export function watchMeal(id, cb) {
 
 export async function createMeal(me, meal) {
   const ref = await addDoc(collection(db, "meals"), {
-    ...meal, host: me, have: [], cost: null, settled: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    invited: [], ...meal, host: me, have: [], cost: null, settled: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
   });
   return ref.id;
 }
@@ -161,6 +166,44 @@ export const joinMeal = (id, me) => updateMeal(id, { participants: arrayUnion(me
 export const declineMeal = (id, me) => updateMeal(id, { participants: arrayRemove(me), declined: arrayUnion(me) });
 export const setHave = (id, key, has) => updateMeal(id, { have: has ? arrayUnion(key) : arrayRemove(key) });
 export const setSettled = (id, eater, paid) => updateMeal(id, { settled: paid ? arrayUnion(eater) : arrayRemove(eater) });
+/** Asks people (friends from outside the circle) to say yes or no: they can see the meal from now on. */
+export const inviteToMeal = (id, emails) => updateMeal(id, { viewers: arrayUnion(...emails), invited: arrayUnion(...emails) });
+
+/** Whether I am asked to answer for this meal (and have not yet): everyone when the host asked everyone, else the people invited. */
+export const awaitsMyAnswer = (meal, me) =>
+  meal.host !== me && !meal.participants.includes(me) && !meal.declined.includes(me) && (meal.rsvp || meal.invited.includes(me));
+
+// ---- Friends ----
+
+export const friendshipId = (a, b) => [a, b].sort().join("|");
+
+function toFriendship(id, d, me) {
+  const users = strings(d.users);
+  if (users.length !== 2 || !users.includes(me)) return null;
+  return { id, other: users.find((u) => u !== me), status: d.status === "accepted" ? "accepted" : "pending", requester: text(d.requester) };
+}
+
+let friendsFor = null;
+let friendsList = null;
+/** My friendships, accepted and pending (both directions): [{ id, other, status, requester }]. */
+export function myFriendships(me) {
+  if (friendsFor !== me) {
+    friendsFor = me;
+    friendsList = shared((emit, fail) => onSnapshot(query(collection(db, "friendships"), where("users", "array-contains", me)),
+      (snap) => emit(snap.docs.map((d) => toFriendship(d.id, d.data(), me)).filter(Boolean)), fail));
+  }
+  return friendsList;
+}
+
+/** The emails of my accepted friends. */
+export const friendEmails = (friendships) => (friendships || []).filter((f) => f.status === "accepted").map((f) => f.other);
+
+export const requestFriend = (me, other) => setDoc(doc(db, "friendships", friendshipId(me, other)), {
+  users: [me, other].sort(), requester: me, status: "pending", createdAt: serverTimestamp(),
+});
+export const acceptFriend = (id) => updateDoc(doc(db, "friendships", id), { status: "accepted", acceptedAt: serverTimestamp() });
+/** Declines a request, cancels mine, or ends a friendship: the same delete. */
+export const removeFriendship = (id) => deleteDoc(doc(db, "friendships", id));
 
 // ---- User recipes ----
 
