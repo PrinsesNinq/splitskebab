@@ -10,6 +10,11 @@ export const KINDS = ["messages", "meals", "money"];
 const KEY = "push-device"; // { token, owner, types, lang, at }: what this device last saved
 const REFRESH_MS = 7 * 24 * 3600 * 1000; // a token not seen for a long time is dropped by FCM; saving it weekly keeps it alive
 
+/** Whether this person answered the notifications question on this device (the first-time offer, or the profile's switch). */
+const askedKey = (me) => `push-asked:${me}`;
+export const wasAsked = (me) => Boolean(localStorage.getItem(askedKey(me)));
+export const markAsked = (me) => localStorage.setItem(askedKey(me), String(Date.now()));
+
 const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; } };
 const write = (v) => { if (v) localStorage.setItem(KEY, JSON.stringify(v)); else localStorage.removeItem(KEY); };
 
@@ -59,6 +64,7 @@ async function save(token, me, types, lang) {
  * when the person (or the browser) says no.
  */
 export async function enablePush(me, types, lang) {
+  markAsked(me);
   const kinds = KINDS.filter((k) => types.includes(k));
   if (!kinds.length) return disablePush();
   if (Notification.permission !== "granted" && (await Notification.requestPermission()) !== "granted") throw new Error("denied");

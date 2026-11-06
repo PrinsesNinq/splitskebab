@@ -409,6 +409,10 @@ export const DICT = {
     "unit.tsp": "tsp",
 
     "push.title": "Notifications",
+    "push.offerTitle": "Turn on notifications?",
+    "push.offerBody": "Hear about new messages, meals you are invited to and costs to pay back. You can change this any time on your profile.",
+    "push.offerOn": "Turn on",
+    "push.offerLater": "Not now",
     "push.help": "For this phone or computer: each device chooses for itself.",
     "push.on": "Notifications on this device",
     "push.which": "Which notifications",
@@ -831,6 +835,10 @@ export const DICT = {
     "unit.tsp": "tl",
 
     "push.title": "Meldingen",
+    "push.offerTitle": "Meldingen aanzetten?",
+    "push.offerBody": "Hoor het meteen bij nieuwe berichten, maaltijden waarvoor je bent uitgenodigd en kosten om terug te betalen. Je kunt dit altijd aanpassen op je profiel.",
+    "push.offerOn": "Aanzetten",
+    "push.offerLater": "Niet nu",
     "push.help": "Voor deze telefoon of computer: elk apparaat kiest zelf.",
     "push.on": "Meldingen op dit apparaat",
     "push.which": "Welke meldingen",

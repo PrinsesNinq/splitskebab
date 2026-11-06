@@ -121,3 +121,23 @@ test("the functions run in Europe, capped, and never log emails or message text"
   for (const call of index.match(/logger\.\w+\([^)]*\)/g) || []) assert.ok(!/email|text|name|recipients\b/.test(call), call);
   assert.match(read("firebase.json"), /"source": "functions"/);
 });
+
+test("notifications are offered once per person and device, and the browser is only asked from the tap on Turn on", () => {
+  const prompt = read("public/js/push-prompt.js");
+  assert.match(prompt, /if \(wasAsked\(me\) \|\| pushKinds\(me\)\.length\) return false;/, "never again once answered, nor when they are on");
+  assert.match(prompt, /Notification\.permission !== "denied"/, "not when the browser blocks them");
+  const offer = prompt.slice(prompt.indexOf("export async function offerPush"));
+  assert.ok(offer.indexOf("markAsked(me)") < offer.indexOf("modal.show()"), "marked as asked before the dialog: closing it counts as an answer");
+  assert.match(offer, /addEventListener\("click", async[\s\S]*?enablePush\(me, KINDS, getLang\(\)\)/, "on with every kind, inside the tap");
+  assert.ok(!/requestPermission/.test(offer), "the dialog never asks the browser on its own");
+  assert.match(read("public/js/app.js"), /prompt\.offerPush\(user\.email\.toLowerCase\(\)\)/, "offered when the app starts");
+});
+
+test("a choice in the profile is an answer: switching notifications off is never undone by the first-time offer", () => {
+  const settings = read("public/js/push-settings.js");
+  const apply = settings.slice(settings.indexOf("const apply = async"));
+  assert.ok(apply.indexOf("markAsked(me)") < apply.indexOf("disablePush()"));
+  const push = read("public/js/push.js");
+  const enable = push.slice(push.indexOf("export async function enablePush"));
+  assert.ok(enable.indexOf("markAsked(me)") < enable.indexOf("requestPermission"), "switching on counts too");
+});

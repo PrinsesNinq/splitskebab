@@ -1,6 +1,6 @@
 // The Notifications section of the profile page: one switch for this device and a check per kind (js/push.js does the work). Every
 // change is saved at once. Where the browser cannot do push, the switch stays off and a line says why (and on an iPhone what to do).
-import { pushState, pushKinds, enablePush, disablePush, KINDS } from "./push.js";
+import { pushState, pushKinds, enablePush, disablePush, markAsked, KINDS } from "./push.js";
 import { toast } from "./ui.js";
 import { getLang, t } from "./i18n.js";
 
@@ -29,6 +29,7 @@ export async function attachPushSettings(section, me) {
 
   // One change at a time: the controls are locked while it is saved, and show what was really saved afterwards.
   const apply = async (kinds) => {
+    markAsked(me); // a choice made here is the answer: the first-time offer never switches them back on
     on.disabled = true;
     checks.forEach((c) => { c.disabled = true; });
     try {

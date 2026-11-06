@@ -258,7 +258,12 @@ if (!configured) {
     startPrivacySync(user.email.toLowerCase());
     startUnreadCount(user.email.toLowerCase());
     // Push notifications: keep this device's token fresh (and in the current language), when they are switched on here (js/push.js).
-    import("./push.js").then((push) => push.refreshPush(user.email.toLowerCase(), getLang())).catch((err) => console.warn("Push refresh failed:", err?.code || err?.message || err));
+    // On by default: a device that never answered is asked once, shortly after the app shows (js/push-prompt.js).
+    import("./push.js").then((push) => push.refreshPush(user.email.toLowerCase(), getLang()))
+      .catch((err) => console.warn("Push refresh failed:", err?.code || err?.message || err))
+      .then(() => new Promise((resolve) => setTimeout(resolve, 1500)))
+      .then(() => import("./push-prompt.js")).then((prompt) => prompt.offerPush(user.email.toLowerCase()))
+      .catch((err) => console.warn("Push offer failed:", err?.code || err?.message || err));
   };
 
   // What to show for each account status (js/auth.js accountStatus): the app, "create your account", "blocked", or "no connection".
