@@ -53,6 +53,8 @@
     "components": [
       "board",
       "chart-loader",
+      "chat-bubbles",
+      "chat-composer",
       "colour-themes",
       "notification-bell",
       "page-transitions",
@@ -62,6 +64,7 @@
     ],
     "roots": [
       "board",
+      "chat-bubbles",
       "colour-themes",
       "notification-bell",
       "page-transitions",
@@ -69,7 +72,7 @@
       "tabs-glass-paper",
       "vertical-bar-chart-2"
     ],
-    "pulledAt": "2026-11-06T13:45:08.916Z",
+    "pulledAt": "2026-11-06T13:53:42.781Z",
     "icons": true,
     "files": {
       "theme-lit.js": "800e79a94a91e359c983dd287251210cfcb59efbba9dff221bea1bdfd0e21c16",
@@ -81,7 +84,9 @@
       "elements/notification-bell.js": "55eb87dacf5a7661b5e126ed58937bf40b7b7f60cb9cec5bfa27977a299d540e",
       "elements/vertical-bar-chart-2.js": "8d15cc4a37dfda4238a2534f6b4f2683dc242dabaf8bcfff73c99d563b54da3a",
       "elements/colour-themes.js": "96e846474b2839e6c2135c1743637c55c12151c48cd9b4f448e8eb41cadd5479",
-      "elements/chart-loader.js": "ce9c2dfec2a76451b7888bb7e53ef08e1ab156c6696ad3b8e56485fde225943c"
+      "elements/chat-bubbles.js": "d6db6b1a3df04aa3c78f60672201f17c7461a14664a23e8427e5a037ff4d116d",
+      "elements/chart-loader.js": "ce9c2dfec2a76451b7888bb7e53ef08e1ab156c6696ad3b8e56485fde225943c",
+      "elements/chat-composer.js": "b71ab2ab16c0ea441a98f29e5b088d30aaa75bfe13a10c24dbdf8d7963720211"
     }
   },
   "mode": "theme",
@@ -93,6 +98,8 @@
       "add-tile",
       "avatar-stack",
       "board",
+      "chat-bubbles",
+      "chat-composer",
       "colour-themes",
       "log-in-screen",
       "mention-autocomplete",
@@ -107,9 +114,9 @@
       "tags",
       "vertical-bar-chart-2"
     ],
-    "pulledAt": "2026-11-06T13:45:09.118Z",
+    "pulledAt": "2026-11-06T13:53:42.996Z",
     "files": {
-      "theme.css": "912dd8a2f9c36feea9c5193d3eada273c29d2f6c1653672f9b835ee30caae0b9",
+      "theme.css": "0a7d53601f966932c3f9b4036522e27a9c5678bd5cc65cfc3174c765dd64e1dd",
       "bootstrap.bundle.min.js": "af0f8daeeb46b647a7216cd38b320f6ee124933aeef83a31d284f76d69145824",
       "fonts/bootstrap-icons.woff2": "6c75710364a1ca5604267716f6d28997b26319fdb078cf11e0b42ab66ff2ea61",
       "fonts/bootstrap-icons.woff": "f55513b7b591cb84a3b87ff0e34ea24d4831d6fedc22e54b911ca64b5b544a15",
@@ -134,6 +141,7 @@
   },
   "keep": [
     "vertical-bar-chart-2",
-    "colour-themes"
+    "colour-themes",
+    "chat-bubbles"
   ]
 }

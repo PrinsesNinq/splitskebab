@@ -236,6 +236,72 @@ service cloud.firestore {
       allow delete: if allowed() && me() in resource.data.users;
     }
 
+    // ---- Messages ----
+    // A conversation is between two people (type "direct", id "a|b" with the emails sorted, like friendships: one per pair) or one
+    // person's feedback to the app's admins (type "feedback", id "feedback|<email>", members [that person]; every admin reads and answers
+    // it too). A direct conversation can only be started with someone I am connected to: a housemate, someone at one of my meals, or a
+    // friend; that is exactly who is on either of our private profiles' readers lists (kept by our own apps). So a stranger who
+    // registers cannot message anyone.
+    function connectedTo(other) {
+      return (exists(/databases/$(database)/documents/privateProfiles/$(other)) &&
+          me() in get(/databases/$(database)/documents/privateProfiles/$(other)).data.get('readers', [])) ||
+        (exists(/databases/$(database)/documents/privateProfiles/$(me())) &&
+          other in get(/databases/$(database)/documents/privateProfiles/$(me())).data.get('readers', []));
+    }
+    function canSeeConversation(c) {
+      return me() in c.members || (c.type == 'feedback' && isAdmin());
+    }
+    function validLastMessage(d) {
+      return !('lastMessage' in d) || d.lastMessage == null ||
+        (d.lastMessage is map && d.lastMessage.keys().hasOnly(['text', 'from']) && d.lastMessage.text is string &&
+          d.lastMessage.text.size() <= 160 && d.lastMessage.from is string);
+    }
+
+    match /conversations/{id} {
+      // One conversation by its id: also when it does not exist yet (that is how the app knows to create it; it reveals nothing).
+      allow get: if allowed() && (resource == null || canSeeConversation(resource.data));
+      allow list: if allowed() && canSeeConversation(resource.data);
+      allow create: if allowed() &&
+        request.resource.data.keys().hasOnly(['type', 'members', 'lastMessage', 'lastAt', 'readAt', 'createdAt']) &&
+        request.resource.data.createdAt == request.time && validLastMessage(request.resource.data) &&
+        (
+          (request.resource.data.type == 'direct' && request.resource.data.members is list && request.resource.data.members.size() == 2 &&
+            request.resource.data.members[0] is string && request.resource.data.members[1] is string &&
+            request.resource.data.members[0] < request.resource.data.members[1] &&
+            id == request.resource.data.members[0] + '|' + request.resource.data.members[1] &&
+            ((request.resource.data.members[0] == me() && connectedTo(request.resource.data.members[1])) ||
+              (request.resource.data.members[1] == me() && connectedTo(request.resource.data.members[0])))) ||
+          (request.resource.data.type == 'feedback' && request.resource.data.members == [me()] && id == 'feedback|' + me())
+        );
+      // Sending a message updates the summary (last message, time) and my own "read up to"; nothing else changes, and nobody changes
+      // someone else's read time or writes a last message in someone else's name.
+      allow update: if allowed() && canSeeConversation(resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastAt', 'readAt']) &&
+        validLastMessage(request.resource.data) &&
+        request.resource.data.get('readAt', {}).diff(resource.data.get('readAt', {})).affectedKeys().hasOnly([me()]) &&
+        (request.resource.data.get('lastMessage', null) == resource.data.get('lastMessage', null) || request.resource.data.lastMessage.from == me());
+      allow delete: if false;
+
+      // The messages: whoever sees the conversation reads them and writes new ones in their own name (text of 1 to 2000 characters,
+      // stamped with the server's time). Only the writer edits or deletes theirs; anyone in it may change the reactions.
+      match /messages/{mid} {
+        function conversation() {
+          return get(/databases/$(database)/documents/conversations/$(id)).data;
+        }
+        allow read: if allowed() && canSeeConversation(conversation());
+        allow create: if allowed() && canSeeConversation(conversation()) &&
+          request.resource.data.keys().hasOnly(['from', 'text', 'at']) && request.resource.data.from == me() &&
+          request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000 &&
+          request.resource.data.at == request.time;
+        allow update: if allowed() && canSeeConversation(conversation()) && (
+          (resource.data.from == me() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt']) &&
+            request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) &&
+            request.resource.data.reactions is map && request.resource.data.reactions.size() <= 20));
+        allow delete: if allowed() && resource.data.from == me();
+      }
+    }
+
     // Users' own recipes: everyone invited reads them, the author writes them.
     function validRecipe(d) {
       return d.keys().hasOnly(['name', 'servings', 'minutes', 'ingredients', 'allergens', 'steps', 'owner', 'createdAt']) &&

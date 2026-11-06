@@ -1281,6 +1281,595 @@ sel-soft-nav {
 .pt-demo__page { min-height: 9rem; }
 
 
+/* Chat composer */
+/* Chat composer: a text box shaped and tinted like a chat bubble (attachComposer), the emoji picker and its button, and the slide in / out of a
+	 reply box (setComposerOpen). Chat bubbles & reactions uses all of these. */
+/* The emoji picker and the more-actions menu: fixed popovers above everything, including an open modal. */
+.msg-popover {
+	position: fixed;
+	z-index: 1080;
+	background: var(--bs-body-bg);
+	color: var(--bs-body-color);
+	border-radius: 0.75rem;
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+	padding: 0.5rem;
+	animation: msg-popover-in 0.12s ease;
+}
+
+@keyframes msg-popover-in {
+	from { opacity: 0; transform: translateY(4px) scale(0.98); }
+}
+
+.emoji-picker { width: min(18.5rem, calc(100vw - 1rem)); }
+.emoji-picker-body { max-height: 14rem; overflow-y: auto; }
+
+.emoji-picker-group {
+	margin: 0.4rem 0.2rem 0.2rem;
+	font-size: 0.7rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	color: var(--bs-secondary-color);
+}
+
+.emoji-picker-grid { display: grid; grid-template-columns: repeat(8, 1fr); }
+
+.emoji-picker-btn {
+	border: 0;
+	background: transparent;
+	border-radius: 0.4rem;
+	font-size: 1.25rem;
+	line-height: 1;
+	padding: 0.25rem 0;
+}
+
+.emoji-picker-btn:hover,
+.emoji-picker-btn:focus-visible { background: rgba(var(--bs-body-color-rgb), 0.08); }
+
+/* The composer: a text box shaped and tinted like a bubble, so writing a message looks like the message it becomes (attachComposer).
+	 .chat-composer__input (a bare, growing textarea), .chat-composer__footer with an optional .chat-composer__hint, .emoji-insert-btn and
+	 .chat-composer__cancel, and the round .chat-composer__send (enabled once there is text). Tints like the bubbles: --own, --reply,
+	 or --composer-bg. --inline is the edit-in-place version inside a bubble (no box of its own; the bubble gets the focus ring). */
+.chat-composer {
+	--composer-bg: rgba(var(--bs-body-color-rgb), 0.05);
+	padding: 0.5rem 0.9rem 0.45rem;
+	border-radius: 1rem;
+	background: var(--composer-bg);
+	box-shadow: inset 0 0 0 1px rgba(var(--bs-body-color-rgb), 0.08);
+	transition: box-shadow 0.2s ease;
+}
+
+.chat-composer--own { --composer-bg: rgba(var(--bs-primary-rgb), 0.12); }
+.chat-composer--reply { --composer-bg: rgba(var(--bs-info-rgb), 0.14); }
+
+.chat-composer:focus-within {
+	box-shadow: inset 0 0 0 1px rgba(var(--bs-primary-rgb), 0.45), 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.15);
+}
+
+/* The primary ring is too dark to see on a dark page: use the lighter primary text colour there. */
+[data-bs-theme="dark"] .chat-composer:not(.chat-composer--inline):focus-within {
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-text, var(--bs-primary)) 70%, transparent), 0 0 0 0.25rem color-mix(in srgb, var(--primary-text, var(--bs-primary)) 20%, transparent);
+}
+
+.chat-composer--inline,
+.chat-composer--inline:focus-within {
+	padding: 0;
+	background: none;
+	box-shadow: none;
+}
+
+.chat-composer.is-busy { opacity: 0.7; }
+
+.chat-composer__input {
+	display: block;
+	width: 100%;
+	min-height: 1.5rem;
+	max-height: 12rem;
+	padding: 0;
+	border: 0;
+	outline: 0;
+	resize: none;
+	overflow-y: auto;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	line-height: 1.5;
+}
+
+.chat-composer__input::placeholder {
+	color: var(--bs-secondary-color);
+	opacity: 0.8;
+}
+
+.chat-composer__footer {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	margin-top: 0.35rem;
+}
+
+.chat-composer__hint {
+	color: var(--bs-secondary-color);
+	font-size: 0.75rem;
+}
+
+@media (max-width: 575.98px) {
+	.chat-composer__hint { display: none; }
+}
+
+.chat-composer__footer .emoji-insert-btn {
+	position: static;
+}
+
+.chat-composer__cancel {
+	margin-left: auto;
+	padding: 0.25rem 0.5rem;
+	border: 0;
+	border-radius: 999px;
+	background: none;
+	color: inherit;
+	opacity: 0.8;
+	font-size: 0.875rem;
+	transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.chat-composer__cancel:hover,
+.chat-composer__cancel:focus-visible {
+	background: rgba(var(--bs-body-color-rgb), 0.08);
+	opacity: 1;
+}
+
+.chat-composer__send {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: var(--bs-primary);
+	color: #fff;
+	transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-composer__send > * {
+	transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chat-composer__send:not(:disabled):hover {
+	transform: scale(1.1);
+	box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.45);
+}
+
+.chat-composer__send:not(:disabled):hover > * {
+	transform: translate(1px, -1px) rotate(8deg);
+}
+
+.chat-composer__send:not(:disabled):active {
+	transform: scale(0.9);
+	transition-duration: 0.08s;
+}
+
+.chat-composer__send:focus-visible {
+	outline: 0;
+	box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.35);
+}
+
+.chat-composer__send:disabled {
+	opacity: 0.35;
+	transform: scale(0.85);
+	cursor: default;
+}
+
+/* A composer that appears (a reply box opening) slides in, and slides out again when setComposerOpen(box, false) hides it. */
+.chat-composer-enter:not([hidden]) {
+	animation: chat-composer-in 0.25s ease-out;
+}
+
+.chat-composer-enter.chat-composer-leave:not([hidden]) {
+	animation: chat-composer-out 0.2s ease-in forwards;
+	pointer-events: none;
+}
+
+@keyframes chat-composer-in {
+	from { opacity: 0; transform: translateY(-6px); }
+}
+
+@keyframes chat-composer-out {
+	to { opacity: 0; transform: translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.msg-popover,
+	.chat-composer,
+	.chat-composer__send,
+	.chat-composer__send > *,
+	.chat-composer-enter:not([hidden]),
+	.chat-composer-enter.chat-composer-leave:not([hidden]) { transition: none; animation: none; }
+}
+
+/* The emoji button for a text box (attachEmojiInsertButton): tucked into the box's bottom-right corner. Wrap the textarea and the
+	 button in .emoji-field; the textarea keeps room on the right so text never runs under the button. */
+.emoji-field {
+	position: relative;
+}
+
+.emoji-field > textarea {
+	padding-right: 2.5rem;
+}
+
+.emoji-insert-btn {
+	position: absolute;
+	right: 0.4rem;
+	bottom: 0.4rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.9rem;
+	height: 1.9rem;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--bs-secondary-color);
+	transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.emoji-insert-btn:hover,
+.emoji-insert-btn:focus-visible {
+	background: rgba(var(--bs-primary-rgb), 0.1);
+	color: var(--primary-text, var(--bs-primary));
+}
+
+
+/* Chat bubbles & reactions */
+sel-chat {
+	display: block;
+}
+
+/* Chat bubbles and the reaction toolbar. Tint bubbles with --bubble-bg / --bubble-color (per bubble or globally). */
+.chat {
+	display: flex;
+	flex-direction: column;
+	gap: 1.6rem;
+	padding-top: 1.5rem; /* room for the first message's toolbar */
+}
+
+.chat-message {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+}
+
+.chat-message--own {
+	flex-direction: row-reverse;
+}
+
+.chat-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: var(--chip-color, var(--bs-secondary));
+	color: #fff;
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+.bubble {
+	--bubble-bg: var(--bs-tertiary-bg);
+	--bubble-color: var(--bs-body-color);
+	display: inline-block;
+	max-width: 100%;
+	padding: 0.5rem 0.9rem;
+	border-radius: 1rem;
+	background: var(--bubble-bg);
+	color: var(--bubble-color);
+}
+
+.bubble--own { --bubble-bg: rgba(var(--bs-primary-rgb), 0.15); }
+.bubble--reply { --bubble-bg: rgba(var(--bs-info-rgb), 0.18); }
+
+/* A mention inside a bubble. */
+.mention {
+	color: var(--primary-text, var(--bs-primary));
+	font-weight: 600;
+	background-color: rgba(var(--bs-primary-rgb), 0.1);
+	border-radius: 0.25rem;
+	padding: 0 0.15rem;
+}
+
+/* The wrapper reserves room (margin-bottom) for the reaction badges, which are absolutely positioned. */
+.msg-wrap {
+	position: relative;
+	display: inline-block;
+	max-width: min(var(--msg-max-width, 32rem), 100%); /* set --msg-max-width: 100% for full-width bubbles (e.g. reviews) */
+	margin-bottom: 0.75rem;
+}
+
+/* Floating toolbar above the bubble: hidden until hover (pointer devices), keyboard focus, long-press (.is-open)
+	 or while one of its popovers is open (.has-popover). */
+.msg-toolbar {
+	position: absolute;
+	top: -1.75rem;
+	left: 0;
+	z-index: 6;
+	display: flex;
+	align-items: center;
+	gap: 0.1rem;
+	padding: 0.2rem;
+	background: var(--bs-body-bg);
+	border-radius: 0.75rem;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(4px) scale(0.97);
+	transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.chat-message--own .msg-toolbar {
+	left: auto;
+	right: 0;
+}
+
+@media (hover: hover) {
+	.msg-wrap:hover > .msg-toolbar {
+		opacity: 1;
+		pointer-events: auto;
+		transform: none;
+	}
+}
+
+.msg-wrap:focus-within > .msg-toolbar,
+.msg-wrap.is-open > .msg-toolbar,
+.msg-wrap.has-popover > .msg-toolbar {
+	opacity: 1;
+	pointer-events: auto;
+	transform: none;
+}
+
+.msg-wrap.is-editing > .msg-toolbar {
+	display: none;
+}
+
+.msg-tool-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.9rem;
+	height: 1.9rem;
+	padding: 0;
+	border: 0;
+	border-radius: 0.5rem;
+	background: transparent;
+	color: var(--bs-secondary-color);
+	line-height: 1;
+	transition: background-color 0.1s ease, transform 0.1s ease;
+}
+
+.msg-tool-btn:hover,
+.msg-tool-btn:focus-visible {
+	background: rgba(var(--bs-body-color-rgb), 0.08);
+}
+
+.msg-quick-react { font-size: 1.1rem; }
+.msg-quick-react:hover { transform: scale(1.2); }
+
+/* Your current reaction, so you can see what tapping it again would undo. */
+.msg-quick-react.is-active { background: rgba(var(--bs-primary-rgb), 0.15); }
+
+.msg-toolbar-divider {
+	width: 1px;
+	height: 1.2rem;
+	margin: 0 0.2rem;
+	background: rgba(var(--bs-body-color-rgb), 0.15);
+}
+
+/* Touch: the long press opens the toolbar, so the OS text selection and callout menu are turned off on bubbles. */
+@media (hover: none) {
+	.msg-wrap {
+		-webkit-user-select: none;
+		user-select: none;
+		-webkit-touch-callout: none;
+	}
+}
+
+/* Reaction badges on the bubble's bottom-right edge (a real button: clicking it fires chat:reactions). */
+.reaction-badges {
+	position: absolute;
+	bottom: -1.1rem;
+	right: 0.5rem;
+	display: flex;
+	gap: 0.15rem;
+	border: none;
+	background: transparent;
+	padding: 0;
+	cursor: pointer;
+}
+
+.reaction-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.15rem;
+	background: var(--bs-body-bg);
+	color: var(--bs-body-color);
+	border: 1px solid rgba(var(--bs-body-color-rgb), 0.12);
+	border-radius: 1rem;
+	padding: 0.05rem 0.35rem;
+	font-size: 0.8rem;
+	line-height: 1.2;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+	transition: box-shadow 0.15s ease;
+}
+
+.reaction-badges:hover .reaction-badge { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); }
+.reaction-badge.is-mine { border-color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), 0.1); }
+.reaction-count { font-size: 0.7rem; line-height: 1; }
+
+/* The more-actions menu: a popover like the emoji picker (both styled by the Chat composer component's .msg-popover). */
+.msg-menu { min-width: 10rem; padding: 0.25rem; }
+
+.msg-menu-item {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	width: 100%;
+	padding: 0.4rem 0.6rem;
+	border: 0;
+	border-radius: 0.4rem;
+	background: transparent;
+	color: inherit;
+	font-size: 0.875rem;
+	text-align: start;
+}
+
+.msg-menu-item:hover,
+.msg-menu-item:focus-visible { background: rgba(var(--bs-body-color-rgb), 0.08); }
+.msg-menu-item--danger { color: var(--bs-danger); }
+.msg-menu-item > :first-child:not(span) { flex: none; }
+
+/* Inline editing in place of the bubble's text. */
+.msg-editor { min-width: 0; text-align: start; }
+
+/* The editing bubble gets room to type: at least 18rem, but never wider than its column (so it fits a phone), the bubble filling it. */
+.msg-wrap.is-editing { min-width: min(18rem, 100%); }
+.msg-wrap.is-editing > .bubble { display: block; }
+
+/* A bubble with something beside it (.chat-action-btn): wrap the .msg-wrap and the button in .msg-row. */
+.msg-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+/* The bubble shrinks to leave room for the button, also while it is being edited (it then takes the rest of the row). */
+.msg-row > .msg-wrap { min-width: 0; }
+.msg-row > .msg-wrap.is-editing { flex: 1 1 0; }
+
+/* A round icon button beside a bubble (reply, for example): grey, lifts and nudges its icon on hover, presses in on click, and shows
+	 its open state with aria-expanded="true" (tinted, icon mirrored). Its bottom margin matches .msg-wrap, so it centres on the bubble. */
+.chat-action-btn {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	margin-bottom: 0.75rem;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(var(--bs-body-color-rgb), 0.08);
+	color: var(--bs-secondary-color);
+	transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-action-btn > * {
+	transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chat-action-btn:hover,
+.chat-action-btn:focus-visible {
+	transform: translateY(-2px) scale(1.08);
+	background: rgba(var(--bs-body-color-rgb), 0.14);
+	color: var(--bs-body-color);
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.chat-action-btn:hover > *,
+.chat-action-btn:focus-visible > * {
+	transform: translateX(-2px) rotate(-12deg);
+}
+
+.chat-action-btn:focus-visible {
+	outline: 0;
+	box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.chat-action-btn:active {
+	transform: scale(0.9);
+	transition-duration: 0.08s;
+}
+
+.chat-action-btn[aria-expanded="true"] {
+	background: color-mix(in srgb, var(--primary-text, var(--bs-primary)) 22%, transparent);
+	color: var(--primary-text, var(--bs-primary));
+}
+
+.chat-action-btn[aria-expanded="true"] > * {
+	transform: scaleX(-1);
+}
+
+
+/* The bubble being edited gets the composer's focus ring. */
+.msg-wrap.is-editing .bubble {
+	box-shadow: inset 0 0 0 1px rgba(var(--bs-primary-rgb), 0.45), 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.15);
+}
+
+/* Editing in place: the bubble fades to a lighter surface with the focus ring, and an "Editing" badge sits on its top edge, so it is
+	 clear this message is being changed. Set --bubble-edit-bg for your own editing tint. */
+.msg-wrap .bubble {
+	transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.msg-wrap.is-editing .bubble {
+	background: var(--bubble-edit-bg, color-mix(in srgb, var(--bubble-bg), var(--bs-body-bg) 70%));
+}
+
+[data-bs-theme="dark"] .msg-wrap.is-editing .bubble {
+	background: var(--bubble-edit-bg, color-mix(in srgb, var(--bubble-bg), #fff 12%));
+}
+
+/* The primary ring is too dark to see on a dark page: use the lighter primary text colour there. */
+[data-bs-theme="dark"] .msg-wrap.is-editing .bubble {
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-text, var(--bs-primary)) 70%, transparent), 0 0 0 0.25rem color-mix(in srgb, var(--primary-text, var(--bs-primary)) 20%, transparent);
+}
+
+.msg-editing-badge {
+	position: absolute;
+	z-index: 1;
+	top: -0.65rem;
+	left: 0.75rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.1rem 0.55rem;
+	border-radius: 999px;
+	background: var(--bs-primary);
+	color: #fff;
+	font-size: 0.7rem;
+	font-weight: 600;
+	line-height: 1.4;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+	pointer-events: none;
+	animation: msg-editing-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chat-message--own .msg-editing-badge {
+	left: auto;
+	right: 0.75rem;
+}
+
+@keyframes msg-editing-in {
+	from { opacity: 0; transform: translateY(4px) scale(0.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.msg-toolbar,
+	.msg-tool-btn,
+	.chat-action-btn,
+	.chat-action-btn > *,
+	.msg-wrap .bubble,
+	.msg-editing-badge { transition: none; animation: none; }
+}
+
+
 /* Notification bell */
 sel-notification-bell {
 	display: block;

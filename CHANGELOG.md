@@ -25,3 +25,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Houses and groups have admins; admins see analytics: spending per day, who paid, and on what
 - Pick a colour theme on your profile
 - Installable on phones: Android shows Install, iPhone explains Add to Home Screen
+- Messages: chat with housemates, people from your meals and friends; send feedback to the team, admins answer from an inbox

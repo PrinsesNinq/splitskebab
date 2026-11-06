@@ -25,11 +25,13 @@ import { SDK, db } from "./firebase-init.js";
 import { cleanAllergens } from "./allergens.js";
 import { missingViewers } from "./sharing.js";
 import { safePhoto } from "./photo.js";
+import { directId, feedbackId, preview, MAX_MESSAGE } from "./messaging.js";
 import { readCosts, settleKey } from "./money.js";
 
 const fs = await import(`${SDK}/firebase-firestore.js`);
 const {
   collection, doc, onSnapshot, query, where, orderBy, limit, addDoc, getDoc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, serverTimestamp,
+  writeBatch,
   FieldPath, deleteField,
 } = fs;
 
@@ -347,3 +349,101 @@ export async function saveRecipe(me, id, recipe) {
 }
 
 export const deleteRecipe = (id) => deleteDoc(doc(db, "recipes", id));
+
+// ---- Messages ----
+// conversations/{id}      { type: "direct" | "feedback", members: [email], lastMessage: { text, from }, lastAt, readAt: { email: time },
+//                           createdAt }; direct: id "a|b" (js/messaging.js directId), feedback: "feedback|<email>", also read by admins
+// conversations/{id}/messages/{id}   { from, text, at, editedAt?, reactions?: { emoji: [email] } }
+// Only someone I am connected to (housemate, meal guest, friend) can be messaged: firestore.rules connectedTo().
+
+const millis = (ts) => (ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0);
+
+function toConversation(id, d) {
+  const readAt = {};
+  for (const [email, ts] of Object.entries(d.readAt || {})) readAt[email] = millis(ts);
+  return {
+    id,
+    type: d.type === "feedback" ? "feedback" : "direct",
+    members: strings(d.members),
+    lastText: text(d.lastMessage?.text, 160),
+    lastFrom: text(d.lastMessage?.from),
+    lastAt: millis(d.lastAt),
+    readAt,
+  };
+}
+
+let convosFor = null;
+let convosList = null;
+/** My conversations (direct ones and my own feedback), newest first. */
+export function myConversations(me) {
+  if (convosFor !== me) {
+    convosFor = me;
+    convosList = shared((emit, fail) => onSnapshot(query(collection(db, "conversations"), where("members", "array-contains", me), orderBy("lastAt", "desc"), limit(200)),
+      (snap) => emit(snap.docs.map((d) => toConversation(d.id, d.data()))), fail));
+  }
+  return convosList;
+}
+
+/** Every feedback conversation, newest first: the admins' inbox (firestore.rules lets only admins read other people's). */
+export const feedbackInbox = shared((emit, fail) => onSnapshot(query(collection(db, "conversations"), where("type", "==", "feedback"), orderBy("lastAt", "desc"), limit(300)),
+  (snap) => emit(snap.docs.map((d) => toConversation(d.id, d.data()))), fail));
+
+/** One conversation, live: cb(conversation | null, error). */
+export function watchConversation(id, cb) {
+  return onSnapshot(doc(db, "conversations", id), (snap) => cb(snap.exists() ? toConversation(snap.id, snap.data()) : null), (err) => cb(null, err));
+}
+
+/** The newest 200 messages of a conversation, oldest first, live: cb(messages, error). */
+export function watchMessages(id, cb) {
+  return onSnapshot(query(collection(db, "conversations", id, "messages"), orderBy("at", "desc"), limit(200)),
+    (snap) => cb(snap.docs.map((d) => {
+      const m = d.data();
+      return {
+        id: d.id,
+        from: text(m.from),
+        text: typeof m.text === "string" ? m.text.slice(0, MAX_MESSAGE) : "",
+        at: millis(m.at) || Date.now(), // a message I just sent has no server time yet
+        edited: Boolean(m.editedAt),
+        reactions: m.reactions && typeof m.reactions === "object" ? m.reactions : {},
+      };
+    }).reverse()), (err) => cb([], err));
+}
+
+/** Opens (and creates when needed) the direct conversation with someone; returns its id. firestore.rules refuse a stranger. */
+export async function openDirect(me, other) {
+  const id = directId(me, other);
+  const ref = doc(db, "conversations", id);
+  if (!(await getDoc(ref)).exists()) {
+    await setDoc(ref, { type: "direct", members: [me, other].sort(), lastMessage: null, lastAt: null, readAt: {}, createdAt: serverTimestamp() });
+  }
+  return id;
+}
+
+/** Opens (and creates when needed) my feedback conversation with the admins; returns its id. */
+export async function openFeedback(me) {
+  const id = feedbackId(me);
+  const ref = doc(db, "conversations", id);
+  if (!(await getDoc(ref)).exists()) {
+    await setDoc(ref, { type: "feedback", members: [me], lastMessage: null, lastAt: null, readAt: {}, createdAt: serverTimestamp() });
+  }
+  return id;
+}
+
+/** Sends a message: the message and the conversation's summary (and my read time) in one write, so the list never shows half of it. */
+export async function sendMessage(conversationId, me, body) {
+  const message = String(body || "").trim().slice(0, MAX_MESSAGE);
+  if (!message) return;
+  const batch = writeBatch(db);
+  batch.set(doc(collection(db, "conversations", conversationId, "messages")), { from: me, text: message, at: serverTimestamp() });
+  batch.update(doc(db, "conversations", conversationId), "lastMessage", { text: preview(message), from: me }, "lastAt", serverTimestamp(), new FieldPath("readAt", me), serverTimestamp());
+  await batch.commit();
+}
+
+/** I have read the conversation up to now. */
+export const markRead = (conversationId, me) => updateDoc(doc(db, "conversations", conversationId), new FieldPath("readAt", me), serverTimestamp());
+
+export const editMessage = (conversationId, messageId, body) =>
+  updateDoc(doc(db, "conversations", conversationId, "messages", messageId), { text: String(body || "").trim().slice(0, MAX_MESSAGE), editedAt: serverTimestamp() });
+export const deleteMessage = (conversationId, messageId) => deleteDoc(doc(db, "conversations", conversationId, "messages", messageId));
+export const setReactions = (conversationId, messageId, reactions) =>
+  updateDoc(doc(db, "conversations", conversationId, "messages", messageId), { reactions });

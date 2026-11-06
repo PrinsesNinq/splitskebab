@@ -1,9 +1,9 @@
 // Someone else's profile (person.html?email=...): their photo and name, the friendship with an action (add, accept, cancel, remove),
 // their allergies and payment link when they share them with me (privateProfiles readers: housemates, meal guests, friends), the houses
 // and groups we share, friends in common, and the meals coming up that we are both at. My own profile is profile.html.
-import { whenUser, esc, onLeave, param, attempt, avatarHtml, allergenBadges, todayIso, go } from "./ui.js";
+import { whenUser, esc, onLeave, param, attempt, avatarHtml, allergenBadges, todayIso, go, toast } from "./ui.js";
 import {
-  people, person, myCircles, myMeals, myFriendships, friendEmails, requestFriend, acceptFriend, removeFriendship, friendshipId,
+  people, person, myCircles, myMeals, myFriendships, friendEmails, requestFriend, acceptFriend, removeFriendship, friendshipId, openDirect,
 } from "./store.js";
 import { t, formatDay } from "./i18n.js";
 
@@ -33,6 +33,9 @@ function renderFriendAction() {
   } else {
     html = `<button type="button" class="btn btn-sm btn-primary" data-friend-act="add"><i class="bi bi-person-plus" aria-hidden="true"></i> ${esc(t("friends.add"))}</button>`;
   }
+  // Message: with someone I am connected to (they share their profile with me, or I with them; firestore.rules check the same).
+  const connected = person(email).detailsVisible || person(me).readers.includes(email);
+  if (connected) html += `<button type="button" class="btn btn-sm btn-outline-primary" data-send-message><i class="bi bi-chat-dots" aria-hidden="true"></i> ${esc(t("person.message"))}</button>`;
   $("#person-friend-action").innerHTML = html;
 }
 
@@ -76,6 +79,18 @@ function render() {
 }
 
 $("#person-friend-action").addEventListener("click", async (e) => {
+  const message = e.target.closest("[data-send-message]");
+  if (message) {
+    message.disabled = true;
+    try {
+      go(`chat.html?c=${encodeURIComponent(await openDirect(me, email))}`);
+    } catch (err) {
+      console.error(err);
+      toast(err?.code === "permission-denied" ? t("messages.notConnected") : t("error.generic"), "danger");
+      message.disabled = false;
+    }
+    return;
+  }
   const button = e.target.closest("[data-friend-act]");
   if (!button) return;
   const act = button.dataset.friendAct;

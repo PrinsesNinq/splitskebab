@@ -421,6 +421,46 @@
   background: var(--bs-secondary);
 }
 
+/* ---- Messages ---- */
+/* The unread counter on the Messages tab, on the icon's corner. */
+.nav-icon-wrap { position: relative; display: inline-flex; }
+.nav-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.7rem;
+  font-size: 0.6rem;
+  padding: 0.2em 0.45em;
+}
+.conversation-row.is-unread .conversation-row__name { font-weight: 700; }
+.unread-dot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.feedback-card { border: 1px dashed color-mix(in srgb, var(--primary) 45%, transparent); }
+.feedback-card:hover, .feedback-card:focus-visible { background: color-mix(in srgb, var(--primary) 6%, var(--bs-body-bg)); }
+/* The chat: text keeps its line breaks; the time under each bubble; the composer stays above the bottom bar while scrolling. */
+.chat-page .msg-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-meta {
+  font-size: 0.7rem;
+  color: var(--bs-secondary-color);
+  margin-top: 0.15rem;
+}
+.chat-message--own .chat-meta { text-align: end; }
+.chat-page__composer {
+  position: sticky;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  z-index: 5;
+  background: var(--bs-body-bg);
+  border-radius: 1rem;
+  box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.12);
+}
+@media (min-width: 768px) {
+  .chat-page__composer { bottom: 6rem; }
+}
+
 /* ---- Recipes page ---- */
 .recipe-tag {
   font-weight: 600;

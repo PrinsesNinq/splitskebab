@@ -15,7 +15,7 @@ import { APP_VERSION } from "./version.js";
 // Marks the bottom bar's link of the current page as active (a meal belongs to the calendar, someone's profile to Houses).
 function markCurrentPage() {
   const here = location.pathname.split("/").pop() || "index.html";
-  const page = here === "meal.html" ? "index.html" : (here === "person.html" || here === "analytics.html") ? "houses.html" : here;
+  const page = here === "meal.html" ? "index.html" : (here === "person.html" || here === "analytics.html") ? "houses.html" : here === "chat.html" ? "messages.html" : here;
   for (const link of document.querySelectorAll("#nav .nav-link")) {
     const current = link.getAttribute("href") === page;
     link.classList.toggle("active", current);
@@ -190,6 +190,26 @@ async function startMealSharing(me) {
   myMeals(me).subscribe((list) => { if (list) { meals = list; run(); } });
 }
 
+// ---- Unread messages: the counter on the Messages tab (my conversations, and for admins the feedback inbox) ----
+async function startUnreadCount(me) {
+  const store = await import("./store.js");
+  const { isUnread } = await import("./messaging.js");
+  let mine = [];
+  let inbox = [];
+  const render = () => {
+    const ids = new Set([...mine, ...inbox].filter((c) => isUnread(c, me)).map((c) => c.id));
+    for (const badge of document.querySelectorAll("#nav-unread")) {
+      badge.textContent = ids.size > 9 ? "9+" : String(ids.size);
+      badge.hidden = ids.size === 0;
+    }
+  };
+  store.myConversations(me).subscribe((list) => { if (list) { mine = list; render(); } });
+  if ((await adminStatus(me).catch(() => ({ isAdmin: false }))).isAdmin) {
+    store.feedbackInbox.subscribe((list) => { if (list) { inbox = list.filter((c) => !c.members.includes(me)); render(); } });
+  }
+  document.addEventListener("soft-nav:load", render);
+}
+
 // ---- My private profile: moved off the public one, my friend list, and who may read it ----
 // Allergies, payment link and friend list live in privateProfiles/{me}, readable only by the people on its readers list (firestore.rules):
 // housemates, people at my meals and my friends (js/sharing.js profileReaders). Only I can write that list, so my app keeps it up to date
@@ -236,6 +256,7 @@ if (!configured) {
     startInvites(user.email.toLowerCase());
     startMealSharing(user.email.toLowerCase());
     startPrivacySync(user.email.toLowerCase());
+    startUnreadCount(user.email.toLowerCase());
   };
 
   // What to show for each account status (js/auth.js accountStatus): the app, "create your account", "blocked", or "no connection".
