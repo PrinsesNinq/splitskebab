@@ -75,10 +75,16 @@ function readIfSeen() {
 }
 
 // ---- Writing ----
+// The composer locks itself while a message is being sent (no double sends) and keeps the text when sending fails, but it never empties
+// the box: that is ours to do once the message is saved, or the same text could be sent again and again.
+const input = $("#composer .chat-composer__input");
 const composer = attachComposer($("#composer"), {
   onSubmit: async (body) => {
     try {
       await sendMessage(id, me, body);
+      input.value = "";
+      input.dispatchEvent(new Event("input", { bubbles: true })); // shrinks the box back and disables Send while it is empty
+      setTimeout(() => input.focus(), 0); // after the composer unlocks itself, so the next message can be typed straight away
     } catch (err) {
       console.error(err);
       toast(err?.code === "permission-denied" ? t("error.permission") : t("error.generic"), "danger");
@@ -86,7 +92,7 @@ const composer = attachComposer($("#composer"), {
     }
   },
 });
-attachEmojiInsertButton($("#emoji-btn"), $("#composer .chat-composer__input"));
+attachEmojiInsertButton($("#emoji-btn"), input);
 stops.push(() => composer.dispose?.());
 
 // ---- Reactions, editing, deleting (events from the chat component) ----

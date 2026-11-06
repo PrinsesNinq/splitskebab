@@ -41,6 +41,12 @@ test("reacting: one reaction per person, taking it back, empty emojis dropped", 
   assert.deepEqual(r, { "👍": ["b@x"] }, "taken back, and the empty emoji is gone");
 });
 
+test("the chat empties the message box once a message is sent (the composer itself never does)", () => {
+  const chat = fs.readFileSync(new URL("../public/js/chat.js", import.meta.url), "utf8");
+  const submit = chat.slice(chat.indexOf("onSubmit:"), chat.indexOf("} catch (err) {", chat.indexOf("onSubmit:")));
+  assert.match(submit, /await sendMessage\(id, me, body\);\s*input\.value = "";/, "cleared right after the message is saved, not before (a failed send keeps the text)");
+});
+
 test("firestore.rules: a direct conversation only with someone I am connected to, messages only in my own name", () => {
   const rules = fs.readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   const convo = rules.slice(rules.indexOf("match /conversations/{id}"), rules.indexOf("// Users' own recipes"));
