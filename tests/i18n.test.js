@@ -64,6 +64,18 @@ test("the app's version matches the deployed version.json (bump both with every 
   assert.equal(deployed, APP_VERSION);
 });
 
+test("only one element per page uses the library's static-chrome transition name", () => {
+  // The library's .page-transition-static sets view-transition-name: static-chrome; a second element with it aborts every page transition.
+  // The bottom bar (#nav) has its own name in app.css; any other element with the class must get one too.
+  const css = fs.readFileSync(path.join(pub, "css", "app.css"), "utf8");
+  for (const file of fs.readdirSync(pub).filter((f) => f.endsWith(".html"))) {
+    const html = fs.readFileSync(path.join(pub, file), "utf8");
+    const statics = [...html.matchAll(/<[^>]+class="[^"]*\bpage-transition-static\b[^"]*"[^>]*>/g)].map((m) => m[0]);
+    const unnamed = statics.filter((tag) => !(/id="nav"/.test(tag) && /#nav\.bottom-nav\s*\{\s*view-transition-name: static-chrome-bottom/.test(css)));
+    assert.ok(unnamed.length <= 1, `${file}: ${unnamed.length} elements share static-chrome`);
+  }
+});
+
 test("calendar styles target FullCalendar's own element", () => {
   // FullCalendar adds its "fc" class to the element it is created on (#calendar.cal-host), so ".cal-host .fc" (an fc inside it)
   // matches nothing: that once left the whole calendar unstyled.

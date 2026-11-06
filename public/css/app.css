@@ -33,6 +33,15 @@
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
+/* The bottom bar stands still while the page changes, like the navbar. The library's page-transition-static gives every element the one
+   view-transition name "static-chrome", and a name may be used only once per page: two of them (navbar + bottom bar) make the browser
+   abort every transition ("Unexpected duplicate view-transition-name"). So the bottom bar has its own name, treated the same way. */
+#nav.bottom-nav {
+  view-transition-name: static-chrome-bottom;
+}
+::view-transition-group(static-chrome-bottom) {
+  animation-duration: 0s;
+}
 .bottom-nav .nav-link {
   display: flex;
   flex: 1 1 0;
