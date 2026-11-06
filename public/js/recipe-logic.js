@@ -40,7 +40,7 @@ export function toRecipe(raw, source, lang = "en") {
   if (source === "builtin") {
     const ingredients = raw.ingredients.map(([key, qty, unit]) => {
       const item = INGREDIENTS[key];
-      return { key, label: item[lang] || item.en, qty, unit, allergens: item.allergens, staple: !!item.staple };
+      return { key, label: item[lang] || item.en, qty, unit, allergens: item.allergens, staple: !!item.staple, role: item.role || "side", group: item.group || null };
     });
     return {
       id: raw.id, source, name: raw.name[lang] || raw.name.en, servings: raw.servings, minutes: raw.minutes, ingredients,
@@ -60,6 +60,8 @@ export function toRecipe(raw, source, lang = "en") {
       unit: UNITS.includes(row?.unit) ? row.unit : "",
       allergens: item ? item.allergens : [],
       staple: !!item?.staple,
+      role: item?.role || "side",
+      group: item?.group || null,
     };
   }).filter((i) => i.label);
   const steps = typeof raw.steps === "string" ? raw.steps.slice(0, 5000).split(/\n+/).map((s) => s.trim()).filter(Boolean) : [];
@@ -112,27 +114,60 @@ export function allergyConflicts(recipe, people) {
 /** All allergies of the people at the table, once each: what the meal page lists before anyone picks a recipe. */
 export const tableAllergies = (people) => cleanAllergens(people.flatMap((p) => p.allergies || []));
 
-/** Whether a pantry item (typed by a person) is this ingredient: the same catalog ingredient, or the one name contains the other. */
-function pantryHas(pantry, ingredient) {
+// How much an ingredient makes the dish (catalog role): having the spaghetti for a bolognese counts for more than having the garlic.
+const WEIGHT = { main: 3, side: 1, minor: 0.5 };
+// A stand-in (spaghetti for a penne recipe) is good, but not as good as the real thing.
+const SWAP_CREDIT = 0.8;
+
+/**
+ * How a pantry item covers this ingredient: "exact" (the same catalog ingredient, or the one name contains the other), "swap" (another
+ * ingredient of the same group, e.g. spaghetti for penne), or null. Returns { kind, item } with the pantry item that did it.
+ */
+function coverage(pantry, ingredient) {
   const label = normalise(ingredient.label);
-  return pantry.some((p) => (p.key && p.key === ingredient.key) || (p.text.length >= 3 && (label.includes(p.text) || (label.length >= 3 && p.text.includes(label)))));
+  const exact = pantry.find((p) => (p.key && p.key === ingredient.key)
+    || (!p.key && p.text.length >= 3 && (label.includes(p.text) || (label.length >= 3 && p.text.includes(label)))));
+  if (exact) return { kind: "exact", item: exact };
+  const swap = ingredient.group ? pantry.find((p) => p.group === ingredient.group) : null;
+  return swap ? { kind: "swap", item: swap } : null;
 }
 
 /**
- * "What can I make": every recipe with what you would still have to buy, the one needing the fewest extra ingredients first (then the
- * one using most of what you have, then the name). Staples never count as missing. items: what is in the house, as typed.
- * Returns [{ recipe, missing: [ingredient], have: [ingredient] }].
+ * "What can I make": every recipe scored by how much of it you already have, weighing each ingredient by how much it makes the dish
+ * (js/catalog.js role) and counting a stand-in a little less. Staples (salt, oil...) are left out. A recipe that uses nothing you have
+ * scores 0 and goes last, however short its shopping list: typing "spaghetti" must not suggest pancakes.
+ * items: what is in the house, as typed. Returns [{ recipe, score (0..1), have, missing, swaps: [{ ingredient, using }] }], best first:
+ * highest score, then the shortest shopping list, then the name.
  */
 export function rankByPantry(recipes, items) {
-  const pantry = items.map((text) => ({ text: normalise(text), key: findIngredientKey(text) })).filter((p) => p.text);
+  const pantry = items.map((text) => {
+    const key = findIngredientKey(text);
+    return { text: normalise(text), typed: String(text).trim(), key, group: key ? INGREDIENTS[key].group || null : null };
+  }).filter((p) => p.text);
   return recipes
     .map((recipe) => {
       const needed = recipe.ingredients.filter((i) => !i.staple);
-      const have = needed.filter((i) => pantryHas(pantry, i));
-      return { recipe, have, missing: needed.filter((i) => !have.includes(i)) };
+      const have = [];
+      const missing = [];
+      const swaps = [];
+      let got = 0;
+      let total = 0;
+      for (const i of needed) {
+        const weight = WEIGHT[i.role] ?? WEIGHT.side;
+        total += weight;
+        const c = coverage(pantry, i);
+        if (!c) { missing.push(i); continue; }
+        have.push(i);
+        got += c.kind === "exact" ? weight : weight * SWAP_CREDIT;
+        if (c.kind === "swap") swaps.push({ ingredient: i, using: c.item.typed });
+      }
+      return { recipe, score: total ? got / total : 0, have, missing, swaps };
     })
-    .sort((a, b) => a.missing.length - b.missing.length || b.have.length - a.have.length || a.recipe.name.localeCompare(b.recipe.name));
+    .sort((a, b) => b.score - a.score || a.missing.length - b.missing.length || a.recipe.name.localeCompare(b.recipe.name));
 }
+
+/** The recipes that use at least one thing you have (what "what can I make" shows as matches). */
+export const pantryMatches = (ranked) => ranked.filter((r) => r.score > 0);
 
 /** The key a grocery line is ticked off under (meal.have): stable across languages and servings. */
 export const groceryKey = (ingredient) => ingredient.key.slice(0, 100);

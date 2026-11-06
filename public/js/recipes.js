@@ -4,7 +4,7 @@ import "../vendor/sel/elements/tabs-glass-paper.js";
 import { whenUser, esc, onLeave, attempt, allergenBadges, toast } from "./ui.js";
 import { people, person, userRecipes, saveRecipe, deleteRecipe } from "./store.js";
 import { allRecipes, ingredientHtml, getPantry, setPantry, recipeRef } from "./recipe-view.js";
-import { scaleIngredients, rankByPantry, findIngredientKey, UNITS } from "./recipe-logic.js";
+import { scaleIngredients, rankByPantry, pantryMatches, findIngredientKey, UNITS } from "./recipe-logic.js";
 import { INGREDIENTS } from "./catalog.js";
 import { ALLERGENS, allergenLabel } from "./allergens.js";
 import { getLang, t } from "./i18n.js";
@@ -56,11 +56,23 @@ function renderPantry() {
     $("#pantry-results").innerHTML = `<p class="small text-body-secondary mb-0">${esc(t("recipes.pantryStart"))}</p>`;
     return;
   }
-  const ranked = rankByPantry(recipes, pantry).slice(0, 10);
-  $("#pantry-results").innerHTML = ranked.map(({ recipe, missing, have }) => recipeItem(recipe, `
-    <span class="d-block small mt-1"><span class="badge ${missing.length ? "text-bg-warning" : "text-bg-success"}">${esc(missing.length ? t("recipes.toBuy", { n: missing.length }) : t("recipes.nothingToBuy"))}</span>
-    ${have.length ? ` <span class="text-body-secondary">${esc(t("recipes.youHave", { items: have.map((i) => i.label).join(", ") }))}</span>` : ""}</span>
-    ${missing.length ? `<span class="d-block small text-body-secondary">${esc(t("recipes.missing", { items: missing.map((i) => i.label).join(", ") }))}</span>` : ""}`)).join("");
+  const ranked = pantryMatches(rankByPantry(recipes, pantry)).slice(0, 10);
+  if (!ranked.length) {
+    $("#pantry-results").innerHTML = `<p class="small text-body-secondary mb-0">${esc(t("recipes.noMatch"))}</p>`;
+    return;
+  }
+  $("#pantry-results").innerHTML = ranked.map(({ recipe, missing, have, swaps, score }) => {
+    const swapped = new Set(swaps.map((s) => s.ingredient));
+    const uses = have.filter((i) => !swapped.has(i)).map((i) => i.label);
+    return recipeItem(recipe, `
+    <span class="d-block small mt-1">
+      <span class="badge ${missing.length ? "text-bg-warning" : "text-bg-success"}">${esc(missing.length ? t("recipes.toBuy", { n: missing.length }) : t("recipes.nothingToBuy"))}</span>
+      <span class="badge text-bg-light border">${esc(t("recipes.coverage", { pct: Math.round(score * 100) }))}</span>
+    </span>
+    ${uses.length ? `<span class="d-block small text-success-emphasis mt-1"><i class="bi bi-check2" aria-hidden="true"></i> ${esc(t("recipes.youHave", { items: uses.join(", ") }))}</span>` : ""}
+    ${swaps.map((s) => `<span class="d-block small text-success-emphasis"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> ${esc(t("recipes.swap", { using: s.using, instead: s.ingredient.label }))}</span>`).join("")}
+    ${missing.length ? `<span class="d-block small text-body-secondary">${esc(t("recipes.missing", { items: missing.map((i) => i.label).join(", ") }))}</span>` : ""}`);
+  }).join("");
 }
 
 function renderDetail() {

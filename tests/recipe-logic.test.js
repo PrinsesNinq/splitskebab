@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { INGREDIENTS, RECIPES } from "../public/js/catalog.js";
 import { ALLERGEN_IDS } from "../public/js/allergens.js";
 import {
-  builtinRecipes, toRecipe, scaleIngredients, groceryList, allergyConflicts, rankByPantry, findIngredientKey, normalise, UNITS,
+  builtinRecipes, toRecipe, scaleIngredients, groceryList, allergyConflicts, rankByPantry, pantryMatches, findIngredientKey, normalise, UNITS,
 } from "../public/js/recipe-logic.js";
 
 test("every built-in recipe uses known ingredients and units, in both languages", () => {
@@ -94,12 +94,43 @@ test("a stored user recipe is cleaned: bad fields are dropped, recognised ingred
   assert.deepEqual(r.steps, ["Toast it.", "Eat it."]);
 });
 
-test("what can I make: the recipe needing the fewest extra ingredients comes first, staples never count", () => {
-  const recipes = builtinRecipes("en");
-  const ranked = rankByPantry(recipes, ["pasta", "groene pesto", "cherry tomatoes", "parmezaan"]);
+test("what can I make: with everything for a recipe, it comes first and has nothing to buy (staples never count)", () => {
+  const ranked = rankByPantry(builtinRecipes("en"), ["pasta", "groene pesto", "cherry tomatoes", "parmezaan"]);
   assert.equal(ranked[0].recipe.id, "pesto");
   assert.equal(ranked[0].missing.length, 0, "salt is a staple");
-  const empty = rankByPantry(recipes, []);
-  assert.equal(empty.length, recipes.length);
-  assert.ok(empty.every((x, i) => i === 0 || empty[i - 1].missing.length <= x.missing.length), "sorted by missing count");
+  assert.equal(ranked[0].score, 1);
+});
+
+test("what can I make: spaghetti suggests pasta dishes, never pancakes", () => {
+  const ranked = rankByPantry(builtinRecipes("en"), ["spaghetti"]);
+  const matches = pantryMatches(ranked).map((r) => r.recipe.id);
+  assert.ok(!matches.includes("pancakes"), `pancakes use no spaghetti, matches: ${matches}`);
+  assert.deepEqual(new Set(matches), new Set(["bolognese", "pesto", "tunasalad"]), "the three pasta recipes, and nothing else");
+  assert.ok(ranked.findIndex((r) => r.recipe.id === "pancakes") > 2, "pancakes rank below every match");
+  const pesto = ranked.find((r) => r.recipe.id === "pesto");
+  assert.deepEqual(pesto.swaps.map((s) => [s.using, s.ingredient.key]), [["spaghetti", "pasta"]], "spaghetti stands in for penne, and says so");
+  const bolognese = ranked.find((r) => r.recipe.id === "bolognese");
+  assert.equal(bolognese.swaps.length, 0, "spaghetti is the real thing for a bolognese");
+});
+
+test("what can I make: the main ingredient counts for more than the garlic", () => {
+  const withChicken = rankByPantry(builtinRecipes("en"), ["chicken"]).find((r) => r.recipe.id === "greencurry");
+  const withGarlicOnly = rankByPantry(builtinRecipes("en"), ["garlic"]).find((r) => r.recipe.id === "bolognese");
+  assert.ok(withChicken.score > withGarlicOnly.score, `${withChicken.score} > ${withGarlicOnly.score}`);
+  const ranked = rankByPantry(builtinRecipes("en"), ["rice", "eggs"]);
+  assert.equal(ranked[0].recipe.id, "nasi", "rice and eggs: nasi goreng first");
+});
+
+test("what can I make: nothing typed, or nothing that fits, gives no matches", () => {
+  const recipes = builtinRecipes("en");
+  assert.equal(rankByPantry(recipes, []).length, recipes.length, "every recipe is still listed");
+  assert.deepEqual(pantryMatches(rankByPantry(recipes, [])), []);
+  assert.deepEqual(pantryMatches(rankByPantry(recipes, ["plutonium"])), []);
+});
+
+test("every catalog role and swap group is a known one", () => {
+  for (const [key, item] of Object.entries(INGREDIENTS)) {
+    assert.ok(item.role === undefined || ["main", "minor"].includes(item.role), `${key}: role ${item.role}`);
+    if (item.group) assert.ok(Object.values(INGREDIENTS).filter((x) => x.group === item.group).length >= 2, `${key}: group ${item.group} has a partner`);
+  }
 });
