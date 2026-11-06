@@ -71,18 +71,22 @@
       <a href="houses.html" class="alert-link ms-1" data-i18n="home.noCircleLink">Go to Houses</a>
     </div>
 
-    <!-- Calendar toolbar (after ATLAS): Today, the arrows and the month on the left (the month opens a date picker), the view on the right. -->
-    <div class="cal-toolbar d-flex align-items-center gap-1 mb-2">
+    <!-- Calendar toolbar (the ATLAS look, on one row for a phone): Today, the arrows and the month (it opens a date picker) on the left,
+         the view menu on the right. -->
+    <div class="cal-toolbar d-flex align-items-center mb-2">
       <button type="button" class="btn cal-today" id="cal-today" data-i18n="cal.today">Today</button>
       <button type="button" class="btn cal-arrow" id="cal-prev" aria-label="Previous month" data-i18n-aria-label="cal.prev"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
       <button type="button" class="btn cal-arrow" id="cal-next" aria-label="Next month" data-i18n-aria-label="cal.next"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
-      <span class="cal-nav">
-        <button type="button" class="btn cal-title" id="cal-title" title="Jump to a date" data-i18n-title="cal.jump"></button>
+      <span class="cal-nav min-w-0">
+        <button type="button" class="btn cal-title text-truncate" id="cal-title" title="Jump to a date" data-i18n-title="cal.jump"></button>
         <input type="date" class="cal-date" id="cal-jump" tabindex="-1" aria-label="Jump to a date" data-i18n-aria-label="cal.jump">
       </span>
-      <div class="btn-group btn-group-sm ms-auto cal-views" role="group" aria-label="View">
-        <button type="button" class="btn btn-outline-primary" data-view="dayGridMonth" data-i18n="cal.month">Month</button>
-        <button type="button" class="btn btn-outline-primary" data-view="listMonth" data-i18n="cal.list">List</button>
+      <div class="dropdown ms-auto cal-views">
+        <button type="button" class="btn dropdown-toggle cal-view-toggle" id="cal-view-menu" data-bs-toggle="dropdown" aria-expanded="false"><span id="cal-view-label">Month</span></button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="cal-view-menu">
+          <li><button type="button" class="dropdown-item" data-view="dayGridMonth" data-i18n="cal.month">Month</button></li>
+          <li><button type="button" class="dropdown-item" data-view="listMonth" data-i18n="cal.list">List</button></li>
+        </ul>
       </div>
     </div>
     <div class="alert alert-danger d-none" id="cal-error" role="alert"></div>

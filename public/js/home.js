@@ -88,6 +88,7 @@ function syncTitle() {
   if (!calendar) return;
   $("#cal-title").textContent = calendar.view.title;
   for (const b of document.querySelectorAll("[data-view]")) b.classList.toggle("active", b.dataset.view === calendar.view.type);
+  $("#cal-view-label").textContent = t(calendar.view.type === "listMonth" ? "cal.list" : "cal.month");
   renderDay();
 }
 
