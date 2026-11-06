@@ -8,7 +8,7 @@
 import { SDK, db } from "./firebase-init.js";
 
 const {
-  collection, doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, writeBatch,
+  collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, writeBatch, serverTimestamp,
 } = await import(`${SDK}/firebase-firestore.js`);
 
 // What is stored is not trusted: a person writes their own profile (userProfiles/{email}), so any field can hold anything. These keep one odd
@@ -19,10 +19,10 @@ const photo = (v) => (typeof v === "string" && /^https:\/\//.test(v) && v.length
 
 /**
  * Everyone the app knows, kept up to date: onChange({ people, groups }) on every change, once all four sources have answered.
- * people: [{ email, name, photoUrl, admin, groups, signedIn, invited }] sorted by name. Returns a function that stops listening.
+ * people: [{ email, name, photoUrl, admin, groups, signedIn, invited, blocked }] sorted by name. Returns a function that stops listening.
  */
 export function watchPeople(onChange, onError = console.error) {
-  const state = { profiles: null, users: null, admins: null, groups: null };
+  const state = { profiles: null, users: null, admins: null, groups: null, blocked: null };
   const emit = () => {
     if (Object.values(state).some((v) => v === null)) return;
     const admins = strings(state.admins);
@@ -40,6 +40,7 @@ export function watchPeople(onChange, onError = console.error) {
         // May use Splitskebab: an admin added them (a users/ document) or they are an admin. Someone who signed in without being added
         // shows up here with invited false, for an admin to let in.
         invited: state.users.has(email) || admins.includes(email),
+        blocked: state.blocked.has(email), // an admin blocked them: no access, and they cannot register again
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
     onChange({ people, groups: strings(state.groups).sort((a, b) => a.localeCompare(b)) });
@@ -50,6 +51,7 @@ export function watchPeople(onChange, onError = console.error) {
     onSnapshot(collection(db, "users"), (s) => { state.users = byId(s); emit(); }, onError),
     onSnapshot(doc(db, "settings", "admins"), (s) => { state.admins = (s.exists() && s.data().emails) || []; emit(); }, onError),
     onSnapshot(doc(db, "settings", "groups"), (s) => { state.groups = (s.exists() && s.data().names) || []; emit(); }, onError),
+    onSnapshot(collection(db, "blocked"), (s) => { state.blocked = new Set(s.docs.map((d) => d.id)); emit(); }, onError),
   ];
   return () => stops.forEach((stop) => stop());
 }
@@ -62,8 +64,8 @@ export const addPerson = (email, { name, photoUrl } = {}) => setDoc(doc(db, "use
 export const setAdmin = (email, admin) => updateDoc(doc(db, "settings", "admins"), { emails: admin ? arrayUnion(email) : arrayRemove(email) });
 
 /**
- * Forgets someone: their groups, their profile and their admin rights, and with their users/ document their access: Splitskebab only lets
- * in people with one (firestore.rules allowed()). If they sign in again they show up in the list, without access, until an admin adds them.
+ * Removes someone's account: their groups, their profile and their admin rights, and their users/ document. Anyone can register, so they
+ * can sign up again; to keep someone out, block them (setBlocked).
  */
 export async function removePerson(email) {
   const batch = writeBatch(db);
@@ -72,6 +74,14 @@ export async function removePerson(email) {
   batch.update(doc(db, "settings", "admins"), { emails: arrayRemove(email) });
   await batch.commit();
 }
+
+/**
+ * Blocks someone (no access at all, and they cannot register again: firestore.rules notBlocked()) or lets them back in. Their account
+ * and data stay, so unblocking gives everything back.
+ */
+export const setBlocked = (email, blocked) => (blocked
+  ? setDoc(doc(db, "blocked", email), { blockedAt: serverTimestamp() })
+  : deleteDoc(doc(db, "blocked", email)));
 
 export const setGroups = (email, groups) => setDoc(doc(db, "users", email), { groups: [...new Set(groups)].sort() }, { merge: true });
 

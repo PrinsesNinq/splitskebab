@@ -59,9 +59,9 @@ export async function signOutAndLeave() {
 }
 
 // ---- Remembered invitation ----
-// Whether this person was let in, remembered on this device after the first check, so the app does not wait for two server reads
+// Whether this person has an account, remembered on this device after the first check, so the app does not wait for server reads
 // before every start (on a phone those can take many seconds). js/app.js checks again in the background each time and forgets it
-// when the admin took the access away. It only spares the waiting: firestore.rules decide what anyone can read.
+// when the account was removed or blocked. It only spares the waiting: firestore.rules decide what anyone can read.
 const ACCESS_KEY = "access-ok";
 export function rememberedAccess(email) {
   try { return localStorage.getItem(ACCESS_KEY) === email.toLowerCase(); } catch { return false; }
@@ -81,29 +81,38 @@ export async function adminStatus(email) {
 }
 
 /**
- * Whether this person may use the app: an admin added them (Settings > Users, a users/{email} document), or they are an admin, or the
- * bootstrap account. firestore.rules (allowed()) enforces the same; this is only so the page can say so. Returns true, false, or null
- * when it could not be checked (no connection): js/app.js then keeps what it remembered, and never shuts someone out on a bad network.
+ * Where this person stands: "ok" (has an account: registered themselves or added by an admin, or is an admin / the bootstrap account),
+ * "new" (signed in with Google but no account yet: they can register), "blocked" (an admin blocked them), or null when it could not be
+ * checked (no connection): js/app.js then keeps what it remembered, and never shuts someone out on a bad network.
+ * firestore.rules (allowed()) enforces the same; this is only so the page can show the right screen.
  */
-export async function hasAccess(email) {
+export async function accountStatus(email) {
   const me = email.toLowerCase();
-  if (me === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()) return true;
-  // From the server, never the offline copy: "no document" must mean "not invited", not "not downloaded yet".
+  // From the server, never the offline copy: "no document" must mean "no account", not "not downloaded yet".
+  try {
+    const blocked = await store.getDocFromServer(store.doc(db, "blocked", me));
+    if (blocked.exists()) return "blocked";
+  } catch {
+    return null;
+  }
+  if (me === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()) return "ok";
   let own;
   try {
     own = await store.getDocFromServer(store.doc(db, "users", me));
   } catch {
-    return null; // offline or the server did not answer: do not decide
+    return null;
   }
-  if (own.exists()) return true;
+  if (own.exists()) return "ok";
   try {
     const admins = await store.getDocFromServer(store.doc(db, "settings", "admins"));
-    return admins.exists() && (admins.data().emails || []).includes(me);
+    return admins.exists() && (admins.data().emails || []).includes(me) ? "ok" : "new";
   } catch (err) {
-    return err?.code === "permission-denied" ? false : null; // not invited people may not read the admin list (firestore.rules)
+    return err?.code === "permission-denied" ? "new" : null; // people without an account may not read the admin list (firestore.rules)
   }
 }
 
+/** Creates my account (any Google account may: firestore.rules lets a person create only their own, with only the time in it). */
+export const register = (email) => store.setDoc(store.doc(db, "users", email.toLowerCase()), { registeredAt: store.serverTimestamp() });
 /** Creates the admin list with this one account in it: only the bootstrap account may, and only once (firestore.rules). */
 export async function becomeFirstAdmin(email) {
   await store.setDoc(store.doc(db, "settings", "admins"), { emails: [email.toLowerCase()] });

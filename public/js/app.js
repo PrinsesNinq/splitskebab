@@ -1,12 +1,12 @@
 // This project's own script, shared by every page except the sign-in page. It runs once: with soft navigation the page stays loaded while
 // only #page-content changes, so per-page work goes in a "soft-nav:load" listener (as below) or in a script inside #page-content.
 //
-// It signs the person in (or sends them to the sign-in page), checks they were invited (an admin added them in Settings > Users; the
-// domain alone is not enough, see firestore.rules allowed()), translates the page, and fills the notification bell with the meals the
+// It signs the person in (or sends them to the sign-in page), checks they have an account (or lets them create one; a blocked account
+// gets nothing, see firestore.rules allowed()), translates the page, and fills the notification bell with the meals the
 // person is invited to and has not answered yet.
 import "./pwa.js"; // installable app: the service worker and the navbar's Install button
 import { configured } from "./firebase-init.js";
-import { requireUser, signOutAndLeave, hasAccess, adminStatus, rememberedAccess, rememberAccess, forgetAccess } from "./auth.js";
+import { requireUser, signOutAndLeave, accountStatus, register, adminStatus, rememberedAccess, rememberAccess, forgetAccess } from "./auth.js";
 import { applyI18n, getLang, setLang, t, formatDay } from "./i18n.js";
 import { addNotification } from "../vendor/sel/elements/notification-bell.js";
 
@@ -40,21 +40,62 @@ document.addEventListener("click", (event) => {
 
 const show = () => document.documentElement.classList.remove("auth-pending"); // hidden until now: see the inline script in each <head>
 
-/** Someone on the domain whom no admin added: they see who to ask, and nothing else (Firestore would refuse them the data anyway). */
-function showNotInvited(user) {
+/** A full-page message in place of the page content (and no bottom bar): for the register, blocked and no-connection screens. */
+function fullPage(html) {
   const content = document.querySelector("#page-content");
-  content.innerHTML = `<main class="container main-container not-invited"><h1 class="h4"></h1><p></p><button type="button" class="btn btn-outline-primary" id="not-invited-out"></button></main>`;
-  content.querySelector("h1").textContent = t("access.title");
-  content.querySelector("p").textContent = t("access.body", { email: user.email });
-  content.querySelector("#not-invited-out").textContent = t("nav.signOut");
-  content.querySelector("#not-invited-out").addEventListener("click", signOutAndLeave);
+  content.innerHTML = `<main class="container main-container account-screen">${html}</main>`;
   document.querySelector("#nav")?.setAttribute("hidden", "");
+  return content;
 }
 
+/**
+ * Signed in with Google but no account yet: one button creates it (firestore.rules lets anyone create their own), then the profile
+ * page opens so they can fill in their allergies and payment link. Texts go in as text: the name comes from Google.
+ */
+function showRegister(user, start) {
+  const content = fullPage(`
+    <img src="images/app-icon.svg" alt="" width="72" height="72" class="login-app-icon mb-3">
+    <h1 class="h4"></h1>
+    <p class="text-body-secondary" id="register-intro"></p>
+    <div class="card card-body text-start mb-3"><strong id="register-name"></strong><span class="small text-body-secondary" id="register-email"></span></div>
+    <div class="alert alert-danger d-none" role="alert" id="register-error"></div>
+    <button type="button" class="btn btn-primary w-100 mb-2" id="register-btn"></button>
+    <button type="button" class="btn btn-link btn-sm" id="register-out"></button>`);
+  content.querySelector("h1").textContent = t("register.title");
+  content.querySelector("#register-intro").textContent = t("register.intro");
+  content.querySelector("#register-name").textContent = user.displayName || user.email;
+  content.querySelector("#register-email").textContent = user.email;
+  content.querySelector("#register-btn").textContent = t("register.button");
+  content.querySelector("#register-out").textContent = t("register.otherAccount");
+  content.querySelector("#register-out").addEventListener("click", signOutAndLeave);
+  content.querySelector("#register-btn").addEventListener("click", async (event) => {
+    event.target.disabled = true;
+    try {
+      await register(user.email);
+      rememberAccess(user.email);
+      // The profile is the first stop: allergies are what the others at the table need to know.
+      location.replace("profile.html?welcome=1");
+    } catch (err) {
+      console.error(err);
+      const box = content.querySelector("#register-error");
+      box.textContent = err?.code === "permission-denied" ? t("register.refused") : t("error.generic");
+      box.classList.remove("d-none");
+      event.target.disabled = false;
+    }
+  });
+}
+
+/** An admin blocked this account: say so, and offer to sign out (firestore.rules refuse them everything anyway). */
+function showBlocked(user) {
+  const content = fullPage(`<h1 class="h4"></h1><p></p><button type="button" class="btn btn-outline-primary" id="blocked-out"></button>`);
+  content.querySelector("h1").textContent = t("access.blockedTitle");
+  content.querySelector("p").textContent = t("access.blockedBody", { email: user.email });
+  content.querySelector("#blocked-out").textContent = t("nav.signOut");
+  content.querySelector("#blocked-out").addEventListener("click", signOutAndLeave);
+}
 /** The first start on a device needs the server once (is this person invited?); without a connection, say so and offer to retry. */
 function showNoConnection() {
-  const content = document.querySelector("#page-content");
-  content.innerHTML = `<main class="container main-container not-invited"><h1 class="h4"></h1><p></p><button type="button" class="btn btn-primary" id="retry-btn"></button></main>`;
+  const content = fullPage(`<h1 class="h4"></h1><p></p><button type="button" class="btn btn-primary" id="retry-btn"></button>`);
   content.querySelector("h1").textContent = t("access.offlineTitle");
   content.querySelector("p").textContent = t("access.offlineBody");
   content.querySelector("#retry-btn").textContent = t("access.retry");
@@ -152,15 +193,19 @@ if (!configured) {
     startMealSharing(user.email.toLowerCase());
   };
 
+  // What to show for each account status (js/auth.js accountStatus): the app, "create your account", "blocked", or "no connection".
+  const settle = (status) => {
+    if (status === "ok") { rememberAccess(user.email); start(); return; }
+    if (status === "new") { forgetAccess(); showRegister(user, start); } else if (status === "blocked") { forgetAccess(); showBlocked(user); } else { showNoConnection(); }
+    show();
+  };
   if (rememberedAccess(user.email)) {
-    // Let in on this device before: start at once (the data comes from the offline copy), and check again in the background.
+    // Has an account on this device: start at once (the data comes from the offline copy), and check again in the background; a
+    // removed or blocked account then gets its screen.
     start();
-    hasAccess(user.email).then((ok) => {
-      if (ok === false) { forgetAccess(); showNotInvited(user); }
-    });
+    accountStatus(user.email).then((status) => { if (status === "new" || status === "blocked") settle(status); });
   } else {
     // The first time on this device: wait for the answer (it is remembered after).
-    const ok = await hasAccess(user.email);
-    if (ok) { rememberAccess(user.email); start(); } else if (ok === false) { showNotInvited(user); show(); } else { showNoConnection(); show(); }
+    settle(await accountStatus(user.email));
   }
 }

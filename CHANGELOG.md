@@ -8,7 +8,7 @@ All notable changes are kept here in Keep a Changelog format.
 - Recipes with grocery lists scaled to the number of people, your own recipes, and "what can I make" from what you have
 - Allergies on your profile; recipes and meals that contain them are marked in red for everyone at the table
 - Split the receipt total equally, see who owes whom, send payment requests with your Tikkie or bunq.me link
-- English and Dutch; invite-only access managed by the admin, any Google account can be invited
+- English and Dutch; sign in with any Google account
 - Friends: send and accept friend requests, invite friends from outside your house to a meal
 - "What can I make" ranks by what you have (main ingredients count most, swaps like spaghetti for penne), never by the shortest list
 - 102 built-in recipes in English and Dutch, with filters: quick, vegetarian, vegan, budget, big group
@@ -16,3 +16,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Fixed: someone added to a house now also sees the meals planned before they joined
 - Several people can add costs to one meal (each their own); the split works out who pays whom, in as few payments as possible
 - Fixed: the app no longer starts blank or with an empty calendar on a phone; data is kept on the device and shows at once
+- Anyone with a Google account can create their own account; admins can block someone

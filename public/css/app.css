@@ -94,8 +94,9 @@
   margin-bottom: calc(4.5rem + env(safe-area-inset-bottom));
 }
 
-.not-invited {
-  max-width: 32rem;
+/* Full-page account screens (js/app.js): create your account, blocked, no connection. */
+.account-screen {
+  max-width: 28rem;
   text-align: center;
 }
 

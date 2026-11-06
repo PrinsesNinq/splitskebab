@@ -74,6 +74,12 @@
       </div>
     </div>
 
+    <!-- Shown right after someone created their account (js/app.js sends them here with ?welcome=1). -->
+    <div class="alert alert-success d-none" id="welcome" role="status">
+      <strong class="d-block" data-i18n="profile.welcomeTitle">Welcome to Splitskebab!</strong>
+      <span data-i18n="profile.welcomeBody">Tick your allergies so everyone you eat with knows, and add your payment link. Then create a house, or ask a housemate to add you.</span>
+    </div>
+
     <form id="profile-form" novalidate>
       <section class="mb-4">
         <h2 class="h6" data-i18n="profile.allergies">My allergies</h2>

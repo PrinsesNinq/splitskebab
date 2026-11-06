@@ -67,12 +67,13 @@ async function startUsers(me) {
       const self = p.email === me.email.toLowerCase();
       return `<tr data-email="${esc(p.email)}">
         <td data-value="${esc(p.email)}"><div class="d-flex align-items-center gap-2">${avatar(p)}<div><div>${esc(p.name)}</div><div class="small text-body-secondary">${esc(p.email)}${p.signedIn ? '' : ' · not signed in yet'}</div></div></div></td>
-        <td><span class="badge ${p.admin ? 'text-bg-primary' : p.invited ? 'text-bg-secondary' : 'text-bg-warning'}">${p.admin ? 'Admin' : p.invited ? 'User' : 'No access'}</span></td>
+        <td><span class="badge ${p.blocked ? 'text-bg-danger' : p.admin ? 'text-bg-primary' : p.invited ? 'text-bg-secondary' : 'text-bg-warning'}">${p.blocked ? 'Blocked' : p.admin ? 'Admin' : p.invited ? 'User' : 'No account'}</span></td>
         <td data-values="${esc(p.groups.join('|'))}"><div class="d-flex flex-wrap gap-1">${p.groups.map((g) => `<span class="badge text-bg-light border">${esc(g)}</span>`).join('')}</div></td>
         <td class="text-end"><div class="d-flex gap-2 justify-content-end flex-wrap">
-          ${p.invited ? '' : '<button type="button" class="btn btn-sm btn-success" data-action="invite">Give access</button>'}
+          ${p.invited || p.blocked ? '' : '<button type="button" class="btn btn-sm btn-success" data-action="invite">Give access</button>'}
+          <button type="button" class="btn btn-sm ${p.blocked ? 'btn-outline-success' : 'btn-outline-danger'}" data-action="${p.blocked ? 'unblock' : 'block'}" ${self ? 'disabled title="Not yourself"' : ''}>${p.blocked ? 'Unblock' : 'Block'}</button>
           <button type="button" class="btn btn-sm ${p.admin ? 'btn-outline-danger' : 'btn-outline-primary'}" data-action="${p.admin ? 'demote' : 'promote'}" ${self ? 'disabled title="Not yourself: another admin can"' : ''}>${p.admin ? 'Demote' : 'Promote'}</button>
-          <button type="button" class="btn btn-sm btn-outline-danger" data-action="remove" ${self ? 'disabled title="Not yourself"' : 'title="Take their access away, and forget their role, groups and profile"'}>Remove</button>
+          <button type="button" class="btn btn-sm btn-outline-danger" data-action="remove" ${self ? 'disabled title="Not yourself"' : 'title="Delete their account, role, groups and profile (they can register again: block them to keep them out)"'}>Remove</button>
         </div></td>
       </tr>`;
     }).join('') || '<tr><td colspan="4" class="text-body-secondary">Nobody yet.</td></tr>';
@@ -104,9 +105,11 @@ async function startUsers(me) {
     const { email } = button.closest('tr').dataset;
     button.disabled = true;
     if (button.dataset.action === 'invite') await users.addPerson(email);
+    else if (button.dataset.action === 'block') { if (confirm(`Block ${email}? They lose all access and cannot register again until you unblock them.`)) await users.setBlocked(email, true); else button.disabled = false; }
+    else if (button.dataset.action === 'unblock') await users.setBlocked(email, false);
     else if (button.dataset.action === 'promote') await users.setAdmin(email, true);
     else if (button.dataset.action === 'demote') await users.setAdmin(email, false);
-    else if (confirm(`Remove ${email}? They lose access to Splitskebab, and their role, groups and profile are forgotten.`)) await users.removePerson(email);
+    else if (confirm(`Remove ${email}? Their account, role, groups and profile are deleted. They can register again; use Block to keep them out.`)) await users.removePerson(email);
     else button.disabled = false;
   }));
 

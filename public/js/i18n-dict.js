@@ -2,10 +2,16 @@
 // tests/i18n.test.js fails on a key that a page uses but one of them lacks.
 export const DICT = {
   en: {
-    "access.offlineBody": "Splitskebab needs the internet once on this device to check you were invited. Check your connection and try again.",
+    "access.blockedBody": "The admin blocked {email} from Splitskebab. If you think this is a mistake, ask them.",
+    "access.blockedTitle": "Your account has been blocked",
+    "access.offlineBody": "Splitskebab needs the internet once on this device to check your account. Check your connection and try again.",
     "access.offlineTitle": "No connection",
     "access.retry": "Try again",
-    "access.title": "You are not on the list yet",
+    "register.button": "Create my account",
+    "register.intro": "Plan dinners with your housemates, see everyone's allergies and split the bill. Your Splitskebab account uses this Google account:",
+    "register.otherAccount": "Use another Google account",
+    "register.refused": "This account cannot be created. Ask the admin of Splitskebab.",
+    "register.title": "Welcome! Create your account",    "access.title": "You are not on the list yet",
     "access.body": "Splitskebab is invite-only for now. Ask the admin to add {email} in Settings, then sign in again.",
 
     "allergy.dangerTitle": "Allergy danger",
@@ -53,7 +59,7 @@ export const DICT = {
     "friends.decline": "Decline",
     "friends.help": "Friends are people you eat with now and then without living together. You can invite them to your meals, and they can invite you to theirs.",
     "friends.none": "No friends yet. Add someone by their email.",
-    "friends.notOnApp": "{email} does not use Splitskebab yet. Ask the admin to add them first.",
+    "friends.notOnApp": "{email} does not have a Splitskebab account yet. Ask them to sign in once with that Google account.",
     "friends.nowFriends": "You and {name} are friends now.",
     "friends.remove": "Remove {name}",
     "friends.requested": "Friend request sent to {name}.",
@@ -73,8 +79,8 @@ export const DICT = {
     "home.upcoming": "Coming up",
     "home.youOwe": "You owe {amount}",
 
-    "houses.addHelp": "Add people by their Google email. The admin also has to let them into Splitskebab before they can sign in.",
-    "houses.addHelpAdmin": "Add people by their Google email. As admin, adding someone here also lets them sign in.",
+    "houses.addHelp": "Add people by the email of their Google account. They sign in to Splitskebab with that account to see the house.",
+    "houses.addHelpAdmin": "Add people by the email of their Google account. As admin, adding someone here also creates their account.",
     "houses.addPlaceholder": "Email of a housemate",
     "houses.allSettled": "Everyone is square. 🎉",
     "houses.balances": "Who owes whom",
@@ -110,7 +116,7 @@ export const DICT = {
 
     "login.button": "Sign in with Google",
     "login.domainOnly": "Only @{domain} accounts.",
-    "login.invited": "Any Google account, once the admin has added you.",
+    "login.invited": "Sign in with any Google account; new here? You create your account in one step.",
     "login.subtitle": "Plan meals together and split the bill.",
 
     "meal.added": "{name} added",
@@ -216,6 +222,8 @@ export const DICT = {
     "pay.requestTextNoLink": "Hi {name}! Your share of {title} ({day}) is {amount}. 🥙 (Splitskebab)",
     "pay.summary": "{total} split over {n} people: {share} each.",
 
+    "profile.welcomeBody": "Tick your allergies so everyone you eat with knows, and add your payment link. Then create a house, or ask a housemate to add you.",
+    "profile.welcomeTitle": "Welcome to Splitskebab!",
     "profile.allergies": "My allergies",
     "profile.allergiesHelp": "Everyone who plans a meal with you sees these, and recipes that contain them are marked in red.",
     "profile.language": "Language",
@@ -299,10 +307,16 @@ export const DICT = {
   },
 
   nl: {
-    "access.offlineBody": "Splitskebab heeft op dit apparaat één keer internet nodig om te controleren of je bent uitgenodigd. Controleer je verbinding en probeer het opnieuw.",
+    "access.blockedBody": "De beheerder heeft {email} geblokkeerd voor Splitskebab. Denk je dat dit een vergissing is, vraag het dan na.",
+    "access.blockedTitle": "Je account is geblokkeerd",
+    "access.offlineBody": "Splitskebab heeft op dit apparaat één keer internet nodig om je account te controleren. Controleer je verbinding en probeer het opnieuw.",
     "access.offlineTitle": "Geen verbinding",
     "access.retry": "Opnieuw proberen",
-    "access.title": "Je staat nog niet op de lijst",
+    "register.button": "Mijn account aanmaken",
+    "register.intro": "Plan etentjes met je huisgenoten, zie ieders allergieën en deel de rekening. Je Splitskebab-account gebruikt dit Google-account:",
+    "register.otherAccount": "Een ander Google-account gebruiken",
+    "register.refused": "Dit account kan niet worden aangemaakt. Vraag het de beheerder van Splitskebab.",
+    "register.title": "Welkom! Maak je account aan",    "access.title": "Je staat nog niet op de lijst",
     "access.body": "Splitskebab is voorlopig alleen op uitnodiging. Vraag de beheerder om {email} toe te voegen in Instellingen en log daarna opnieuw in.",
 
     "allergy.dangerTitle": "Gevaar: allergie",
@@ -350,7 +364,7 @@ export const DICT = {
     "friends.decline": "Weigeren",
     "friends.help": "Vrienden zijn mensen met wie je af en toe eet zonder samen te wonen. Je kunt ze uitnodigen voor jouw maaltijden, en zij jou voor die van hen.",
     "friends.none": "Nog geen vrienden. Voeg iemand toe met zijn of haar e-mailadres.",
-    "friends.notOnApp": "{email} gebruikt Splitskebab nog niet. Vraag de beheerder om diegene eerst toe te voegen.",
+    "friends.notOnApp": "{email} heeft nog geen Splitskebab-account. Vraag diegene om één keer in te loggen met dat Google-account.",
     "friends.nowFriends": "Jij en {name} zijn nu vrienden.",
     "friends.remove": "{name} verwijderen",
     "friends.requested": "Vriendschapsverzoek gestuurd naar {name}.",
@@ -370,8 +384,8 @@ export const DICT = {
     "home.upcoming": "Binnenkort",
     "home.youOwe": "Je moet {amount} betalen",
 
-    "houses.addHelp": "Voeg mensen toe met hun Google-e-mailadres. De beheerder moet ze ook toegang tot Splitskebab geven voordat ze kunnen inloggen.",
-    "houses.addHelpAdmin": "Voeg mensen toe met hun Google-e-mailadres. Als beheerder geef je ze hiermee ook toegang.",
+    "houses.addHelp": "Voeg mensen toe met het e-mailadres van hun Google-account. Ze loggen met dat account in op Splitskebab om het huis te zien.",
+    "houses.addHelpAdmin": "Voeg mensen toe met het e-mailadres van hun Google-account. Als beheerder maak je hiermee ook hun account aan.",
     "houses.addPlaceholder": "E-mail van een huisgenoot",
     "houses.allSettled": "Iedereen staat quitte. 🎉",
     "houses.balances": "Wie moet wie betalen",
@@ -407,7 +421,7 @@ export const DICT = {
 
     "login.button": "Inloggen met Google",
     "login.domainOnly": "Alleen @{domain}-accounts.",
-    "login.invited": "Elk Google-account, zodra de beheerder je heeft toegevoegd.",
+    "login.invited": "Log in met elk Google-account; nieuw hier? Je maakt je account in één stap.",
     "login.subtitle": "Samen maaltijden plannen en de rekening delen.",
 
     "meal.added": "{name} toegevoegd",
@@ -513,6 +527,8 @@ export const DICT = {
     "pay.requestTextNoLink": "Hoi {name}! Jouw deel van {title} ({day}) is {amount}. 🥙 (Splitskebab)",
     "pay.summary": "{total} verdeeld over {n} personen: {share} per persoon.",
 
+    "profile.welcomeBody": "Vink je allergieën aan zodat iedereen met wie je eet het weet, en voeg je betaallink toe. Maak daarna een huis aan, of vraag een huisgenoot je toe te voegen.",
+    "profile.welcomeTitle": "Welkom bij Splitskebab!",
     "profile.allergies": "Mijn allergieën",
     "profile.allergiesHelp": "Iedereen die een maaltijd met je plant ziet deze, en recepten die ze bevatten worden rood gemarkeerd.",
     "profile.language": "Taal",

@@ -45,5 +45,7 @@ $("#profile-form").addEventListener("submit", async (e) => {
   if (ok) dirty = false;
 });
 
+if (new URLSearchParams(location.search).get("welcome")) $("#welcome").classList.remove("d-none");
+
 stops.push(people.subscribe(() => render()));
 render();

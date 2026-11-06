@@ -27,15 +27,21 @@ service cloud.firestore {
       return signedIn() && me() == 'nino.otten@aperam.com';
     }
 
-    // Invited: an admin added this person in Settings > Users (a users/{email} document), or they are an admin. Having a Google
-    // account is not enough: Splitskebab only lets in the people it was asked to.
-    function allowed() {
-      return signedIn() && (exists(/databases/$(database)/documents/users/$(me())) || isAdmin() || isBootstrapAdmin());
+    // An admin blocked this person (Settings > Users): they get nothing, and cannot register again.
+    function notBlocked() {
+      return !exists(/databases/$(database)/documents/blocked/$(me()));
     }
 
-    // Whether an email (someone else's) has access to Splitskebab: only they can be asked to be friends.
+    // Has an account: they registered themselves (any Google account can) or an admin added them (a users/{email} document either
+    // way), or they are an admin; and they are not blocked. Being signed in with Google alone is not enough: registering is a step.
+    function allowed() {
+      return signedIn() && notBlocked() &&
+        (exists(/databases/$(database)/documents/users/$(me())) || isAdmin() || isBootstrapAdmin());
+    }
+
+    // Whether an email (someone else's) has an account on Splitskebab: only they can be asked to be friends.
     function isInvited(email) {
-      return exists(/databases/$(database)/documents/users/$(email)) ||
+      return (exists(/databases/$(database)/documents/users/$(email)) && !exists(/databases/$(database)/documents/blocked/$(email))) ||
         email == 'nino.otten@aperam.com' ||
         (exists(/databases/$(database)/documents/settings/admins) && email in get(/databases/$(database)/documents/settings/admins).data.emails);
     }
@@ -65,9 +71,19 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Who is invited, with their admin groups ({ groups: [...] }), set by admins in Settings > Users. Each person may read their own
-    // (that is how the app knows whether they are invited), an admin anyone's.
+    // Who has an account, with their admin groups ({ groups: [...] }). Anyone signed in with Google may create their own (registering:
+    // only the time, nothing else: groups and the rest stay with the admins), unless they are blocked; admins create, change and delete
+    // anyone's. Each person may read their own (that is how the app knows they registered), an admin anyone's.
     match /users/{email} {
+      allow read: if isAdmin() || (signedIn() && me() == email);
+      allow create: if isAdmin() ||
+        (signedIn() && me() == email && notBlocked() &&
+          request.resource.data.keys().hasOnly(['registeredAt']) && request.resource.data.registeredAt == request.time);
+      allow update, delete: if isAdmin();
+    }
+
+    // Blocked people ({ blockedAt }): only admins write it; each person may read their own, so the app can tell them.
+    match /blocked/{email} {
       allow read: if isAdmin() || (signedIn() && me() == email);
       allow write: if isAdmin();
     }

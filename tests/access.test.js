@@ -64,7 +64,19 @@ test("everyone writes only their own costs for a meal, and only the payer retire
   assert.match(meals, /get\('costs', \{\}\)\.size\(\) == 0/, "a new meal starts without costs");
 });
 
-test("an invitation is a users/ document that only admins write", () => {
+test("an account is a users/ document: anyone may create their own with only the time in it, only admins change or delete it", () => {
   assert.match(rules, /function allowed\(\) \{[\s\S]*?exists\(\/databases\/\$\(database\)\/documents\/users\/\$\(me\(\)\)\)/);
-  assert.match(block("users/{email}"), /allow write: if isAdmin\(\);/);
+  const users = block("users/{email}");
+  const create = /allow create: if ([\s\S]*?);\n/.exec(users)[1];
+  assert.match(create, /me\(\) == email/, "only your own account");
+  assert.match(create, /notBlocked\(\)/, "a blocked person cannot register again");
+  assert.match(create, /keys\(\)\.hasOnly\(\['registeredAt'\]\)/, "no groups or anything else on your own account");
+  assert.match(create, /registeredAt == request\.time/);
+  assert.match(users, /allow update, delete: if isAdmin\(\);/);
+});
+
+test("a blocked person gets nothing, and only admins block", () => {
+  assert.match(rules, /function allowed\(\) \{[\s\S]*?notBlocked\(\)/, "allowed() checks the block");
+  assert.match(block("blocked/{email}"), /allow write: if isAdmin\(\);/);
+  assert.match(block("blocked/{email}"), /allow read: if isAdmin\(\) \|\| \(signedIn\(\) && me\(\) == email\);/, "you may see that you are blocked");
 });
