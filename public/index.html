@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Splitskebab</title>
+  <!-- The library's theme: Bootstrap, the brand colours, the page background and the main container. Refresh it with: npm run sel:sync -->
+  <link rel="stylesheet" href="vendor/sel/theme/theme.css">
+  <!-- This project's own styling: layout and components that are only used here -->
+  <link rel="stylesheet" href="css/app.css">
+  <!-- Installable app (PWA): the manifest, its colour and icon. js/pwa.js registers the service worker (sw.js) and the Install button. -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6b1f7e">
+  <link rel="icon" href="images/app-icon.svg" type="image/svg+xml">
+  <!-- Light / dark mode: follows the system until the "Dark mode" switch in the account menu is used (loaded here so the page does not flash). -->
+  <script src="js/theme-mode.js"></script>
+  <!-- Hidden until js/app.js knows who is signed in (no flash of the page before the sign-in page); shown after 8 s whatever happens. -->
+  <script>document.documentElement.classList.add('auth-pending'); setTimeout(function () { document.documentElement.classList.remove('auth-pending'); }, 8000);</script>
+</head>
+<body>
+  <!-- The library's navbar (component "Navbar gradient"): brand on the left, notifications and the account menu pinned right.
+       js/app.js fills in who is signed in, the language switch and the bell (meals you are invited to). -->
+  <nav id="site-nav" class="navbar navbar-theme navbar-dark page-transition-static">
+    <div class="container">
+      <a id="site-brand" data-soft-nav-replace class="navbar-brand mb-0 h1 d-flex align-items-center gap-2" href="index.html"><img src="images/app-icon.svg" alt="" width="28" height="28" class="brand-icon"><span class="text-truncate">Splitskebab</span></a>
+      <div class="d-flex align-items-center gap-2 nav-actions">
+        <!-- Shown only when the browser offers installing the app (js/pwa.js). -->
+        <button type="button" id="install-app-btn" class="btn btn-sm btn-light" hidden data-i18n="nav.install">Install</button>
+        <sel-notification-bell class="dropdown" filters='[["all","All"],["invites","Invites"]]'>
+          <button type="button" class="btn btn-sm btn-outline-light position-relative notification-bell-btn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications" data-i18n-aria-label="nav.notifications">
+            <i class="ti" data-icon="bell"></i>
+            <span class="notification-badge badge rounded-pill text-bg-danger d-none"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end p-0 notification-panel">
+            <div class="px-3 pt-2 pb-2 border-bottom">
+              <strong class="d-block mb-2" data-i18n="nav.notifications">Notifications</strong>
+              <div class="notification-filters d-flex flex-wrap gap-1" role="group" aria-label="Filter notifications"></div>
+            </div>
+            <div class="notification-list">
+              <p class="notification-empty text-body-secondary small text-center my-4" data-i18n="nav.noNotifications">No invitations right now.</p>
+            </div>
+          </div>
+        </sel-notification-bell>
+        <div class="dropdown">
+          <button type="button" class="btn btn-sm btn-outline-light dropdown-toggle d-flex align-items-center gap-1" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Account menu" data-i18n-aria-label="nav.account">
+            <i class="ti d-inline d-sm-none" data-icon="person"></i>
+            <span id="current-user-initial" class="avatar avatar-sm d-none d-sm-inline-flex" aria-hidden="true">Y</span>
+            <span id="current-user-email" class="d-none d-sm-inline">you@example.com</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a href="profile.html" class="dropdown-item" data-i18n="nav.profile">Profile</a></li>
+            <li id="nav-settings-item" hidden><a href="settings.html" class="dropdown-item" data-i18n="nav.settings">Settings</a></li>
+            <li><div class="dropdown-item-text d-flex align-items-center justify-content-between gap-3"><span data-i18n="nav.language">Language</span><span class="btn-group btn-group-sm" role="group" aria-label="Language"><button type="button" class="btn btn-outline-primary" data-lang="en">EN</button><button type="button" class="btn btn-outline-primary" data-lang="nl">NL</button></span></div></li>
+            <li><label class="dropdown-item d-flex align-items-center justify-content-between gap-3" for="dark-mode-toggle"><span data-i18n="nav.darkMode">Dark mode</span><span class="form-check form-switch m-0 p-0"><input class="form-check-input ms-0 mt-0" type="checkbox" role="switch" id="dark-mode-toggle"></span></label></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button type="button" id="nav-sign-out-btn" class="dropdown-item" data-i18n="nav.signOut">Sign out</button></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Soft navigation (component "Page transitions"): links to the other pages of this site only swap #page-content below, inside a
+       fade-and-rise, while the navbar and the bottom bar stay put. Page-specific scripts go inside #page-content so they run again on every visit. -->
+  <sel-soft-nav exclude="login.html"></sel-soft-nav>
+
+  <div id="page-content">
+  <main class="container main-container has-bottom-nav" data-calendar>
+    <div class="alert alert-info d-none" id="no-circle" role="status">
+      <span data-i18n="home.noCircle">You are not in a house or group yet. Create one, or ask a housemate to add you.</span>
+      <a href="houses.html" class="alert-link ms-1" data-i18n="home.noCircleLink">Go to Houses</a>
+    </div>
+
+    <!-- Calendar toolbar (after ATLAS): Today, the arrows and the month on the left (the month opens a date picker), the view on the right. -->
+    <div class="cal-toolbar d-flex align-items-center gap-1 mb-2">
+      <button type="button" class="btn cal-today" id="cal-today" data-i18n="cal.today">Today</button>
+      <button type="button" class="btn cal-arrow" id="cal-prev" aria-label="Previous month" data-i18n-aria-label="cal.prev"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" class="btn cal-arrow" id="cal-next" aria-label="Next month" data-i18n-aria-label="cal.next"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      <span class="cal-nav">
+        <button type="button" class="btn cal-title" id="cal-title" title="Jump to a date" data-i18n-title="cal.jump"></button>
+        <input type="date" class="cal-date" id="cal-jump" tabindex="-1" aria-label="Jump to a date" data-i18n-aria-label="cal.jump">
+      </span>
+      <div class="btn-group btn-group-sm ms-auto cal-views" role="group" aria-label="View">
+        <button type="button" class="btn btn-outline-primary" data-view="dayGridMonth" data-i18n="cal.month">Month</button>
+        <button type="button" class="btn btn-outline-primary" data-view="listMonth" data-i18n="cal.list">List</button>
+      </div>
+    </div>
+    <div class="alert alert-danger d-none" id="cal-error" role="alert"></div>
+    <div id="calendar" class="cal-host"></div>
+
+    <section class="mt-4" aria-labelledby="day-title">
+      <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+        <h2 class="h6 mb-0" id="day-title"></h2>
+        <a class="btn btn-sm btn-outline-primary" id="plan-day" href="meal.html?new=1"><i class="bi bi-plus-lg" aria-hidden="true"></i> <span data-i18n="home.planThisDay">Plan on this day</span></a>
+      </div>
+      <div class="list-group meal-list" id="day-list"></div>
+    </section>
+
+    <section class="mt-4" aria-labelledby="upcoming-title">
+      <h2 class="h6" id="upcoming-title" data-i18n="home.upcoming">Coming up</h2>
+      <div class="list-group meal-list" id="upcoming-list"></div>
+    </section>
+  </main>
+
+  <a href="meal.html?new=1" class="btn btn-primary fab" id="plan-fab"><i class="bi bi-plus-lg" aria-hidden="true"></i> <span data-i18n="home.planMeal">Plan a meal</span></a>
+
+  <!-- This page's own script: inside #page-content, so it also runs when the page is reached by soft navigation. -->
+  <script type="module" src="js/home.js"></script>
+  </div>
+
+  <!-- Bottom bar (mobile app navigation): the same on every page, so it stands still while the page changes. -->
+  <nav id="nav" class="bottom-nav page-transition-static" aria-label="Main">
+    <a class="nav-link" href="index.html"><i class="bi bi-calendar3" aria-hidden="true"></i><span data-i18n="nav.calendar">Calendar</span></a>
+    <a class="nav-link" href="recipes.html"><i class="bi bi-journal-text" aria-hidden="true"></i><span data-i18n="nav.recipes">Recipes</span></a>
+    <a class="nav-link" href="houses.html"><i class="bi bi-house-door" aria-hidden="true"></i><span data-i18n="nav.houses">Houses</span></a>
+    <a class="nav-link" href="profile.html"><i class="bi bi-person-circle" aria-hidden="true"></i><span data-i18n="nav.profile">Profile</span></a>
+  </nav>
+
+  <script src="vendor/sel/theme/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import "./vendor/sel/theme-icons.js"; // draws the <i class="ti" data-icon="..."> icons (bell, account) in the theme's icon style
+    import "./vendor/sel/elements/notification-bell.js";
+    import "./vendor/sel/elements/page-transitions.js";
+  </script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

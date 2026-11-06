@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Houses · Splitskebab</title>
+  <!-- The library's theme: Bootstrap, the brand colours, the page background and the main container. Refresh it with: npm run sel:sync -->
+  <link rel="stylesheet" href="vendor/sel/theme/theme.css">
+  <!-- This project's own styling: layout and components that are only used here -->
+  <link rel="stylesheet" href="css/app.css">
+  <!-- Installable app (PWA): the manifest, its colour and icon. js/pwa.js registers the service worker (sw.js) and the Install button. -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6b1f7e">
+  <link rel="icon" href="images/app-icon.svg" type="image/svg+xml">
+  <!-- Light / dark mode: follows the system until the "Dark mode" switch in the account menu is used (loaded here so the page does not flash). -->
+  <script src="js/theme-mode.js"></script>
+  <!-- Hidden until js/app.js knows who is signed in (no flash of the page before the sign-in page); shown after 8 s whatever happens. -->
+  <script>document.documentElement.classList.add('auth-pending'); setTimeout(function () { document.documentElement.classList.remove('auth-pending'); }, 8000);</script>
+</head>
+<body>
+  <!-- The library's navbar (component "Navbar gradient"): brand on the left, notifications and the account menu pinned right.
+       js/app.js fills in who is signed in, the language switch and the bell (meals you are invited to). -->
+  <nav id="site-nav" class="navbar navbar-theme navbar-dark page-transition-static">
+    <div class="container">
+      <a id="site-brand" data-soft-nav-replace class="navbar-brand mb-0 h1 d-flex align-items-center gap-2" href="index.html"><img src="images/app-icon.svg" alt="" width="28" height="28" class="brand-icon"><span class="text-truncate">Splitskebab</span></a>
+      <div class="d-flex align-items-center gap-2 nav-actions">
+        <!-- Shown only when the browser offers installing the app (js/pwa.js). -->
+        <button type="button" id="install-app-btn" class="btn btn-sm btn-light" hidden data-i18n="nav.install">Install</button>
+        <sel-notification-bell class="dropdown" filters='[["all","All"],["invites","Invites"]]'>
+          <button type="button" class="btn btn-sm btn-outline-light position-relative notification-bell-btn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications" data-i18n-aria-label="nav.notifications">
+            <i class="ti" data-icon="bell"></i>
+            <span class="notification-badge badge rounded-pill text-bg-danger d-none"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end p-0 notification-panel">
+            <div class="px-3 pt-2 pb-2 border-bottom">
+              <strong class="d-block mb-2" data-i18n="nav.notifications">Notifications</strong>
+              <div class="notification-filters d-flex flex-wrap gap-1" role="group" aria-label="Filter notifications"></div>
+            </div>
+            <div class="notification-list">
+              <p class="notification-empty text-body-secondary small text-center my-4" data-i18n="nav.noNotifications">No invitations right now.</p>
+            </div>
+          </div>
+        </sel-notification-bell>
+        <div class="dropdown">
+          <button type="button" class="btn btn-sm btn-outline-light dropdown-toggle d-flex align-items-center gap-1" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Account menu" data-i18n-aria-label="nav.account">
+            <i class="ti d-inline d-sm-none" data-icon="person"></i>
+            <span id="current-user-initial" class="avatar avatar-sm d-none d-sm-inline-flex" aria-hidden="true">Y</span>
+            <span id="current-user-email" class="d-none d-sm-inline">you@example.com</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a href="profile.html" class="dropdown-item" data-i18n="nav.profile">Profile</a></li>
+            <li id="nav-settings-item" hidden><a href="settings.html" class="dropdown-item" data-i18n="nav.settings">Settings</a></li>
+            <li><div class="dropdown-item-text d-flex align-items-center justify-content-between gap-3"><span data-i18n="nav.language">Language</span><span class="btn-group btn-group-sm" role="group" aria-label="Language"><button type="button" class="btn btn-outline-primary" data-lang="en">EN</button><button type="button" class="btn btn-outline-primary" data-lang="nl">NL</button></span></div></li>
+            <li><label class="dropdown-item d-flex align-items-center justify-content-between gap-3" for="dark-mode-toggle"><span data-i18n="nav.darkMode">Dark mode</span><span class="form-check form-switch m-0 p-0"><input class="form-check-input ms-0 mt-0" type="checkbox" role="switch" id="dark-mode-toggle"></span></label></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button type="button" id="nav-sign-out-btn" class="dropdown-item" data-i18n="nav.signOut">Sign out</button></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Soft navigation (component "Page transitions"): links to the other pages of this site only swap #page-content below, inside a
+       fade-and-rise, while the navbar and the bottom bar stay put. Page-specific scripts go inside #page-content so they run again on every visit. -->
+  <sel-soft-nav exclude="login.html"></sel-soft-nav>
+
+  <div id="page-content">
+  <main class="container main-container has-bottom-nav">
+    <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+      <h1 class="h4 mb-0" data-i18n="houses.title">Houses and groups</h1>
+      <button type="button" class="btn btn-primary btn-sm" id="new-circle-btn" data-bs-toggle="modal" data-bs-target="#circle-modal"><i class="bi bi-plus-lg" aria-hidden="true"></i> <span data-i18n="houses.new">New</span></button>
+    </div>
+    <div class="alert alert-danger d-none" id="houses-error" role="alert"></div>
+
+    <!-- What I owe and am owed, over every house and group. -->
+    <section class="card card-body mb-3 balance-summary" id="balance-summary" aria-live="polite"></section>
+
+    <div class="d-flex flex-column gap-3" id="circles">
+      <p class="text-body-secondary" data-i18n="common.loading">Loading...</p>
+    </div>
+  </main>
+
+  <!-- A new house or group. -->
+  <div class="modal fade" id="circle-modal" tabindex="-1" aria-labelledby="circle-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-sm-down">
+      <form class="modal-content" id="circle-form" novalidate>
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="circle-modal-title" data-i18n="houses.newTitle">New house or group</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-i18n-aria-label="common.close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="circle-name" data-i18n="houses.name">Name</label>
+            <input class="form-control" id="circle-name" maxlength="60" required autocomplete="off" placeholder="Huize Kebab" data-i18n-placeholder="houses.namePlaceholder">
+          </div>
+          <fieldset>
+            <legend class="form-label fs-6" data-i18n="houses.kind">What is it?</legend>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="circle-type" id="type-house" value="house" checked>
+              <label class="form-check-label" for="type-house"><span data-i18n="circle.house">House</span>
+                <span class="d-block small text-body-secondary" data-i18n="houses.houseHelp">The people you live with.</span></label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="circle-type" id="type-group" value="group">
+              <label class="form-check-label" for="type-group"><span data-i18n="circle.group">Group</span>
+                <span class="d-block small text-body-secondary" data-i18n="houses.groupHelp">A fraternity, sorority, team or group of friends you eat with now and then.</span></label>
+            </div>
+          </fieldset>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="circle-save" data-i18n="houses.create">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- This page's own script: inside #page-content, so it also runs when the page is reached by soft navigation. -->
+  <script type="module" src="js/houses.js"></script>
+  </div>
+
+  <!-- Bottom bar (mobile app navigation): the same on every page, so it stands still while the page changes. -->
+  <nav id="nav" class="bottom-nav page-transition-static" aria-label="Main">
+    <a class="nav-link" href="index.html"><i class="bi bi-calendar3" aria-hidden="true"></i><span data-i18n="nav.calendar">Calendar</span></a>
+    <a class="nav-link" href="recipes.html"><i class="bi bi-journal-text" aria-hidden="true"></i><span data-i18n="nav.recipes">Recipes</span></a>
+    <a class="nav-link" href="houses.html"><i class="bi bi-house-door" aria-hidden="true"></i><span data-i18n="nav.houses">Houses</span></a>
+    <a class="nav-link" href="profile.html"><i class="bi bi-person-circle" aria-hidden="true"></i><span data-i18n="nav.profile">Profile</span></a>
+  </nav>
+
+  <script src="vendor/sel/theme/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import "./vendor/sel/theme-icons.js"; // draws the <i class="ti" data-icon="..."> icons (bell, account) in the theme's icon style
+    import "./vendor/sel/elements/notification-bell.js";
+    import "./vendor/sel/elements/page-transitions.js";
+  </script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+node_modules/
+.firebase/
+.sel-new.json
+
+# Local emulator data (npm run dev). .emulator/live-copy.json is production data: never commit it.
+.emulator/
+*-debug.log
+firebase.dev.json

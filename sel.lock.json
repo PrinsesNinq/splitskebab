@@ -1,0 +1,124 @@
+{
+  "library": "http://localhost:4000",
+  "theme": "aperam-theme",
+  "rules": {
+    "files": {
+      ".claude/commands/sel-component.md": {
+        "rev": 2,
+        "sha256": "edaa712f93dea324124049bb76f47ca47677508601c9c6f0a97f62e538edec2b"
+      },
+      ".claude/rules/code-review.md": {
+        "rev": 1,
+        "sha256": "6658db640102886bed3626093a7a2a0b9851ee5b335a2d8bd1419b9107be1429"
+      },
+      ".claude/rules/code-style.md": {
+        "rev": 2,
+        "sha256": "cfb4152cd59766bc71757796dddce6c4c6a7dc2a0c870c9bcdaa502ea6c1d78d"
+      },
+      ".claude/rules/security.md": {
+        "rev": 2,
+        "sha256": "4da81c64d3a485cb9f344cab87b57c52cff9ef4c0d7c48d98df706ab0a060802"
+      },
+      ".claude/rules/sel-components.md": {
+        "rev": 13,
+        "sha256": "fc9ad5139cc846589fad47a0a815a7ba0a283400af9a14c512a8b0a4733311ca"
+      },
+      ".claude/rules/testing.md": {
+        "rev": 2,
+        "sha256": "20877a757563332c83d435fb1dc54adf466a5d2a914e378edbf2cf57b1732cf1"
+      },
+      "docs/sel-component-authoring.md": {
+        "rev": 4,
+        "sha256": "d829351446f6855de3d5584cff09a709df0e294f2c22eaee44f5dd2a2d36a894"
+      },
+      "docs/sel-firebase-dev.md": {
+        "rev": 6,
+        "sha256": "1444fc95a4d885daa825d79149426974c944624b1202da487333be761f376833"
+      },
+      "docs/sel-getting-started.md": {
+        "rev": 20,
+        "sha256": "6080549779ba3d4713c185e378f38da066d3dab618443b69e0d96fbc8391b2a1"
+      }
+    },
+    "sets": [
+      "base",
+      "sel"
+    ],
+    "pulledAt": "2026-11-06T07:12:00.966Z"
+  },
+  "elements": {
+    "version": "0.3.4",
+    "requested": "latest",
+    "out": "public/vendor/sel",
+    "components": [
+      "board",
+      "notification-bell",
+      "page-transitions",
+      "striped-list",
+      "tabs-glass-paper"
+    ],
+    "roots": [
+      "board",
+      "notification-bell",
+      "page-transitions",
+      "striped-list",
+      "tabs-glass-paper"
+    ],
+    "pulledAt": "2026-11-06T08:20:53.175Z",
+    "icons": true,
+    "files": {
+      "theme-lit.js": "800e79a94a91e359c983dd287251210cfcb59efbba9dff221bea1bdfd0e21c16",
+      "theme-icons.js": "dbf0656b1dea29cbf526b78df58e593d4b7cea6351224ca36b4146a9f05f6960",
+      "elements/striped-list.js": "5457f5777c213104b018b89bf0c1aa0beb98a8cd1311a47ecd30088a02c34b78",
+      "elements/tabs-glass-paper.js": "42d82c1da54bc6b5917e72b3ba98c5dd5851f1859a3827615ca5e526e59a9e92",
+      "elements/board.js": "160b751b045e749e8bc1ca07a01b1f482985a4d3525956255bf42e6d0fe61958",
+      "elements/page-transitions.js": "dfb5253006ddd7f2c095c320c006b3562fbeaa0238182c0c1e7272df8cf9dbbe",
+      "elements/notification-bell.js": "6f5fcda849cd12c73867b3418fbff682116702e3123c9cc62bd4d4c999ae3550"
+    }
+  },
+  "mode": "theme",
+  "theme_files": {
+    "version": "0.3.4",
+    "requested": "latest",
+    "out": "public/vendor/sel/theme",
+    "components": [
+      "add-tile",
+      "avatar-stack",
+      "board",
+      "log-in-screen",
+      "mention-autocomplete",
+      "navbar-gradient",
+      "notification-bell",
+      "page-transitions",
+      "reorder-pills",
+      "stepper-wizard",
+      "striped-list",
+      "tabs-glass-paper",
+      "tags"
+    ],
+    "pulledAt": "2026-11-06T08:20:53.355Z",
+    "files": {
+      "theme.css": "f33ecf8d412f44c44ed74f87de46c50b77cd7af6abb4361c487d196096958191",
+      "bootstrap.bundle.min.js": "af0f8daeeb46b647a7216cd38b320f6ee124933aeef83a31d284f76d69145824",
+      "fonts/bootstrap-icons.woff2": "6c75710364a1ca5604267716f6d28997b26319fdb078cf11e0b42ab66ff2ea61",
+      "fonts/bootstrap-icons.woff": "f55513b7b591cb84a3b87ff0e34ea24d4831d6fedc22e54b911ca64b5b544a15",
+      "fonts/nunito-latin-ext.woff2": "2c8d792869818ecb253a46bc3c63c7013df7aac2f69291c3c85e5cdc94160960",
+      "fonts/nunito-latin.woff2": "ba344451eab25b217a165363b1982048a5e5830a0daf36577973955a04cac793",
+      "fonts/nunito-LICENSE.txt": "f31a7f49473816d278889cf569c544e4b539cfc439acf9933ae432f0de7ea7f1"
+    }
+  },
+  "firebase_dev": {
+    "out": "scripts/sel-dev",
+    "pulledAt": "2026-11-06T07:12:01.615Z",
+    "files": {
+      "emulator.mjs": "011758f5a9095a49a10a86f3f7de75597b26af598b1c321979fac0a84f3f39b9",
+      "start.mjs": "f527c18e81ee1e81d8182f20ff8324a41c5562a0654f4e7349b81f5e8d497daa",
+      "seed.mjs": "1408fcff8c41ee18d3435f006e745659eebad4e6562b1a64213e7233b582c2c7",
+      "pull-live.mjs": "a5e890ec97d43fc9a63db2b6a22b51c5684acf8ef4dc6b97d89cd88dc9852647",
+      "load.mjs": "c33703ac5fb60948191ae2380578001fe187e6ac109cd17208644f31d4c4748a",
+      "dev-config.mjs": "fd108ba36af0c3d57e7441955a05699d1570e5684a07f95882171ef84236469f",
+      "dev-proxy.mjs": "211a14e3c79a0c73934c32db9d6b48902f27fb843727fb588c8695fbe5a3b189",
+      "import-users.mjs": "ba3ab41330b4b8b3e6e6b175a7025f547ce4cb760bce7760e4b5b40fcfc51656"
+    }
+  }
+}

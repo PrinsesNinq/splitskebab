@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Settings · Splitskebab</title>
+  <!-- The library's theme: Bootstrap, the brand colours, the page background and the main container. Refresh it with: npm run sel:sync -->
+  <link rel="stylesheet" href="vendor/sel/theme/theme.css">
+  <!-- This project's own styling: layout and components that are only used here -->
+  <link rel="stylesheet" href="css/app.css">
+  <!-- Installable app (PWA): the manifest, its colour and icon. js/pwa.js registers the service worker (sw.js) and the Install button. -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6b1f7e">
+  <link rel="icon" href="images/app-icon.svg" type="image/svg+xml">
+  <!-- Light / dark mode: follows the system until the "Dark mode" switch in the account menu is used (loaded here so the page does not flash). -->
+  <script src="js/theme-mode.js"></script>
+  <!-- Hidden until js/app.js knows who is signed in (no flash of the page before the sign-in page); shown after 8 s whatever happens. -->
+  <script>document.documentElement.classList.add('auth-pending'); setTimeout(function () { document.documentElement.classList.remove('auth-pending'); }, 8000);</script>
+</head>
+<body>
+  <!-- The library's navbar (component "Navbar gradient"): brand on the left, notifications and the account menu pinned right.
+       js/app.js fills in who is signed in, the language switch and the bell (meals you are invited to). -->
+  <nav id="site-nav" class="navbar navbar-theme navbar-dark page-transition-static">
+    <div class="container">
+      <a id="site-brand" data-soft-nav-replace class="navbar-brand navbar-back mb-0 h1" href="profile.html" aria-label="Back to your profile" data-i18n-aria-label="nav.back"><svg class="navbar-back-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg><span class="text-truncate" data-i18n="nav.settings">Settings</span></a>
+      <div class="d-flex align-items-center gap-2 nav-actions">
+        <!-- Shown only when the browser offers installing the app (js/pwa.js). -->
+        <button type="button" id="install-app-btn" class="btn btn-sm btn-light" hidden data-i18n="nav.install">Install</button>
+        <sel-notification-bell class="dropdown" filters='[["all","All"],["invites","Invites"]]'>
+          <button type="button" class="btn btn-sm btn-outline-light position-relative notification-bell-btn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications" data-i18n-aria-label="nav.notifications">
+            <i class="ti" data-icon="bell"></i>
+            <span class="notification-badge badge rounded-pill text-bg-danger d-none"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end p-0 notification-panel">
+            <div class="px-3 pt-2 pb-2 border-bottom">
+              <strong class="d-block mb-2" data-i18n="nav.notifications">Notifications</strong>
+              <div class="notification-filters d-flex flex-wrap gap-1" role="group" aria-label="Filter notifications"></div>
+            </div>
+            <div class="notification-list">
+              <p class="notification-empty text-body-secondary small text-center my-4" data-i18n="nav.noNotifications">No invitations right now.</p>
+            </div>
+          </div>
+        </sel-notification-bell>
+        <div class="dropdown">
+          <button type="button" class="btn btn-sm btn-outline-light dropdown-toggle d-flex align-items-center gap-1" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Account menu" data-i18n-aria-label="nav.account">
+            <i class="ti d-inline d-sm-none" data-icon="person"></i>
+            <span id="current-user-initial" class="avatar avatar-sm d-none d-sm-inline-flex" aria-hidden="true">Y</span>
+            <span id="current-user-email" class="d-none d-sm-inline">you@example.com</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a href="profile.html" class="dropdown-item" data-i18n="nav.profile">Profile</a></li>
+            <li id="nav-settings-item" hidden><a href="settings.html" class="dropdown-item" data-i18n="nav.settings">Settings</a></li>
+            <li><div class="dropdown-item-text d-flex align-items-center justify-content-between gap-3"><span data-i18n="nav.language">Language</span><span class="btn-group btn-group-sm" role="group" aria-label="Language"><button type="button" class="btn btn-outline-primary" data-lang="en">EN</button><button type="button" class="btn btn-outline-primary" data-lang="nl">NL</button></span></div></li>
+            <li><label class="dropdown-item d-flex align-items-center justify-content-between gap-3" for="dark-mode-toggle"><span data-i18n="nav.darkMode">Dark mode</span><span class="form-check form-switch m-0 p-0"><input class="form-check-input ms-0 mt-0" type="checkbox" role="switch" id="dark-mode-toggle"></span></label></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button type="button" id="nav-sign-out-btn" class="dropdown-item" data-i18n="nav.signOut">Sign out</button></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Soft navigation (component "Page transitions"): links to the other pages of this site only swap #page-content below, inside a
+       fade-and-rise, while the navbar and the bottom bar stay put. Page-specific scripts go inside #page-content so they run again on every visit. -->
+  <sel-soft-nav exclude="login.html"></sel-soft-nav>
+
+  <div id="page-content">
+  <!-- Tabs (component "Tabs Glass Paper"): the strip sits in a .container above the main container, and the main container is the glass box holding the panes.
+       Add a tab = one <li> here and one .tab-pane below; keep the id / data-bs-target / aria-controls of each pair in sync. -->
+  <div class="container">
+    <sel-paper-tabs class="paper-tabs-wrap">
+      <ul class="nav paper-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link paper-tab active" id="general-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#general-pane" aria-controls="general-pane" aria-selected="true">General</button>
+        </li>
+        <li class="nav-item" role="presentation" hidden>
+          <button class="nav-link paper-tab" id="users-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#users-pane" aria-controls="users-pane" aria-selected="false">Users</button>
+        </li>
+      </ul>
+    </sel-paper-tabs>
+  </div>
+
+  <main class="container main-container paper-tabs-box has-bottom-nav">
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="general-pane" role="tabpanel" aria-labelledby="general-tab" tabindex="0">
+        <h2 class="h5">General</h2>
+        <p class="text-body-secondary">Admin settings of Splitskebab. Only people listed under Users can sign in: add someone there to let them in.</p>
+        <h3 class="h6 text-uppercase text-body-secondary small mt-4">Your role</h3>
+        <div id="admin-status" class="text-body-secondary">Checking...</div>
+      </div>
+
+      <div class="tab-pane fade" id="users-pane" role="tabpanel" aria-labelledby="users-tab" tabindex="0">
+        <p class="text-body-secondary">Everyone who signed in, or was added here: their role and their groups, live from Firestore (<code>js/users.js</code>). Only admins see this tab.</p>
+        <div class="alert alert-danger d-none" role="alert" id="users-error"></div>
+
+        <!-- The sortable table (component "List Striped Glass"), filled by js/settings.js: click a column header to sort it, the funnel
+             filters it. data-value / data-values on a cell give the value to sort and filter by (the email, one value per group). -->
+        <sel-striped-list sortable>
+        <div class="table-responsive">
+          <table class="table align-middle striped-list">
+            <thead><tr><th>User</th><th>Role</th><th>Groups</th><th></th></tr></thead>
+            <tbody id="users-table-body">
+              <tr><td colspan="4" class="text-body-secondary">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        </sel-striped-list>
+
+        <hr class="my-4">
+        <h6 class="text-uppercase text-body-secondary small">Add user</h6>
+        <p class="text-body-secondary small">Adding someone here is what lets them use Splitskebab: any Google account can sign in (Gmail, a university account, Aperam...), but only the addresses on this list get access. Someone who signed in without being added shows up above as "No access": press "Give access" to let them in. Removing someone takes their access away again.</p>
+        <form id="add-user-form" class="row g-3 align-items-end">
+          <div class="col-12 col-md">
+            <label class="form-label" for="add-user-name">Google account email</label>
+            <input class="form-control" id="add-user-name" type="email" inputmode="email" required autocomplete="off" maxlength="200" placeholder="elise@gmail.com">
+          </div>
+          <div class="col-12 col-md-auto"><button type="submit" class="btn btn-primary">Add user</button></div>
+        </form>
+
+        <hr class="my-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="text-uppercase text-body-secondary small mb-0">Assign groups</h6>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="add-group-toggle" aria-expanded="false" aria-controls="add-group-form">+ Add group</button>
+        </div>
+        <form id="add-group-form" class="input-group mb-3" hidden>
+          <input class="form-control" id="add-group-name" placeholder="Group name" aria-label="Group name" required autocomplete="off">
+          <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+        <p class="text-body-secondary small">Drag someone from "Everyone" into a group to add them, or from one group to another to move them. The × on a chip removes them from that group; the pencil renames or deletes a group. Every change is saved straight away.</p>
+
+        <!-- The drag board (component "Drag board"): "Everyone" is the source column, the other columns are the groups. js/settings.js
+             builds it from Firestore and saves each board:change. -->
+        <sel-board class="board" id="group-board">
+          <div class="board-column" data-board-source data-column="everyone">
+            <div class="board-column__header"><span class="fw-bold">Everyone</span></div>
+            <div class="board-column__list"><p class="board-column__empty text-body-secondary small fst-italic mb-0">Loading...</p></div>
+          </div>
+        </sel-board>
+      </div>
+    </div>
+  </main>
+
+  <!-- This page's own scripts: inside #page-content, so they also run when the page is reached by soft navigation. -->
+  <script type="module">
+    import "./vendor/sel/elements/tabs-glass-paper.js";
+    import "./vendor/sel/elements/board.js";
+    import "./vendor/sel/elements/striped-list.js";
+  </script>
+  <script type="module" src="js/settings.js"></script>
+  </div>
+
+  <!-- Bottom bar (mobile app navigation): the same on every page, so it stands still while the page changes. -->
+  <nav id="nav" class="bottom-nav page-transition-static" aria-label="Main">
+    <a class="nav-link" href="index.html"><i class="bi bi-calendar3" aria-hidden="true"></i><span data-i18n="nav.calendar">Calendar</span></a>
+    <a class="nav-link" href="recipes.html"><i class="bi bi-journal-text" aria-hidden="true"></i><span data-i18n="nav.recipes">Recipes</span></a>
+    <a class="nav-link" href="houses.html"><i class="bi bi-house-door" aria-hidden="true"></i><span data-i18n="nav.houses">Houses</span></a>
+    <a class="nav-link" href="profile.html"><i class="bi bi-person-circle" aria-hidden="true"></i><span data-i18n="nav.profile">Profile</span></a>
+  </nav>
+
+  <script src="vendor/sel/theme/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import "./vendor/sel/theme-icons.js"; // draws the <i class="ti" data-icon="..."> icons (bell, account) in the theme's icon style
+    import "./vendor/sel/elements/notification-bell.js";
+    import "./vendor/sel/elements/page-transitions.js";
+  </script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
