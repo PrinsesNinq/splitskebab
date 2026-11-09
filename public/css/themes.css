@@ -1,0 +1,260 @@
+/* Splitskebab's own colour themes: Carnivore (dark red), Herbivore (cactus green) and Pescetarian (ocean blue), each on eggshell white.
+   Loaded right after the library theme (vendor/sel/theme/theme.css) and before css/app.css, on every page.
+
+   The library theme is compiled with the company colours, and not only in --primary: Bootstrap's buttons, checkboxes, focus rings,
+   pills and the dark-mode page and navbar gradients have them written in. So each theme here sets its whole palette (the colour, a deep
+   shade, the rgb triplets that rgba() needs, the soft tints) and the rules below point those compiled parts back at it.
+
+   A theme is chosen on the profile page (component "Colour themes", saved on the device) and applied before the first paint by
+   js/theme-mode.js, which puts its key on <html data-sel-colour-theme="...">; without a choice it is Carnivore. Keep the keys and
+   colours the same as THEMES in js/theme-mode.js and the <data> swatches in profile.html (tests/themes.test.js checks them).
+   The component also writes --primary/--secondary/--tertiary inline on <html> when a swatch is picked: those three are !important
+   here, so the theme's full palette below always wins over that partial copy. Every rule is keyed on html[data-sel-colour-theme]
+   (always set here): as specific as the library's own picked-theme rules, and later, so these win. */
+
+/* ---- The palettes ---- */
+html[data-sel-colour-theme] {
+  --diet-main: #8b1a1a;            /* dark red */
+  --diet-main-rgb: 139, 26, 26;
+  --diet-deep: #4a0e0e;
+  --diet-deep-rgb: 74, 14, 14;
+  --diet-light: #eba79e;           /* the colour on dark backgrounds: links, emphasis */
+  --diet-light-rgb: 235, 167, 158;
+  --diet-soft: #f3dcd6;            /* a soft tint on eggshell */
+  --diet-soft-border: #d9a79f;
+  --diet-ink: #5a1111;             /* text in the theme's colour on eggshell */
+}
+html[data-sel-colour-theme="herbivore"] {
+  --diet-main: #4e6b3a;            /* cactus green */
+  --diet-main-rgb: 78, 107, 58;
+  --diet-deep: #26371c;
+  --diet-deep-rgb: 38, 55, 28;
+  --diet-light: #b9d3a3;
+  --diet-light-rgb: 185, 211, 163;
+  --diet-soft: #dde6d1;
+  --diet-soft-border: #a9bd97;
+  --diet-ink: #2e4122;
+}
+html[data-sel-colour-theme="pescetarian"] {
+  --diet-main: #1d5c8a;            /* ocean blue */
+  --diet-main-rgb: 29, 92, 138;
+  --diet-deep: #0c2e47;
+  --diet-deep-rgb: 12, 46, 71;
+  --diet-light: #9cc7e6;
+  --diet-light-rgb: 156, 199, 230;
+  --diet-soft: #d3e2ee;
+  --diet-soft-border: #93b6d0;
+  --diet-ink: #123a57;
+}
+
+/* ---- Eggshell, and the theme's colour in every Bootstrap and library variable (both modes) ---- */
+html[data-sel-colour-theme] {
+  --eggshell: #f0ead6;
+  --eggshell-rgb: 240, 234, 214;
+  --eggshell-light: #faf6ea;
+  --eggshell-light-rgb: 250, 246, 234;
+  --ink: #2b2620;                  /* warm near-black text */
+  --ink-rgb: 43, 38, 32;
+
+  --primary: var(--diet-main) !important;
+  --secondary: var(--diet-deep) !important;
+  --tertiary: var(--diet-deep) !important;
+  --bs-primary: var(--diet-main);
+  --bs-primary-rgb: var(--diet-main-rgb);
+  --bs-secondary: var(--diet-deep);
+  --bs-secondary-rgb: var(--diet-deep-rgb);
+  --bs-primary-bg-subtle: var(--diet-soft);
+  --bs-primary-border-subtle: var(--diet-soft-border);
+  --bs-primary-text-emphasis: var(--diet-ink);
+  --bs-secondary-bg-subtle: var(--diet-soft);
+  --bs-secondary-border-subtle: var(--diet-soft-border);
+  --bs-secondary-text-emphasis: var(--diet-ink);
+  --bs-link-color: var(--diet-main);
+  --bs-link-color-rgb: var(--diet-main-rgb);
+  --bs-link-hover-color: var(--diet-deep);
+  --bs-link-hover-color-rgb: var(--diet-deep-rgb);
+}
+
+/* ---- Light mode: eggshell pages, warm dark text ---- */
+html[data-sel-colour-theme]:not([data-bs-theme="dark"]) {
+  --bs-body-color: var(--ink);
+  --bs-body-color-rgb: var(--ink-rgb);
+  --bs-emphasis-color: #1a1612;
+  --bs-secondary-color: rgba(var(--ink-rgb), 0.75);
+  --bs-tertiary-color: rgba(var(--ink-rgb), 0.5);
+  --bs-body-bg: var(--eggshell-light);
+  --bs-body-bg-rgb: var(--eggshell-light-rgb);
+  --bs-secondary-bg: #ebe4cf;
+  --bs-tertiary-bg: #f4efe0;
+  --bs-border-color: #d8cfb6;
+  --bs-border-color-translucent: rgba(var(--ink-rgb), 0.14);
+
+  --glass-bg: rgba(var(--eggshell-light-rgb), 0.6);
+  --glass-bg-strong: rgba(var(--eggshell-light-rgb), 0.88);
+  --glass-stripe: rgba(var(--ink-rgb), 0.05);
+  --glass-stripe-strong: rgba(var(--ink-rgb), 0.09);
+  --glass-border: rgba(var(--ink-rgb), 0.1);
+  --glass-solid: var(--eggshell-light);
+  --glass-shadow: 0 10px 30px rgba(var(--ink-rgb), 0.14);
+  --card-bg: rgba(var(--eggshell-light-rgb), 0.92);
+  --main-content-gradient: linear-gradient(160deg, rgba(var(--eggshell-light-rgb), 0.94), rgba(var(--eggshell-light-rgb), 0.78));
+  --page-background: var(--eggshell);
+  --bg-gradient: linear-gradient(160deg, #f5f0e1, var(--eggshell) 55%, #e8e0c8);
+}
+
+/* ---- Dark mode: the theme's deep shade with eggshell text ---- */
+html[data-sel-colour-theme][data-bs-theme="dark"] {
+  --bs-body-color: #ede6d3;
+  --bs-body-color-rgb: 237, 230, 211;
+  --bs-emphasis-color: #faf6ea;
+  --bs-secondary-color: rgba(237, 230, 211, 0.72);
+  --bs-tertiary-color: rgba(237, 230, 211, 0.5);
+  --bs-body-bg: #1c1816;
+  --bs-body-bg-rgb: 28, 24, 22;
+  --bs-secondary-bg: #2b2522;
+  --bs-tertiary-bg: #231e1b;
+  --bs-border-color: #4a413b;
+  --bs-border-color-translucent: rgba(237, 230, 211, 0.14);
+  --bs-primary-bg-subtle: rgba(var(--diet-main-rgb), 0.28);
+  --bs-primary-border-subtle: rgba(var(--diet-light-rgb), 0.4);
+  --bs-primary-text-emphasis: var(--diet-light);
+  /* Secondary badges were the deep shade, which vanishes on the dark page: a warm grey-brown there (white text stays readable). */
+  --bs-secondary: #7a6d62;
+  --bs-secondary-rgb: 122, 109, 98;
+  --bs-secondary-bg-subtle: rgba(var(--diet-deep-rgb), 0.5);
+  --bs-secondary-border-subtle: rgba(var(--diet-light-rgb), 0.3);
+  --bs-secondary-text-emphasis: var(--diet-light);
+  --bs-link-color: var(--diet-light);
+  --bs-link-color-rgb: var(--diet-light-rgb);
+  --bs-link-hover-color: #faf6ea;
+  --bs-link-hover-color-rgb: 250, 246, 234;
+
+  --glass-bg: rgba(28, 24, 22, 0.55);
+  --glass-bg-strong: rgba(28, 24, 22, 0.85);
+  --glass-stripe: rgba(237, 230, 211, 0.05);
+  --glass-stripe-strong: rgba(237, 230, 211, 0.1);
+  --glass-border: rgba(237, 230, 211, 0.12);
+  --glass-solid: #2b2522;
+  --glass-shadow: 0 12px 35px rgba(0, 0, 0, 0.55);
+  --card-bg: rgba(28, 24, 22, 0.9);
+  --main-content-gradient: linear-gradient(160deg, rgba(22, 18, 16, 0.86), rgba(var(--diet-deep-rgb), 0.45));
+  --page-background: var(--diet-deep);
+}
+
+/* ---- The page and the navbar ---- */
+html[data-sel-colour-theme] {
+  background: var(--eggshell);
+}
+html[data-sel-colour-theme]::before {
+  background: var(--bg-gradient) fixed;
+  background-size: cover;
+}
+/* The dark page: the theme's deep shade, darker at the edges (the library's layer that fades in with dark mode). */
+html[data-sel-colour-theme]::after {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--diet-deep) 55%, black), var(--diet-deep), color-mix(in srgb, var(--diet-deep) 55%, black));
+  background-size: cover;
+}
+#site-nav,
+.navbar-theme {
+  background: linear-gradient(135deg, var(--diet-main), var(--diet-deep));
+}
+#site-nav::before,
+.navbar-theme::before {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--diet-deep) 60%, black), var(--diet-deep));
+}
+
+/* ---- Compiled Bootstrap parts that had the company colour written in ---- */
+html[data-sel-colour-theme] .btn-primary,
+html[data-sel-colour-theme] .btn-secondary {
+  --bs-btn-color: #fff;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-color: #fff;
+  --bs-btn-disabled-color: #fff;
+}
+html[data-sel-colour-theme] .btn-primary {
+  --bs-btn-bg: var(--diet-main);
+  --bs-btn-border-color: var(--diet-main);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--diet-main) 85%, black);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--diet-main) 80%, black);
+  --bs-btn-active-bg: color-mix(in srgb, var(--diet-main) 75%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--diet-main) 70%, black);
+  --bs-btn-focus-shadow-rgb: var(--diet-main-rgb);
+  --bs-btn-disabled-bg: var(--diet-main);
+  --bs-btn-disabled-border-color: var(--diet-main);
+}
+html[data-sel-colour-theme] .btn-secondary {
+  --bs-btn-bg: var(--diet-deep);
+  --bs-btn-border-color: var(--diet-deep);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--diet-deep) 85%, black);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--diet-deep) 80%, black);
+  --bs-btn-active-bg: color-mix(in srgb, var(--diet-deep) 75%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--diet-deep) 70%, black);
+  --bs-btn-focus-shadow-rgb: var(--diet-deep-rgb);
+  --bs-btn-disabled-bg: var(--diet-deep);
+  --bs-btn-disabled-border-color: var(--diet-deep);
+}
+html[data-sel-colour-theme] .btn-outline-primary {
+  --bs-btn-hover-bg: var(--diet-main);
+  --bs-btn-hover-border-color: var(--diet-main);
+  --bs-btn-active-bg: var(--diet-main);
+  --bs-btn-active-border-color: var(--diet-main);
+  --bs-btn-focus-shadow-rgb: var(--diet-main-rgb);
+  --bs-btn-disabled-border-color: var(--diet-main);
+}
+html[data-sel-colour-theme] .btn-outline-secondary {
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--diet-deep);
+  --bs-btn-hover-border-color: var(--diet-deep);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--diet-deep);
+  --bs-btn-active-border-color: var(--diet-deep);
+  --bs-btn-focus-shadow-rgb: var(--diet-deep-rgb);
+}
+html[data-sel-colour-theme][data-bs-theme="dark"] .btn-outline-secondary {
+  --outline-tone: var(--diet-light);
+}
+
+html[data-sel-colour-theme] .form-check-input:checked,
+html[data-sel-colour-theme] .form-check-input[type="checkbox"]:indeterminate {
+  background-color: var(--diet-main);
+  border-color: var(--diet-main);
+}
+html[data-sel-colour-theme] .form-check-input:focus,
+html[data-sel-colour-theme] .form-control:focus,
+html[data-sel-colour-theme] .form-select:focus {
+  border-color: color-mix(in srgb, var(--diet-main) 50%, white);
+  box-shadow: 0 0 0 0.25rem rgba(var(--diet-main-rgb), 0.25);
+}
+/* The switch's knob while focused was a pale company-colour circle: a neutral one like the unfocused knob. */
+html[data-sel-colour-theme] .form-switch .form-check-input:focus:not(:checked) {
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%2843, 38, 32, 0.35%29'/%3e%3c/svg%3e");
+}
+html[data-sel-colour-theme] .form-range::-webkit-slider-thumb { background-color: var(--diet-main); }
+html[data-sel-colour-theme] .form-range::-moz-range-thumb { background-color: var(--diet-main); }
+html[data-sel-colour-theme] .form-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--bs-body-bg), 0 0 0 0.25rem rgba(var(--diet-main-rgb), 0.25); }
+html[data-sel-colour-theme] .form-range:focus::-moz-range-thumb { box-shadow: 0 0 0 1px var(--bs-body-bg), 0 0 0 0.25rem rgba(var(--diet-main-rgb), 0.25); }
+html[data-sel-colour-theme] .nav-link:focus-visible,
+html[data-sel-colour-theme] .btn-close:focus {
+  box-shadow: 0 0 0 0.25rem rgba(var(--diet-main-rgb), 0.25);
+}
+html[data-sel-colour-theme] .nav-pills { --bs-nav-pills-link-active-bg: var(--diet-main); }
+html[data-sel-colour-theme] .dropdown-menu {
+  --bs-dropdown-link-active-bg: var(--diet-main);
+  --bs-dropdown-link-hover-bg: rgba(var(--diet-main-rgb), 0.12);
+}
+html[data-sel-colour-theme] .list-group {
+  --bs-list-group-active-bg: var(--diet-main);
+  --bs-list-group-active-border-color: var(--diet-main);
+}
+html[data-sel-colour-theme] .pagination {
+  --bs-pagination-active-bg: var(--diet-main);
+  --bs-pagination-active-border-color: var(--diet-main);
+  --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(var(--diet-main-rgb), 0.25);
+}
+html[data-sel-colour-theme] .progress,
+html[data-sel-colour-theme] .progress-stacked { --bs-progress-bar-bg: var(--diet-main); }
+html[data-sel-colour-theme] .accordion {
+  --bs-accordion-active-color: var(--bs-primary-text-emphasis);
+  --bs-accordion-active-bg: var(--bs-primary-bg-subtle);
+  --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem rgba(var(--diet-main-rgb), 0.25);
+}

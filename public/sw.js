@@ -15,10 +15,10 @@
 // Change CACHE when the list below changes; the old cache of this worker is removed when the new one takes over (other caches on this
 // address are not ours and are left alone).
 const PREFIX = 'app-shell-';
-const CACHE = PREFIX + 'v9';
+const CACHE = PREFIX + 'v10';
 const SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
 const WAIT_MS = 3000;
-const SHELL = ['index.html', 'meal.html', 'recipes.html', 'houses.html', 'profile.html', 'person.html', 'analytics.html', 'messages.html', 'chat.html', 'settings.html', 'css/app.css', 'js/app.js', 'js/theme-mode.js', 'manifest.json', 'images/app-icon.svg', 'images/icon-192.png', 'images/icon-512.png', 'images/apple-touch-icon.png'];
+const SHELL = ['index.html', 'meal.html', 'recipes.html', 'houses.html', 'profile.html', 'person.html', 'analytics.html', 'messages.html', 'chat.html', 'settings.html', 'css/themes.css', 'css/app.css', 'js/app.js', 'js/theme-mode.js', 'manifest.json', 'images/app-icon.svg', 'images/icon-192.png', 'images/icon-512.png', 'images/apple-touch-icon.png'];
 const BASE = new URL('./', self.registration.scope).pathname;
 
 /** Whether this site's address is one of the files worth keeping: a page at the top, or a file in a static folder. */

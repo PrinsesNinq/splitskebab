@@ -64,15 +64,6 @@ test("the app's version matches the deployed version.json (bump both with every 
   assert.equal(deployed, APP_VERSION);
 });
 
-test("the colour themes on the profile page are the ones applied before every page paints", () => {
-  const profile = fs.readFileSync(path.join(pub, "profile.html"), "utf8");
-  const head = fs.readFileSync(path.join(pub, "js", "theme-mode.js"), "utf8");
-  const authored = [...profile.matchAll(/<data value="(\w+)" data-label="[^"]+" data-primary="(#[0-9a-f]{6})" data-secondary="(#[0-9a-f]{6})"><\/data>/g)].map((m) => [m[1], m[2], m[3]]);
-  const applied = [...head.matchAll(/^\s+(\w+): \['(#[0-9a-f]{6})', '(#[0-9a-f]{6})'\]/gm)].map((m) => [m[1], m[2], m[3]]);
-  assert.ok(authored.length >= 3, "the profile page offers themes");
-  assert.deepEqual(applied, authored);
-});
-
 test("only one element per page uses the library's static-chrome transition name", () => {
   // The library's .page-transition-static sets view-transition-name: static-chrome; a second element with it aborts every page transition.
   // The bottom bar (#nav) has its own name in app.css; any other element with the class must get one too.

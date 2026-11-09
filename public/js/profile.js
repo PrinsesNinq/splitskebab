@@ -102,6 +102,14 @@ $("#profile-form").addEventListener("submit", async (e) => {
   if (ok) { dirty = false; pendingPhoto = undefined; }
 });
 
+// The theme names in the app's language: the component draws its swatches from the <data> labels (on every redraw), so both change.
+for (const option of document.querySelectorAll("sel-colour-themes data")) {
+  const name = t(`theme.${option.value}`);
+  option.dataset.label = name;
+  const label = document.querySelector(`.colour-themes-swatch[data-theme-key="${option.value}"] span:last-child`);
+  if (label) label.textContent = name;
+}
+
 if (new URLSearchParams(location.search).get("welcome")) $("#welcome").classList.remove("d-none");
 
 stops.push(people.subscribe(() => render()));

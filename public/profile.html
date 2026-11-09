@@ -6,11 +6,12 @@
   <title>Profile · Splitskebab</title>
   <!-- The library's theme: Bootstrap, the brand colours, the page background and the main container. Refresh it with: npm run sel:sync -->
   <link rel="stylesheet" href="vendor/sel/theme/theme.css">
+  <link rel="stylesheet" href="css/themes.css">
   <!-- This project's own styling: layout and components that are only used here -->
   <link rel="stylesheet" href="css/app.css">
   <!-- Installable app (PWA): the manifest, its colour and icon. js/pwa.js registers the service worker (sw.js) and the Install button. -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#6b1f7e">
+  <meta name="theme-color" content="#8b1a1a">
   <link rel="icon" href="images/app-icon.svg" type="image/svg+xml">
   <!-- Phones: the home screen icon on iPhone (Safari ignores SVG there), the name under it, and full-screen once installed. -->
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
@@ -139,21 +140,17 @@
         <div class="invalid-feedback" data-i18n="profile.paymentInvalid">Use a link that starts with https://</div>
       </section>
 
-      <!-- Colour theme (component "Colour themes"): one swatch per <data>, saved on this device and applied right away. "default" is the
-           theme's own colours. Keep this list the same as THEMES in js/theme-mode.js, which applies it before every page paints. Dark mode
-           stays the switch in the account menu (no dark-mode attribute here). -->
+      <!-- Colour theme (component "Colour themes"): one swatch per <data>, saved on this device and applied right away. Splitskebab's own
+           themes, each a colour on eggshell white; their full palettes are in css/themes.css and js/theme-mode.js applies the choice
+           before every page paints (keep the three lists the same: tests/themes.test.js). The labels are translated by js/profile.js.
+           Dark mode stays the switch in the account menu (no dark-mode attribute here). -->
       <section class="mb-4">
         <h2 class="h6" data-i18n="profile.colourTheme">Colour theme</h2>
         <p class="small text-body-secondary" data-i18n="profile.colourThemeHelp">Pick the colours of the app on this device.</p>
         <sel-colour-themes class="colour-themes">
-          <data value="default" data-label="Splitskebab"></data>
-          <data value="midnight" data-label="Midnight" data-primary="#1e3a5f" data-secondary="#f0a500"></data>
-          <data value="forest" data-label="Forest" data-primary="#2d5a27" data-secondary="#74c69d"></data>
-          <data value="ocean" data-label="Ocean" data-primary="#0a4f6e" data-secondary="#00b4d8"></data>
-          <data value="crimson" data-label="Crimson" data-primary="#8b0000" data-secondary="#ff6b35"></data>
-          <data value="plum" data-label="Plum" data-primary="#5b2a86" data-secondary="#ffb703"></data>
-          <data value="lagoon" data-label="Lagoon" data-primary="#0f766e" data-secondary="#f6c177"></data>
-          <data value="graphite" data-label="Graphite" data-primary="#343a40" data-secondary="#f4a261"></data>
+          <data value="carnivore" data-label="Carnivore" data-primary="#8b1a1a" data-secondary="#f0ead6"></data>
+          <data value="herbivore" data-label="Herbivore" data-primary="#4e6b3a" data-secondary="#f0ead6"></data>
+          <data value="pescetarian" data-label="Pescetarian" data-primary="#1d5c8a" data-secondary="#f0ead6"></data>
         </sel-colour-themes>
       </section>
 

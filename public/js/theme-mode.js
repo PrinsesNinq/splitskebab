@@ -25,44 +25,37 @@
   });
 
   // ---- Colour theme (component "Colour themes", picked on the profile page) ----
-  // Applied here, before the first paint, so a page never flashes the default purple before the picked colours (the component only
-  // applies the choice on the page that shows it). The same logic as the component's applyColourTheme(); the themes are the same list as
-  // the <data> children in profile.html (tests/i18n.test.js checks they match). "default" (not listed) is the theme's own colours.
+  // Splitskebab's own themes, each a colour on eggshell white: Carnivore (the default), Herbivore and Pescetarian. Their full palettes are
+  // in css/themes.css, keyed on <html data-sel-colour-theme>; this only puts the key there before the first paint (so a page never
+  // flashes another theme's colours), and gives the phone's status bar the theme's colour. Keep the keys and colours the same as
+  // css/themes.css and the <data> swatches in profile.html (tests/themes.test.js checks them). A key saved by an older version of the
+  // app (the company themes) is not one of these: such a device gets Carnivore.
   var THEME_KEY = 'sel-colour-theme';
   var THEMES = {
-    midnight: ['#1e3a5f', '#f0a500'],
-    forest: ['#2d5a27', '#74c69d'],
-    ocean: ['#0a4f6e', '#00b4d8'],
-    crimson: ['#8b0000', '#ff6b35'],
-    plum: ['#5b2a86', '#ffb703'],
-    lagoon: ['#0f766e', '#f6c177'],
-    graphite: ['#343a40', '#f4a261']
+    carnivore: '#8b1a1a',
+    herbivore: '#4e6b3a',
+    pescetarian: '#1d5c8a'
   };
-  function applyColourTheme() {
+  var DEFAULT_THEME = 'carnivore';
+  function themeKey() {
     var key = null;
-    try { key = localStorage.getItem(THEME_KEY); } catch (e) { /* storage blocked: the default colours */ }
-    var picked = key && Object.prototype.hasOwnProperty.call(THEMES, key) ? THEMES[key] : null;
-    if (picked) {
-      root.style.setProperty('--primary', picked[0]);
-      root.style.setProperty('--secondary', picked[1]);
-      root.style.setProperty('--tertiary', 'color-mix(in srgb, color-mix(in srgb, ' + picked[0] + ' 50%, ' + picked[1] + ') 55%, white 45%)');
-      root.setAttribute('data-sel-colour-theme', key);
-    } else {
-      root.style.removeProperty('--primary');
-      root.style.removeProperty('--secondary');
-      root.style.removeProperty('--tertiary');
-      root.removeAttribute('data-sel-colour-theme');
-    }
-    // The phone's status bar and the installed app's title bar take the theme's colour too.
+    try { key = localStorage.getItem(THEME_KEY); } catch (e) { /* storage blocked: the default theme */ }
+    return key && Object.prototype.hasOwnProperty.call(THEMES, key) ? key : DEFAULT_THEME;
+  }
+  function setBarColour(key) {
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', picked ? picked[0] : '#6b1f7e');
+    if (meta) meta.setAttribute('content', THEMES[key] || THEMES[DEFAULT_THEME]);
+  }
+  function applyColourTheme() {
+    var key = themeKey();
+    root.setAttribute('data-sel-colour-theme', key);
+    setBarColour(key);
   }
   applyColourTheme();
-  // Picking a theme on the profile page: the component applies it to this page; the title bar colour follows here.
-  // The colour comes from the event itself (the component may save the choice after it tells).
+  // Picking a theme on the profile page: the component sets the key on <html> (css/themes.css does the rest); the status bar follows here.
   document.addEventListener('colourthemes:change', function (event) {
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', (event.detail && event.detail.primary) || '#6b1f7e');
+    var key = event.detail && event.detail.theme;
+    setBarColour(Object.prototype.hasOwnProperty.call(THEMES, key) ? key : DEFAULT_THEME);
   });
 
   document.addEventListener('DOMContentLoaded', function () {
