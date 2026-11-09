@@ -32,4 +32,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Steadier on phones: no more white screens on a slow connection (a splash shows while starting), page switches load from the saved copy, and the bottom bar hides while you type instead of floating up the screen
 - Privacy: your email address is no longer visible to other users (only if you switch it on, for the people you are connected to); people are added by name
 - Terms of use and privacy statement, accepted when creating an account (existing accounts are asked once)
-- Splitskebab's own look: three colour themes on eggshell white, Carnivore (dark red, the default), Herbivore (cactus green) and Pescetarian (ocean blue), in light and dark mode, and a new app icon
+- Splitskebab's own look: three colour themes on eggshell white, Carnivore (dark red, the default), Herbivore (cactus green) and Pescetarian (ocean blue), in light and dark mode, and a new app icon; houses and groups show in shades of the chosen theme

@@ -1,6 +1,6 @@
 // The calendar page: every meal I can see on a month calendar (or as a list), the meals of the day I tap below it, and what is coming up.
 // A meal I am invited to and have not answered is marked; tapping a meal opens it (meal.html).
-import { whenUser, esc, colour, onLeave, todayIso, go, avatarStackHtml } from "./ui.js";
+import { whenUser, esc, circleTone, onLeave, todayIso, go, avatarStackHtml } from "./ui.js";
 import { myMeals, myCircles, people, person } from "./store.js";
 import { createCalendar, rememberView } from "./calendar.js";
 import { getLang, t, formatDay } from "./i18n.js";
@@ -41,7 +41,7 @@ function mealRow(meal, { showDate = false } = {}) {
   const iOwe = mealDebts(meal).filter((d) => d.from === me && !d.settled).reduce((s, d) => s + d.cents, 0);
   const cost = iOwe
     ? `<span class="badge text-bg-danger-subtle text-danger-emphasis">${esc(t("home.youOwe", { amount: formatMoney(iOwe, lang) }))}</span>` : "";
-  return `<a class="list-group-item list-group-item-action meal-row" href="meal.html?id=${encodeURIComponent(meal.id)}" style="--meal-color: ${colour(meal.circleId)}">
+  return `<a class="list-group-item list-group-item-action meal-row meal-tone-${circleTone(meal.circleId)}" href="meal.html?id=${encodeURIComponent(meal.id)}">
     <div class="d-flex align-items-center gap-2">
       <span class="meal-row__when">${showDate ? `<span class="d-block small fw-semibold">${esc(formatDay(meal.date))}</span>` : ""}<span class="small text-body-secondary">${esc(meal.time || t("meal.noTime"))}</span></span>
       <span class="flex-grow-1 min-w-0">
@@ -79,8 +79,8 @@ function events() {
       title: m.title || t("meal.untitled"),
       start: m.time ? `${m.date}T${m.time}` : m.date,
       allDay: !m.time,
-      classNames: ["meal", `meal--${status}`],
-      extendedProps: { color: colour(m.circleId), tooltip: `${m.title || t("meal.untitled")} · ${m.circleName} · ${t(`status.${status}`)}` },
+      classNames: ["meal", `meal--${status}`, `meal-tone-${circleTone(m.circleId)}`],
+      extendedProps: { tooltip: `${m.title || t("meal.untitled")} · ${m.circleName} · ${t(`status.${status}`)}` },
     };
   });
 }

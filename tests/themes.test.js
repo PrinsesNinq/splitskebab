@@ -85,3 +85,19 @@ test("the theme names are translated on the profile page", async () => {
   for (const key of KEYS) assert.ok(DICT.en[`theme.${key}`] && DICT.nl[`theme.${key}`], key);
   assert.match(read("public/js/profile.js"), /option\.dataset\.label = name;/);
 });
+
+test("houses are drawn in four shades of the theme (light and dark), never in a colour of their own", () => {
+  const ui = read("public/js/ui.js");
+  assert.match(ui, /export const TONES = 4;/);
+  assert.match(ui, /export const circleTone = \(id\) => .*% TONES;/);
+  for (let n = 0; n < 4; n++) {
+    assert.ok(css.includes(`html[data-sel-colour-theme] .meal-tone-${n} { --meal-tone: `), `tone ${n}`);
+    assert.ok(css.includes(`html[data-sel-colour-theme][data-bs-theme="dark"] .meal-tone-${n} { --meal-tone: `), `dark tone ${n}`);
+  }
+  for (const line of css.split("\n").filter((l) => l.includes(".meal-tone-"))) assert.match(line, /var\(--diet-/, `from the theme: ${line}`);
+  const home = read("public/js/home.js");
+  assert.ok(!/colour\(m(eal)?\.circleId\)/.test(home), "no free hue per house");
+  assert.ok(home.includes("meal-row meal-tone-${circleTone(meal.circleId)}"), "the meal lists");
+  assert.ok(home.includes("`meal-tone-${circleTone(m.circleId)}`"), "the calendar");
+  assert.ok(read("public/css/app.css").includes(".meal-row {\n  --meal-color: var(--meal-tone, var(--bs-primary));"));
+});

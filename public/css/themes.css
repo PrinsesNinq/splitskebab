@@ -258,3 +258,15 @@ html[data-sel-colour-theme] .accordion {
   --bs-accordion-active-bg: var(--bs-primary-bg-subtle);
   --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem rgba(var(--diet-main-rgb), 0.25);
 }
+
+/* ---- Houses and groups: each in one of four shades of the theme (js/ui.js circleTone), on the calendar and in the meal lists: the
+   colour, lighter, darker, and warmer (towards gold). ---- */
+html[data-sel-colour-theme] .meal-tone-0 { --meal-tone: var(--diet-main); }
+html[data-sel-colour-theme] .meal-tone-1 { --meal-tone: color-mix(in srgb, var(--diet-main) 55%, white); }
+html[data-sel-colour-theme] .meal-tone-2 { --meal-tone: color-mix(in srgb, var(--diet-main) 62%, black); }
+html[data-sel-colour-theme] .meal-tone-3 { --meal-tone: color-mix(in srgb, var(--diet-main) 62%, #c9962c); } /* warmer: rust, olive, teal */
+/* On the dark page the same four, lighter, so a dot or a border stands out. */
+html[data-sel-colour-theme][data-bs-theme="dark"] .meal-tone-0 { --meal-tone: var(--diet-light); }
+html[data-sel-colour-theme][data-bs-theme="dark"] .meal-tone-1 { --meal-tone: color-mix(in srgb, var(--diet-main) 62%, white); }
+html[data-sel-colour-theme][data-bs-theme="dark"] .meal-tone-2 { --meal-tone: color-mix(in srgb, var(--diet-light) 45%, white); }
+html[data-sel-colour-theme][data-bs-theme="dark"] .meal-tone-3 { --meal-tone: color-mix(in srgb, var(--diet-light) 55%, #e0b04a); }

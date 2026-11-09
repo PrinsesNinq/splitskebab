@@ -82,8 +82,6 @@ export async function createCalendar(el, { lang, events, onDay, onMeal, initialD
       onMeal(info.event.id);
     },
     eventDidMount(info) {
-      // The circle's colour on a CSS variable: the stylesheet builds the dot and the block from it (app.css .fc-event.meal).
-      if (info.event.extendedProps.color) info.el.style.setProperty("--meal-color", info.event.extendedProps.color);
       info.el.setAttribute("title", info.event.extendedProps.tooltip || info.event.title);
     },
   });
