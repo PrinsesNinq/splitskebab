@@ -188,12 +188,13 @@ async function startInvites(me) {
     }
     const invites = meals.filter((m) => m.date >= today && awaitsMyAnswer(m, me));
     for (const meal of invites) {
+      // The id names the day: a meal that moved asks again, so it is a new, unread notification.
       addNotification(bell, {
-        id: `invite-${meal.id}`,
+        id: `invite-${meal.id}-${meal.date}`,
         category: "invites",
         text: t("invite.text", { title: meal.title || t("meal.untitled"), day: formatDay(meal.date), circle: meal.circleName }),
         href: `meal.html?id=${encodeURIComponent(meal.id)}`,
-        read: read.has(`invite-${meal.id}`),
+        read: read.has(`invite-${meal.id}-${meal.date}`),
       });
     }
   };

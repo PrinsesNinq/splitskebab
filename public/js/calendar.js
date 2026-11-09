@@ -55,9 +55,11 @@ export function rememberView(view) {
 
 /**
  * A month calendar of meals in el. events: () => FullCalendar event objects. onDay(isoDate) when a day is tapped, onMeal(id) when a meal
- * is. Returns the FullCalendar instance (call .destroy() when the page goes away).
+ * is. onMove(id, { date, time }, revert) when a meal is dragged to another day (or, in a week view, another time): it saves the move, or
+ * calls revert() to put the meal back. On a phone a drag starts with a short press, so a tap still opens the meal. Returns the
+ * FullCalendar instance (call .destroy() when the page goes away).
  */
-export async function createCalendar(el, { lang, events, onDay, onMeal, initialDate }) {
+export async function createCalendar(el, { lang, events, onDay, onMeal, onMove, initialDate }) {
   const FullCalendar = await loadFullCalendar(lang);
   const locale = lang === "nl" ? "nl" : "en-gb";
   const calendar = new FullCalendar.Calendar(el, {
@@ -76,6 +78,18 @@ export async function createCalendar(el, { lang, events, onDay, onMeal, initialD
       return { html: `<span class="gc-dow">${weekday.replace(/[<>&"]/g, "")}</span>` };
     },
     events(info, success) { success(events()); },
+    // Dragging a meal to reschedule it (only where onMove is given); its length never changes.
+    editable: Boolean(onMove),
+    eventStartEditable: Boolean(onMove),
+    eventDurationEditable: false,
+    eventLongPressDelay: 400,
+    eventDrop(info) {
+      const start = info.event.start;
+      const pad = (n) => String(n).padStart(2, "0");
+      const date = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
+      const time = info.event.allDay ? "" : `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+      onMove(info.event.id, { date, time }, info.revert);
+    },
     dateClick(info) { onDay(info.dateStr.slice(0, 10)); },
     eventClick(info) {
       info.jsEvent.preventDefault();

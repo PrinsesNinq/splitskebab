@@ -35,3 +35,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Splitskebab's own look: three colour themes on eggshell white, Carnivore (dark red, the default), Herbivore (cactus green) and Pescetarian (ocean blue), in light and dark mode, and a new app icon; houses and groups show in shades of the chosen theme
 - Admins edit the terms of use in Settings; every new version has to be accepted again by everyone
 - Optional anonymous statistics (recipes cooked, how often and with how many people you eat, spend per diner): asked once, changeable on your profile, only totals are kept
+- Drag a meal on the calendar to move it to another day; everyone who was asked to come is asked again (also when the day or time is changed on the meal)

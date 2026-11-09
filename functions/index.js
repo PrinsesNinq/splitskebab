@@ -13,7 +13,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import {
-  messageRecipients, invitationRecipients, reminderRecipients, costChanges, devicesFor, notificationText, linkTo, dayInZone, euro,
+  messageRecipients, invitationRecipients, reminderRecipients, moveRecipients, costChanges, devicesFor, notificationText, linkTo, dayInZone, euro,
 } from "./notify-logic.js";
 import { dailyStats } from "./stats.js";
 
@@ -114,6 +114,11 @@ export const onMealWritten = onDocumentWritten("meals/{id}", async (event) => {
   if (asked.length) {
     const name = await nameOf(after.host);
     await notify({ kind: "meals", recipients: asked, text: (lang) => notificationText("invited", lang, { ...vars, name }), link, tag: `meal-${id}` });
+  }
+  const moved = moveRecipients(before, after);
+  if (moved.length) {
+    const name = await nameOf(after.host);
+    await notify({ kind: "meals", recipients: moved, text: (lang) => notificationText("moved", lang, { ...vars, name }), link, tag: `meal-${id}` });
   }
   for (const change of costChanges(before, after)) {
     const name = await nameOf(change.payer);

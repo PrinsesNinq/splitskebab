@@ -13,6 +13,7 @@ import { groceryList, allergyConflicts, tableAllergies, rankByPantry, groceryKey
 import { parseMoney, formatMoney, mealDebts, mealShares, mealTotal, eaters, guestId, settleKey } from "./money.js";
 import { allergenLabel } from "./allergens.js";
 import { attachPeoplePicker } from "./people-picker.js";
+import { moves, askedAgain, rescheduleChanges } from "./reschedule.js";
 import { getLang, t, formatDay } from "./i18n.js";
 
 const user = await whenUser();
@@ -479,7 +480,12 @@ function startView(id) {
     const date = $("#edit-date").value;
     $("#edit-title").classList.toggle("is-invalid", !title);
     if (!title || !date) return;
-    await attempt(() => updateMeal(id, { title, date, time: $("#edit-time").value || "" }), t("common.saved"));
+    // Another day or time: the people who were asked answer again (js/reschedule.js), after a question when there are any.
+    const to = { date, time: $("#edit-time").value || "" };
+    const moving = moves(meal, to);
+    const again = moving ? askedAgain(meal, me) : [];
+    if (again.length && !window.confirm(t("home.moveConfirm", { title, when: `${formatDay(date, { weekday: "long" })}${to.time ? ` ${to.time}` : ""}`, n: again.length }))) return;
+    await attempt(() => updateMeal(id, { title, ...(moving ? rescheduleChanges(meal, me, to) : {}) }), t("common.saved"));
     $("#meal-edit").classList.add("d-none");
   });
   $("#meal-delete-btn").addEventListener("click", async () => {

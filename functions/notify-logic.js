@@ -3,7 +3,8 @@
 //
 // Three kinds, each one switch on a device (devices/{token}.types, chosen on the profile page):
 //   messages  a new chat message (direct), or feedback (the admins get the person's, the person gets the admins' answers)
-//   meals     asked to come to a meal (planned with "ask everyone", or invited later), and a reminder the day before when not answered
+//   meals     asked to come to a meal (planned with "ask everyone", or invited later), asked again when it moved to another day or time,
+//             and a reminder the day before when not answered
 //   money     someone added what they paid for a meal you ate at
 
 export const KINDS = ["messages", "meals", "money"];
@@ -36,6 +37,16 @@ export function invitationRecipients(before, after) {
   const done = answered(after);
   const was = new Set(before ? asked(before) : []);
   return cap(asked(after).filter((e) => !was.has(e) && !done.has(e)));
+}
+
+/**
+ * A meal moved to another day or time (public/js/reschedule.js took the asked people's answers back): everyone asked who has no answer
+ * now is told, except the ones newly invited in the same change (they get the invitation).
+ */
+export function moveRecipients(before, after) {
+  if (!before || !after || (before.date === after.date && (before.time || "") === (after.time || ""))) return [];
+  const invited = new Set(invitationRecipients(before, after));
+  return reminderRecipients(after).filter((e) => !invited.has(e));
 }
 
 /** The reminder the day before: everyone asked who has not answered yet. */
@@ -77,6 +88,7 @@ const TEXT = {
     feedbackAnswer: ["Answer to your feedback", "{name}: {text}"],
     invited: ["{name} asks: are you coming?", "{title} on {day}{time}"],
     reminder: ["Are you coming tomorrow?", "{title}{time}: {name} would like to know"],
+    moved: ["{title} has moved", "Now on {day}{time}. Are you still coming?"],
     paid: ["{name} paid {amount}", "for {title}. Open the meal to see what you owe."],
   },
   nl: {
@@ -85,6 +97,7 @@ const TEXT = {
     feedbackAnswer: ["Antwoord op je feedback", "{name}: {text}"],
     invited: ["{name} vraagt: eet je mee?", "{title} op {day}{time}"],
     reminder: ["Eet je morgen mee?", "{title}{time}: {name} wil het graag weten"],
+    moved: ["{title} is verplaatst", "Nu op {day}{time}. Eet je nog mee?"],
     paid: ["{name} heeft {amount} betaald", "voor {title}. Open de maaltijd om te zien wat je moet betalen."],
   },
 };
