@@ -4,7 +4,7 @@
 // People are known by their sign-in id (user.uid) everywhere, never by their email: see the top of firestore.rules.
 import { SDK, auth, db, configured } from "./firebase-init.js";
 import { ALLOWED_DOMAIN, BOOTSTRAP_ADMIN_EMAIL } from "./config.js";
-import { TERMS_VERSION } from "./terms.js";
+import { DEFAULT_VERSION } from "./terms.js";
 
 const fb = configured ? await import(`${SDK}/firebase-auth.js`) : null;
 const store = configured ? await import(`${SDK}/firebase-firestore.js`) : null;
@@ -70,10 +70,10 @@ export async function signOutAndLeave() {
 // ---- Remembered access ----
 // Whether this person has an account (and accepted the terms), remembered on this device after the first check, so the app does not
 // wait for server reads before every start (on a phone those can take many seconds). js/app.js checks again in the background each
-// time and forgets it when the account was removed or blocked, or the terms changed. It only spares the waiting: firestore.rules
-// decide what anyone can read.
+// time and forgets it when the account was removed or blocked, or a new version of the terms is in force. It only spares the waiting:
+// firestore.rules decide what anyone can read.
 const ACCESS_KEY = "access-ok";
-const accessValue = (uid) => `${uid}:${TERMS_VERSION}`;
+const accessValue = (uid) => `${uid}:terms`;
 export function rememberedAccess(uid) {
   try { return localStorage.getItem(ACCESS_KEY) === accessValue(uid); } catch { return false; }
 }
@@ -99,8 +99,8 @@ export async function adminStatus(uid, email = "") {
 }
 
 /**
- * Where this person stands: "ok" (has an account and accepted the current terms), "terms" (has an account from before the current
- * terms: they accept them to go on), "new" (signed in with Google but no account yet: they create one by accepting the terms),
+ * Where this person stands: "ok" (has an account and accepted the terms in force), "terms" (has an account, but the terms in force are
+ * a newer version than the one they accepted, or they never accepted any: they accept them to go on), "new" (signed in with Google but no account yet: they create one by accepting the terms),
  * "blocked" (an admin blocked them), or null when it could not be checked (no connection): js/app.js then keeps what it remembered,
  * and never shuts someone out on a bad network. firestore.rules (allowed()) enforces the same; this only picks the screen.
  */
@@ -111,20 +111,24 @@ export async function accountStatus(user) {
     if (blocked.exists()) return "blocked";
     const own = await store.getDocFromServer(store.doc(db, "users", user.uid));
     if (!own.exists()) return "new";
-    return (own.data().termsVersion || 0) >= TERMS_VERSION ? "ok" : "terms";
+    // The version in force (js/terms-store.js; anyone may read it), read here directly so this module needs nothing more to load.
+    const terms = await store.getDocFromServer(store.doc(db, "settings", "terms"));
+    const inForce = terms.exists() && Number.isInteger(terms.data().version) ? terms.data().version : DEFAULT_VERSION;
+    return (own.data().termsVersion || 0) >= inForce ? "ok" : "terms";
   } catch {
     return null;
   }
 }
 
-/** The fields that accept the terms: the version, the server's time, and my own sign-in email for the admins (firestore.rules termsOk). */
-const termsFields = (user) => ({ termsVersion: TERMS_VERSION, termsAcceptedAt: store.serverTimestamp(), email: user.email.toLowerCase() });
+/** The fields that accept the terms: the version that was shown (firestore.rules accept only the one in force), the server's time, and
+ *  my own sign-in email for the admins (firestore.rules termsOk). */
+const termsFields = (user, version) => ({ termsVersion: version, termsAcceptedAt: store.serverTimestamp(), email: user.email.toLowerCase() });
 
 /** Creates my account by accepting the terms (any Google account may: firestore.rules let a person create only their own). */
-export const register = (user) => store.setDoc(store.doc(db, "users", user.uid), { registeredAt: store.serverTimestamp(), ...termsFields(user) });
+export const register = (user, version) => store.setDoc(store.doc(db, "users", user.uid), { registeredAt: store.serverTimestamp(), ...termsFields(user, version) });
 
-/** Accepts the current terms on an account that already exists (made before the terms, or before they changed). */
-export const acceptTerms = (user) => store.updateDoc(store.doc(db, "users", user.uid), termsFields(user));
+/** Accepts the terms in force on an account that already exists (made before the terms, or before a newer version). */
+export const acceptTerms = (user, version) => store.updateDoc(store.doc(db, "users", user.uid), termsFields(user, version));
 
 /** Creates the admin list with this one account in it: only the bootstrap account may, and only once (firestore.rules). */
 export async function becomeFirstAdmin(uid) {

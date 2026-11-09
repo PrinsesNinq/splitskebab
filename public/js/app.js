@@ -8,7 +8,7 @@ import "./pwa.js"; // installable app: the service worker and the navbar's Insta
 import "./keyboard.js"; // phones: the bottom bar hides while the keyboard is open
 import { configured } from "./firebase-init.js";
 import { requireUser, signOutAndLeave, accountStatus, register, acceptTerms, adminStatus, rememberedAccess, rememberAccess, forgetAccess } from "./auth.js";
-import { TERMS, termsHtml } from "./terms.js";
+import { termsHtml } from "./terms.js";
 import { applyI18n, getLang, setLang, t, formatDay } from "./i18n.js";
 import { shareText, esc } from "./ui.js";
 import { addNotification } from "../vendor/sel/elements/notification-bell.js";
@@ -84,9 +84,12 @@ function fullPage(html) {
  * people one is connected to is a separate choice, off unless ticked. A new account then goes to the profile (allergies first); an
  * existing one carries on where it was. Texts go in escaped: the name comes from Google.
  */
-function showTerms(user, mode) {
+async function showTerms(user, mode) {
   const lang = getLang() === "nl" ? "nl" : "en";
-  const terms = TERMS[lang];
+  // The version in force (js/terms-store.js); without a connection the built-in one, which the rules then refuse if it is outdated.
+  const { loadTerms } = await import("./terms-store.js");
+  const inForce = await loadTerms({ fresh: true }).catch(() => loadTerms());
+  const terms = inForce[lang];
   const content = fullPage(`
     <img src="images/app-icon.svg" alt="" width="72" height="72" class="login-app-icon mb-3">
     <h1 class="h4">${esc(t(mode === "new" ? "register.title" : "terms.updatedTitle"))}</h1>
@@ -97,7 +100,7 @@ function showTerms(user, mode) {
         <h2 class="h6 mb-0" id="terms-heading">${esc(terms.title)}</h2>
         <a class="small" href="terms.html" target="_blank" rel="noopener">${esc(t("terms.openFull"))}</a>
       </div>
-      <div class="card-body small terms-box" tabindex="0">${termsHtml(lang, esc)}</div>
+      <div class="card-body small terms-box" tabindex="0">${termsHtml(inForce, lang, esc, (ms) => formatDay(new Date(ms).toISOString().slice(0, 10), { weekday: "long" }))}</div>
     </section>
     <div class="form-check text-start mb-2">
       <input class="form-check-input" type="checkbox" id="terms-accept">
@@ -119,7 +122,7 @@ function showTerms(user, mode) {
     if (!accept.checked) return;
     button.disabled = true;
     try {
-      await (mode === "new" ? register(user) : acceptTerms(user));
+      await (mode === "new" ? register(user, inForce.version) : acceptTerms(user, inForce.version));
       if (content.querySelector("#terms-show-email").checked) {
         const { showMyEmail } = await import("./store.js");
         await showMyEmail(user.uid, user.email);
@@ -300,7 +303,10 @@ if (!configured) {
       .catch((err) => console.warn("Push refresh failed:", err?.code || err?.message || err))
       .then(() => Promise.all([gate, new Promise((resolve) => setTimeout(resolve, 1500))]))
       .then(() => import("./push-prompt.js")).then((prompt) => prompt.offerPush(user.uid))
-      .catch((err) => console.warn("Push offer failed:", err?.code || err?.message || err));
+      .catch((err) => console.warn("Push offer failed:", err?.code || err?.message || err))
+      // Then, once, the optional anonymous statistics (js/stats-consent.js): after the notifications question is answered.
+      .then(() => import("./stats-consent.js")).then((stats) => stats.offerStats(user.uid))
+      .catch((err) => console.warn("Statistics question failed:", err?.code || err?.message || err));
   };
 
   // What to show for each account status (js/auth.js accountStatus): the app, "create your account", "blocked", or "no connection".

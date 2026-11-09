@@ -96,14 +96,15 @@ test("people are their uid: me() is the sign-in id, and no rule uses an email as
 
 test("an account is a users/ document: created by accepting the terms with my own email, only admins change groups or delete it", () => {
   assert.match(rules, /function allowed\(\) \{[\s\S]*?acceptedTerms\(\)/, "no data without accepted terms");
-  assert.match(rules, /function acceptedTerms\(\) \{[\s\S]*?users\/\$\(me\(\)\)\)\.data\.get\('termsVersion', 0\) >= 1/);
+  assert.match(rules, /function acceptedTerms\(\) \{[\s\S]*?users\/\$\(me\(\)\)\)\.data\.get\('termsVersion', 0\) >= termsInForce\(\);/, "the version in force, not just any");
+  assert.match(rules, /function termsInForce\(\) \{[\s\S]*?settings\/terms\)\.data\.version : 1;/);
   const users = block("users/{uid}");
   const create = /allow create: if ([\s\S]*?);\n/.exec(users)[1];
   assert.match(create, /me\(\) == uid/, "only your own account");
   assert.match(create, /notBlocked\(\)/, "a blocked person cannot register again");
   assert.match(create, /keys\(\)\.hasOnly\(\['registeredAt', 'termsVersion', 'termsAcceptedAt', 'email'\]\)/, "no groups or anything else on your own account");
   assert.match(create, /registeredAt == request\.time && termsOk\(request\.resource\.data\)/);
-  assert.match(rules, /function termsOk\(d\) \{[\s\S]*?d\.termsAcceptedAt == request\.time && d\.email == myEmail\(\);/, "accepting stores my own email, stamped by the server");
+  assert.match(rules, /function termsOk\(d\) \{[\s\S]*?d\.termsVersion == termsInForce\(\) && d\.termsAcceptedAt == request\.time && d\.email == myEmail\(\);/, "exactly the version in force, my own email, stamped by the server");
   const update = /allow update: if ([\s\S]*?);\n/.exec(users)[1];
   assert.match(update, /isAdmin\(\) && request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasOnly\(\['groups'\]\)/, "admins change groups only");
   assert.match(update, /me\(\) == uid && notBlocked\(\) &&[\s\S]*?hasOnly\(\['termsVersion', 'termsAcceptedAt', 'email'\]\)/, "I only accept (newer) terms");

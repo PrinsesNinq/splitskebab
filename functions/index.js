@@ -15,6 +15,7 @@ import { getMessaging } from "firebase-admin/messaging";
 import {
   messageRecipients, invitationRecipients, reminderRecipients, costChanges, devicesFor, notificationText, linkTo, dayInZone, euro,
 } from "./notify-logic.js";
+import { dailyStats } from "./stats.js";
 
 // Next to the database (eur3, Europe). A few instances at most: a bug can never run up a bill.
 setGlobalOptions({ region: "europe-west1", maxInstances: 5, memory: "256MiB" });
@@ -144,3 +145,6 @@ export const mealReminders = onSchedule({ schedule: "0 16 * * *", timeZone: "Eur
     });
   }
 });
+
+// ---- Anonymous statistics: the meals of a week ago, counted for the people who said yes (functions/stats.js) ----
+export const statsDaily = onSchedule({ schedule: "30 4 * * *", timeZone: "Europe/Amsterdam" }, () => dailyStats());

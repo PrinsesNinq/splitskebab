@@ -44,12 +44,19 @@ service cloud.firestore {
       return !exists(/databases/$(database)/documents/blocked/$(me()));
     }
 
-    // Has an account and accepted the terms (users/{uid} with a termsVersion: js/terms.js), or is an admin; and is not blocked. Being
-    // signed in with Google alone is not enough: registering, with the terms, is a step. Someone with an account from before the terms
-    // gets nothing until they accept them (the app asks).
+    // The version of the terms in force: settings/terms (written by the admins in Settings > Terms, js/terms-store.js), or 1, the
+    // built-in text, until the first save.
+    function termsInForce() {
+      return exists(/databases/$(database)/documents/settings/terms) ?
+        get(/databases/$(database)/documents/settings/terms).data.version : 1;
+    }
+
+    // Has an account and accepted the terms in force (users/{uid}.termsVersion), or is an admin; and is not blocked. Being signed in with
+    // Google alone is not enough: registering, with the terms, is a step. When the admins save a new version, everyone gets nothing until
+    // they accept it (the app asks).
     function acceptedTerms() {
       return exists(/databases/$(database)/documents/users/$(me())) &&
-        get(/databases/$(database)/documents/users/$(me())).data.get('termsVersion', 0) >= 1;
+        get(/databases/$(database)/documents/users/$(me())).data.get('termsVersion', 0) >= termsInForce();
     }
     function allowed() {
       return signedIn() && notBlocked() && (acceptedTerms() || isAdmin() || isBootstrapAdmin());
@@ -90,10 +97,41 @@ service cloud.firestore {
         (!('email' in d) || d.email == myEmail());
     }
 
-    // Accepting the terms (js/terms.js): a version, stamped with the server's time, and my own sign-in email for the admins.
+    // Accepting the terms: exactly the version in force, stamped with the server's time, and my own sign-in email for the admins.
     function termsOk(d) {
-      return d.termsVersion is int && d.termsVersion >= 1 && d.termsVersion <= 1000 &&
-        d.termsAcceptedAt == request.time && d.email == myEmail();
+      return d.termsVersion == termsInForce() && d.termsAcceptedAt == request.time && d.email == myEmail();
+    }
+
+    // One language of the terms (js/terms.js cleanTermsText reads it): texts of a sane size and at most 40 sections. What is shown is
+    // always escaped, so the text itself cannot do harm.
+    function validTermsText(t) {
+      return t is map && t.keys().hasOnly(['title', 'intro', 'sections', 'accept', 'showEmail', 'showEmailHelp']) &&
+        t.title is string && t.title.size() <= 200 && t.intro is string && t.intro.size() <= 4000 &&
+        t.sections is list && t.sections.size() <= 40 &&
+        t.accept is string && t.accept.size() > 0 && t.accept.size() <= 1000 &&
+        t.showEmail is string && t.showEmail.size() <= 1000 && t.showEmailHelp is string && t.showEmailHelp.size() <= 1000;
+    }
+    function validTerms(d) {
+      return d.keys().hasOnly(['version', 'updatedAt', 'updatedBy', 'en', 'nl']) && d.version is int &&
+        d.updatedAt == request.time && d.updatedBy == me() && validTermsText(d.en) && validTermsText(d.nl);
+    }
+
+    // The terms in force: anyone reads them (terms.html, also before signing in). Only an admin writes them, always as the next version
+    // (the first save is 2: the built-in text is 1), together with a copy in termsHistory (js/terms-store.js saveTerms); never deleted.
+    match /settings/terms {
+      allow read: if true;
+      allow create: if isAdmin() && validTerms(request.resource.data) && request.resource.data.version == 2 &&
+        existsAfter(/databases/$(database)/documents/termsHistory/2);
+      allow update: if isAdmin() && validTerms(request.resource.data) && request.resource.data.version == resource.data.version + 1 &&
+        existsAfter(/databases/$(database)/documents/termsHistory/$(string(request.resource.data.version)));
+      allow delete: if false;
+    }
+    // Every version that was in force, as it was: so it stays known which text someone accepted. Written once, with the save above.
+    match /termsHistory/{version} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validTerms(request.resource.data) && version == string(request.resource.data.version) &&
+        getAfter(/databases/$(database)/documents/settings/terms).data.version == request.resource.data.version;
+      allow update, delete: if false;
     }
 
     // The admins (uids): only an admin reads the list (so nobody else learns who the admins are); anyone with access may see that it does
@@ -105,7 +143,7 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // An account: { registeredAt, termsVersion, termsAcceptedAt, email, groups }. Anyone signed in with Google may create their own by
+    // An account: { registeredAt, termsVersion, termsAcceptedAt, email, groups, statsConsent, statsConsentAt }. Anyone signed in with Google may create their own by
     // accepting the terms (unless blocked), and accept a newer version later; groups are the admins'. Each person reads their own (that is
     // how the app knows they registered), an admin anyone's: that is where the admins see an email, and only of people who accepted.
     match /users/{uid} {
@@ -117,8 +155,19 @@ service cloud.firestore {
           request.resource.data.get('groups', []) is list) ||
         (signedIn() && me() == uid && notBlocked() &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['termsVersion', 'termsAcceptedAt', 'email']) &&
-          termsOk(request.resource.data));
+          termsOk(request.resource.data)) ||
+        // The anonymous statistics (js/stats-consent.js): only I say yes or no, stamped with the server's time; nothing else changes.
+        (signedIn() && me() == uid && notBlocked() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statsConsent', 'statsConsentAt']) &&
+          request.resource.data.statsConsent is bool && request.resource.data.statsConsentAt == request.time);
       allow delete: if isAdmin();
+    }
+
+    // Anonymous statistics (functions/stats.js): monthly totals only, no person or meal in them, written by the server alone (the
+    // admin SDK passes no rules) and read by the admins (Settings > Statistics).
+    match /stats/{month} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Blocked people ({ blockedAt }): only admins write it; each person may read their own, so the app can tell them.

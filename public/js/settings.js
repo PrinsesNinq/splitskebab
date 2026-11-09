@@ -6,6 +6,7 @@ import { adminStatus, becomeFirstAdmin } from "./auth.js";
 
 const roleBox = document.querySelector('#admin-status');
 const usersTab = document.querySelector('#users-tab').closest('li');
+const adminTabs = ['#terms-tab', '#stats-tab'].map((sel) => document.querySelector(sel).closest('li')); // Terms, Statistics
 
 const esc = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 // A steady colour per person, from their uid.
@@ -35,9 +36,12 @@ async function showRole(user) {
   if (!status.isAdmin && !status.canBootstrap) { leaveForNonAdmins(); return; }
   pageParts.forEach((el) => { el.hidden = false; });
   usersTab.hidden = !status.isAdmin;
+  adminTabs.forEach((tab) => { tab.hidden = !status.isAdmin; });
   if (status.isAdmin) {
-    roleBox.innerHTML = '<span class="badge text-bg-primary">Admin</span> You can manage this app: see the Users tab.';
+    roleBox.innerHTML = '<span class="badge text-bg-primary">Admin</span> You can manage this app: see the Users, Terms and Statistics tabs.';
     startUsers(user);
+    import('./admin-terms.js').then((m) => m.startTermsEditor(user.uid)).catch((err) => console.error('Terms editor:', err));
+    import('./admin-stats.js').then((m) => m.startStats()).catch((err) => console.error('Statistics:', err));
   } else if (status.canBootstrap) {
     roleBox.innerHTML = '<p class="mb-2">There is no admin yet, and you are the account that may become the first one.</p><button type="button" class="btn btn-primary btn-sm" id="become-admin-btn">Become first admin</button>';
     roleBox.querySelector('#become-admin-btn').addEventListener('click', async (event) => {

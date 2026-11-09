@@ -1,9 +1,11 @@
-// The terms of use and privacy statement, in English and Dutch: shown when someone creates an account (and to everyone once when the
-// version goes up), and on terms.html to read at any time. Accepting writes TERMS_VERSION to users/{uid} (firestore.rules termsOk).
-// Raise TERMS_VERSION whenever the text changes in substance: everyone is then asked to accept again before they can go on.
-export const TERMS_VERSION = 1;
-export const TERMS_DATE = "2026-11-09";
+// The terms of use and privacy statement, in English and Dutch. The text in force lives in Firestore (settings/terms, js/terms-store.js),
+// written by the admins in Settings > Terms; every save is a new version, and everyone must accept the version in force before they get
+// any data (firestore.rules acceptedTerms). Until the first save it is the text below: version 1, the one accepted when the terms began.
+// This module is pure (no Firebase): the shape of the terms, rendering them, and the editor's plain-text format for the sections.
+export const DEFAULT_VERSION = 1;
+export const DEFAULT_DATE = "2026-11-09";
 
+/** The built-in text (version 1). Sections are [heading, text] pairs here; stored ones are { h, b } maps (Firestore has no nested lists). */
 export const TERMS = {
   en: {
     title: "Terms of use and privacy",
@@ -53,9 +55,56 @@ export const TERMS = {
   },
 };
 
-/** The terms as HTML in a language: a heading per section. Every text is escaped by esc (passed in, so this module stays pure). */
-export function termsHtml(lang, esc) {
-  const terms = TERMS[lang] || TERMS.en;
-  return `<p>${esc(terms.intro)}</p>${terms.sections.map(([head, body]) => `<h2 class="h6 mt-3 mb-1">${esc(head)}</h2><p class="mb-2">${esc(body)}</p>`).join("")}
-    <p class="small text-body-secondary mt-3 mb-0">${esc(terms.version.replace("{version}", TERMS_VERSION).replace("{date}", TERMS_DATE))}</p>`;
+export const LANGS = ["en", "nl"];
+export const TEXT_FIELDS = ["title", "intro", "accept", "showEmail", "showEmailHelp"];
+export const LIMITS = { title: 200, intro: 4000, accept: 1000, showEmail: 1000, showEmailHelp: 1000, heading: 200, body: 6000, sections: 40 };
+
+const str = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+
+/** One language of stored terms, checked: every field text of a sane size, sections as { h, b }; a field that is missing or empty
+ *  takes the built-in text, so a broken save can never leave the accept box without words. */
+export function cleanTermsText(raw, lang) {
+  const fallback = TERMS[lang] || TERMS.en;
+  const out = {};
+  for (const k of TEXT_FIELDS) out[k] = str(raw?.[k], LIMITS[k]) || fallback[k];
+  const sections = Array.isArray(raw?.sections) ? raw.sections : null;
+  out.sections = sections
+    ? sections.slice(0, LIMITS.sections).map((x) => ({ h: str(x?.h, LIMITS.heading), b: str(x?.b, LIMITS.body) })).filter((x) => x.h || x.b)
+    : fallback.sections.map(([h, b]) => ({ h, b }));
+  if (!out.sections.length) out.sections = fallback.sections.map(([h, b]) => ({ h, b }));
+  return out;
+}
+
+/** The terms in force: { version, updatedAt (ms or null), en, nl } from the stored document, or the built-in version 1 without one. */
+export function termsFrom(doc) {
+  const version = Number.isInteger(doc?.version) && doc.version >= 1 ? doc.version : DEFAULT_VERSION;
+  return {
+    version,
+    updatedAt: doc ? doc.updatedAt ?? null : Date.parse(`${DEFAULT_DATE}T00:00:00Z`),
+    en: cleanTermsText(doc?.en, "en"),
+    nl: cleanTermsText(doc?.nl, "nl"),
+  };
+}
+
+/** The sections as editor text: "## Heading" on its own line, the text under it, a blank line between sections. */
+export const sectionsToText = (sections) => sections.map((x) => `## ${x.h}\n${x.b}`).join("\n\n");
+
+/** Editor text back to sections: a line starting with "## " starts a new section; the lines under it are its text. */
+export function textToSections(text) {
+  const out = [];
+  for (const line of String(text || "").replace(/\r\n?/g, "\n").split("\n")) {
+    if (/^##\s/.test(line)) out.push({ h: line.replace(/^##\s+/, "").trim(), b: "" });
+    else if (out.length) out[out.length - 1].b += (out[out.length - 1].b ? "\n" : "") + line;
+    else if (line.trim()) out.push({ h: "", b: line });
+  }
+  return out.map((x) => ({ h: x.h.slice(0, LIMITS.heading), b: x.b.trim().slice(0, LIMITS.body) })).filter((x) => x.h || x.b).slice(0, LIMITS.sections);
+}
+
+/** The terms as HTML in a language: a heading per section, line breaks kept. Every text goes through esc (passed in: this stays pure). */
+export function termsHtml(terms, lang, esc, formatDate = (ms) => new Date(ms).toISOString().slice(0, 10)) {
+  const text = terms[lang] || terms.en;
+  const version = TERMS[lang]?.version || TERMS.en.version;
+  const when = terms.updatedAt ? `, ${formatDate(terms.updatedAt)}` : "";
+  return `<p class="text-pre-line">${esc(text.intro)}</p>${text.sections.map((x) => `${x.h ? `<h2 class="h6 mt-3 mb-1">${esc(x.h)}</h2>` : ""}<p class="mb-2 text-pre-line">${esc(x.b)}</p>`).join("")}
+    <p class="small text-body-secondary mt-3 mb-0">${esc(version.replace("{version}", terms.version).replace(", {date}", when))}</p>`;
 }

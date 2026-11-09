@@ -115,3 +115,18 @@ if (new URLSearchParams(location.search).get("welcome")) $("#welcome").classList
 stops.push(people.subscribe(() => render()));
 render();
 attachPushSettings($("#push-section"), me).catch((err) => console.warn("Notifications section:", err?.message || err));
+
+// Anonymous statistics: the switch shows my answer (off when I never answered) and saves a change at once.
+import("./stats-consent.js").then(async ({ statsConsent, setStatsConsent, whatIsCountedHtml }) => {
+  const box = $("#stats-on");
+  if (!box) return;
+  $("#stats-what").innerHTML = whatIsCountedHtml();
+  box.checked = (await statsConsent(me)) === true;
+  box.disabled = false;
+  box.addEventListener("change", async () => {
+    box.disabled = true;
+    const ok = await attempt(async () => { await setStatsConsent(me, box.checked); return true; }, t(box.checked ? "stats.savedYes" : "stats.savedNo"));
+    if (!ok) box.checked = !box.checked;
+    box.disabled = false;
+  });
+}).catch((err) => console.warn("Statistics section:", err?.code || err?.message || err));
