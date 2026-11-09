@@ -35,7 +35,7 @@ const STATUS_BADGE = {
 
 function mealRow(meal, { showDate = false } = {}) {
   const status = myStatus(meal);
-  const eaters = meal.participants.map((email) => person(email));
+  const eaters = meal.participants.map((id) => person(id));
   const guests = meal.guests.length ? ` <span class="text-body-secondary small">+${meal.guests.length}</span>` : "";
   // What I still have to pay for this meal (to one or more of the people who did the groceries).
   const iOwe = mealDebts(meal).filter((d) => d.from === me && !d.settled).reduce((s, d) => s + d.cents, 0);
@@ -141,7 +141,7 @@ $("#day-title").textContent = formatDay(selected, { weekday: "long" });
 
 const user = await whenUser();
 if (!leaving) {
-  me = user.email.toLowerCase();
+  me = user.uid;
   stops.push(myMeals(me).subscribe((list, err) => {
     if (err) { $("#cal-error").textContent = t("error.load"); $("#cal-error").classList.remove("d-none"); return; }
     meals = list;

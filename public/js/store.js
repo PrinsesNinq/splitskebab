@@ -1,25 +1,29 @@
 // Everything Splitskebab keeps in Firestore, and the live lists the pages share. Who may read and write what is enforced in
 // firestore.rules; this module only shapes the data.
 //
-//   userProfiles/{email}  { displayName, photoUrl }   public: every user reads (search), each writes their own (photoUrl: their Google
+// People are known by their sign-in id (uid), never by their email (firestore.rules explains why): every "person", member, viewer, host,
+// owner and map key below is a uid.
+//
+//   userProfiles/{uid}    { displayName, photoUrl }   public: every user reads (search), each writes their own (photoUrl: their Google
 //                         photo or a small picture they chose, js/photo.js)
-//   privateProfiles/{email} { allergies: [allergen id], paymentLink, friends: [email], readers: [email] }   only the person and their
-//                         readers (housemates, people at their meals, friends; kept up to date by js/app.js) read it
-//   circles/{id}          { name, type: "house" | "group", members: [email], owner, admins: [email], createdAt }   members read and change,
+//   privateProfiles/{uid} { allergies: [allergen id], paymentLink, friends: [uid], readers: [uid], email? }   only the person and their
+//                         readers (housemates, people at their meals, friends; kept up to date by js/app.js) read it; email only when
+//                         they chose to show it (profile page)
+//   circles/{id}          { name, type: "house" | "group", members: [uid], owner, admins: [uid], createdAt }   members read and change,
 //                         the owner deletes; admins (the owner always, plus admins) see the analytics and choose other admins
-//   meals/{id}            { title, date "YYYY-MM-DD", time "HH:MM", circleId, circleName, host, viewers: [email], participants: [email],
-//                           declined: [email], guests: [{ id, name }], rsvp, recipe: { source, id } | null, servings, have: [key],
-//                           costs: { [email]: cents } (each payer only writes their own), settled: ["from>to"], createdAt, updatedAt }
+//   meals/{id}            { title, date "YYYY-MM-DD", time "HH:MM", circleId, circleName, host, viewers: [uid], participants: [uid],
+//                           declined: [uid], guests: [{ id, name }], rsvp, recipe: { source, id } | null, servings, have: [key],
+//                           costs: { [uid]: cents } (each payer only writes their own), settled: ["from>to"], createdAt, updatedAt }
 //                         (older meals have cost: { totalCents, paidBy } and settled: [eater id]; money.js readCosts() reads both)
 //                         viewers (the circle's members when it was planned, plus anyone added) read and change it, the host deletes it
 //   recipes/{id}          { name, servings, minutes, ingredients: [{ name, qty, unit }], allergens, steps, owner, createdAt }
 //   friendships/{a|b}     { users: [a, b] (sorted), requester, status: "pending" | "accepted", createdAt, acceptedAt }
-//                         id is the two emails sorted and joined by "|", so a pair can only have one; both read and delete it, the other
+//                         id is the two uids sorted and joined by "|", so a pair can only have one; both read and delete it, the other
 //                         one accepts it
-//   meals also have invited: [email], people asked to say yes or no (friends from outside the circle; with rsvp, everyone is asked),
-//   and declineReasons: { [email]: text }, why someone is not coming (optional, each writes only their own)
+//   meals also have invited: [uid], people asked to say yes or no (friends from outside the circle; with rsvp, everyone is asked),
+//   and declineReasons: { [uid]: text }, why someone is not coming (optional, each writes only their own)
 //
-// Emails are lowercase everywhere. The live lists (people, my circles, my meals, user recipes) are started once and shared by every page:
+// The live lists (people, my circles, my meals, user recipes) are started once and shared by every page:
 // with soft navigation the modules stay loaded, so switching pages shows the data at once.
 import { SDK, db } from "./firebase-init.js";
 import { cleanAllergens } from "./allergens.js";
@@ -27,6 +31,7 @@ import { missingViewers } from "./sharing.js";
 import { safePhoto } from "./photo.js";
 import { directId, feedbackId, preview, MAX_MESSAGE } from "./messaging.js";
 import { readCosts, settleKey } from "./money.js";
+import { t } from "./i18n.js";
 
 const fs = await import(`${SDK}/firebase-firestore.js`);
 const {
@@ -65,37 +70,34 @@ function shared(start) {
 
 // ---- People ----
 // A person is two documents: the public profile (name and photo, everyone with an account reads it: search) and the private profile
-// (allergies, payment link, friend list), readable only by the people on its readers list (housemates, people at their meals, friends;
-// see firestore.rules). Profiles from before the split still have those fields on the public profile: they are read from there until
-// the person's app moves them (migrateMyProfile).
-
-const LEGACY_PRIVATE = ["allergies", "paymentLink", "friends"];
+// (allergies, payment link, friend list, and the email when they show it), readable only by the people on its readers list
+// (housemates, people at their meals, friends; see firestore.rules).
 
 /**
- * A person to draw. detailsVisible says whether their allergies and payment link could be read: false means "not shared with me
- * (yet)", which the pages show as unknown, never as "no allergies" (that would hide a danger).
+ * A person to draw: { id, name, photoUrl, email, allergies, paymentLink, friends, readers, detailsVisible }. email is "" unless they
+ * chose to show it and I may read their private profile. detailsVisible says whether their allergies and payment link could be read:
+ * false means "not shared with me (yet)", which the pages show as unknown, never as "no allergies" (that would hide a danger).
  */
-function toPerson(email, pub = {}, priv = null) {
-  const legacy = LEGACY_PRIVATE.some((k) => k in pub);
-  const details = priv || (legacy ? pub : null);
+function toPerson(id, pub = {}, priv = null) {
   return {
-    email,
-    name: text(pub.displayName, 100) || email.split("@")[0],
+    id,
+    name: text(pub.displayName, 100) || t("common.someone"),
     photoUrl: photo(pub.photoUrl),
-    allergies: cleanAllergens(details?.allergies),
-    paymentLink: safeLink(details?.paymentLink),
-    friends: strings(details?.friends).slice(0, 500),
+    email: text(priv?.email, 200),
+    allergies: cleanAllergens(priv?.allergies),
+    paymentLink: safeLink(priv?.paymentLink),
+    friends: strings(priv?.friends).slice(0, 500),
     readers: strings(priv?.readers),
-    detailsVisible: Boolean(details),
+    detailsVisible: Boolean(priv),
   };
 }
 
 let peopleMe = null;
-/** Who I am, for the private profiles I may read: js/app.js calls it before any page uses people. */
-export function usePeopleFor(email) { peopleMe = email; }
+/** Who I am (uid), for the private profiles I may read: js/app.js calls it before any page uses people. */
+export function usePeopleFor(uid) { peopleMe = uid; }
 
 /**
- * Everyone with a public profile, with the private details I may read: Map email -> person (toPerson). Three live sources: every
+ * Everyone with a public profile, with the private details I may read: Map uid -> person (toPerson). Three live sources: every
  * public profile, the private profiles that list me as a reader, and my own private profile.
  */
 export const people = shared((emit, fail) => {
@@ -104,7 +106,7 @@ export const people = shared((emit, fail) => {
     if (!state.pub) return;
     const privs = new Map(state.priv);
     if (peopleMe && state.mine) privs.set(peopleMe, state.mine);
-    emit(new Map([...state.pub].map(([email, pub]) => [email, toPerson(email, pub, privs.get(email) || null)])));
+    emit(new Map([...state.pub].map(([id, pub]) => [id, toPerson(id, pub, privs.get(id) || null)])));
   };
   onSnapshot(collection(db, "userProfiles"), (snap) => { state.pub = new Map(snap.docs.map((d) => [d.id, d.data()])); send(); }, fail);
   if (peopleMe) {
@@ -114,46 +116,32 @@ export const people = shared((emit, fail) => {
   }
 });
 
-/** A person to show, also when they never signed in (no profile yet): their email's first part as the name. */
-export function person(email, map = people.value) {
-  return map?.get(email) || toPerson(email, {});
-}
-
-/**
- * Moves my allergies, payment link and friend list from the public profile (where they were before the split) to my private one,
- * then takes them off the public one, so strangers can no longer read them. Does nothing when there is nothing to move. A value already
- * in my private profile wins (it is newer).
- */
-export async function migrateMyProfile(email) {
-  const pubRef = doc(db, "userProfiles", email);
-  const pub = (await getDoc(pubRef)).data() || {};
-  const fields = LEGACY_PRIVATE.filter((k) => k in pub);
-  if (!fields.length) return false;
-  const privRef = doc(db, "privateProfiles", email);
-  const priv = (await getDoc(privRef)).data() || {};
-  const copy = {};
-  for (const k of fields) if (!(k in priv) && pub[k] != null) copy[k] = k === "allergies" ? cleanAllergens(pub[k]) : k === "paymentLink" ? safeLink(pub[k]) : strings(pub[k]).slice(0, 500);
-  if (Object.keys(copy).length) await setDoc(privRef, copy, { merge: true });
-  await updateDoc(pubRef, Object.fromEntries(fields.map((k) => [k, deleteField()])));
-  return true;
+/** A person to show, also when they have no profile (yet): "Someone" as the name. */
+export function person(id, map = people.value) {
+  return map?.get(id) || toPerson(id, {});
 }
 
 /** My name and photo as others see them (photoUrl: a safe https address or small picture data URL, or null for my initial). */
-export async function saveMyIdentity(email, { displayName, photoUrl }) {
-  await migrateMyProfile(email); // the public profile may only hold name and photo (firestore.rules)
-  await setDoc(doc(db, "userProfiles", email), { displayName: text(displayName, 100) || null, photoUrl: safePhoto(photoUrl) }, { merge: true });
-}
+export const saveMyIdentity = (uid, { displayName, photoUrl }) =>
+  setDoc(doc(db, "userProfiles", uid), { displayName: text(displayName, 100) || null, photoUrl: safePhoto(photoUrl) }, { merge: true });
 
 /** My list of friends on my private profile (js/app.js keeps it in step with my accepted friendships), for friends of friends. */
-export const saveMyFriendList = (email, friends) =>
-  setDoc(doc(db, "privateProfiles", email), { friends: [...new Set(friends)].sort().slice(0, 500) }, { merge: true });
+export const saveMyFriendList = (uid, friends) =>
+  setDoc(doc(db, "privateProfiles", uid), { friends: [...new Set(friends)].sort().slice(0, 500) }, { merge: true });
 
 /** Who may read my private profile (js/sharing.js profileReaders, kept up to date by js/app.js). */
-export const saveMyReaders = (email, readers) =>
-  setDoc(doc(db, "privateProfiles", email), { readers }, { merge: true });
+export const saveMyReaders = (uid, readers) =>
+  setDoc(doc(db, "privateProfiles", uid), { readers }, { merge: true });
 
-export const saveMyProfile = (email, { allergies, paymentLink }) =>
-  setDoc(doc(db, "privateProfiles", email), { allergies: cleanAllergens(allergies), paymentLink: safeLink(paymentLink) }, { merge: true });
+export const saveMyProfile = (uid, { allergies, paymentLink }) =>
+  setDoc(doc(db, "privateProfiles", uid), { allergies: cleanAllergens(allergies), paymentLink: safeLink(paymentLink) }, { merge: true });
+
+/**
+ * Shows my email to the people I am connected to (my own sign-in email: firestore.rules accept no other), or takes it off again.
+ */
+export const showMyEmail = (uid, email) =>
+  setDoc(doc(db, "privateProfiles", uid), { email: email ? email.toLowerCase() : deleteField() }, { merge: true });
+
 // ---- Houses and groups ----
 
 function toCircle(id, d) {
@@ -176,11 +164,11 @@ export const createCircle = (me, { name, type }) => addDoc(collection(db, "circl
   name: text(name, 60), type: type === "group" ? "group" : "house", members: [me], owner: me, createdAt: serverTimestamp(),
 });
 export const renameCircle = (id, name) => updateDoc(doc(db, "circles", id), { name: text(name, 60) });
-export const addMember = (id, email) => updateDoc(doc(db, "circles", id), { members: arrayUnion(email.toLowerCase()) });
+export const addMember = (id, uid) => updateDoc(doc(db, "circles", id), { members: arrayUnion(uid) });
 // Someone who leaves (or is removed) stops being an admin too; when they were not one, removing them from admins changes nothing.
-export const removeMember = (id, email) => updateDoc(doc(db, "circles", id), { members: arrayRemove(email), admins: arrayRemove(email) });
+export const removeMember = (id, uid) => updateDoc(doc(db, "circles", id), { members: arrayRemove(uid), admins: arrayRemove(uid) });
 /** Makes a member an admin of the house or group, or not (only admins may: firestore.rules). The creator always is. */
-export const setCircleAdmin = (id, email, admin) => updateDoc(doc(db, "circles", id), { admins: admin ? arrayUnion(email) : arrayRemove(email) });
+export const setCircleAdmin = (id, uid, admin) => updateDoc(doc(db, "circles", id), { admins: admin ? arrayUnion(uid) : arrayRemove(uid) });
 export const deleteCircle = (id) => deleteDoc(doc(db, "circles", id));
 
 // ---- Meals ----
@@ -248,7 +236,7 @@ export const updateMeal = (id, patch) => updateDoc(doc(db, "meals", id), { ...pa
 export const deleteMeal = (id) => deleteDoc(doc(db, "meals", id));
 
 export const DECLINE_REASON_MAX = 200;
-// My reason lives at declineReasons.{my email}; emails contain dots, so it is addressed with a FieldPath, not "declineReasons.x".
+// My reason lives at declineReasons.{my uid}, addressed with a FieldPath (an id is never put inside a dotted path string).
 const myReason = (me) => new FieldPath("declineReasons", me);
 
 /** I join: no longer marked as not coming, and my reason for not coming goes. */
@@ -287,7 +275,7 @@ export async function shareCircleMeals(circles, meals, today) {
 }
 
 /** Asks people (friends from outside the circle) to say yes or no: they can see the meal from now on. */
-export const inviteToMeal = (id, emails) => updateMeal(id, { viewers: arrayUnion(...emails), invited: arrayUnion(...emails) });
+export const inviteToMeal = (id, uids) => updateMeal(id, { viewers: arrayUnion(...uids), invited: arrayUnion(...uids) });
 
 /** Whether I am asked to answer for this meal (and have not yet): everyone when the host asked everyone, else the people invited. */
 export const awaitsMyAnswer = (meal, me) =>
@@ -315,8 +303,8 @@ export function myFriendships(me) {
   return friendsList;
 }
 
-/** The emails of my accepted friends. */
-export const friendEmails = (friendships) => (friendships || []).filter((f) => f.status === "accepted").map((f) => f.other);
+/** The uids of my accepted friends. */
+export const friendIds = (friendships) => (friendships || []).filter((f) => f.status === "accepted").map((f) => f.other);
 
 export const requestFriend = (me, other) => setDoc(doc(db, "friendships", friendshipId(me, other)), {
   users: [me, other].sort(), requester: me, status: "pending", createdAt: serverTimestamp(),
@@ -351,16 +339,16 @@ export async function saveRecipe(me, id, recipe) {
 export const deleteRecipe = (id) => deleteDoc(doc(db, "recipes", id));
 
 // ---- Messages ----
-// conversations/{id}      { type: "direct" | "feedback", members: [email], lastMessage: { text, from }, lastAt, readAt: { email: time },
-//                           createdAt }; direct: id "a|b" (js/messaging.js directId), feedback: "feedback|<email>", also read by admins
-// conversations/{id}/messages/{id}   { from, text, at, editedAt?, reactions?: { emoji: [email] } }
+// conversations/{id}      { type: "direct" | "feedback", members: [uid], lastMessage: { text, from }, lastAt, readAt: { uid: time },
+//                           createdAt }; direct: id "a|b" (js/messaging.js directId), feedback: "feedback|<uid>", also read by admins
+// conversations/{id}/messages/{id}   { from, text, at, editedAt?, reactions?: { emoji: [uid] } }
 // Only someone I am connected to (housemate, meal guest, friend) can be messaged: firestore.rules connectedTo().
 
 const millis = (ts) => (ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0);
 
 function toConversation(id, d) {
   const readAt = {};
-  for (const [email, ts] of Object.entries(d.readAt || {})) readAt[email] = millis(ts);
+  for (const [uid, ts] of Object.entries(d.readAt || {})) readAt[uid] = millis(ts);
   return {
     id,
     type: d.type === "feedback" ? "feedback" : "direct",

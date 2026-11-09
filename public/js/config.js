@@ -23,8 +23,8 @@ export const ALLOWED_DOMAIN = "";
 // (isBootstrapAdmin()). After that, admins are listed in the settings/admins document.
 export const BOOTSTRAP_ADMIN_EMAIL = "nino.otten@aperam.com";
 
-// The OAuth web client for the Google directory search in Settings > Users > Add user (js/directory.js): the "Web client ID" under
-// Authentication > Sign-in method > Google in the Firebase console. sel new fills it in. Empty: Add user takes an email address only.
+// The OAuth web client Firebase made for Google sign-in, kept for the library's setup tools (sel new). Splitskebab itself no longer uses
+// it: there is no directory search, people are found by name and nobody is added by email.
 export const GOOGLE_OAUTH_CLIENT_ID = "666699245055-tb1gave0fk4mlh28d38jc24r2lr4b323.apps.googleusercontent.com";
 
 export const configured = !firebaseConfig.apiKey.startsWith("<");

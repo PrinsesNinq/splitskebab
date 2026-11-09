@@ -34,11 +34,11 @@ export function splitEvenly(totalCents, ids) {
 
 export const guestId = (guest) => `guest:${guest.id}`;
 
-/** Everyone who ate: the participants' emails, then the guests ("guest:<id>"). */
+/** Everyone who ate: the participants' uids, then the guests ("guest:<id>"). */
 export function eaters(meal) {
-  const emails = Array.isArray(meal.participants) ? meal.participants.filter((e) => typeof e === "string") : [];
+  const people = Array.isArray(meal.participants) ? meal.participants.filter((e) => typeof e === "string") : [];
   const guests = Array.isArray(meal.guests) ? meal.guests.filter((g) => g && typeof g.id === "string").map(guestId) : [];
-  return [...new Set([...emails, ...guests])];
+  return [...new Set([...people, ...guests])];
 }
 
 /** The key a payment from one person to another is marked paid under (meal.settled): "from>to". */
@@ -46,15 +46,15 @@ export const settleKey = (from, to) => `${from}>${to}`;
 
 /**
  * A stored meal's costs and settled payments in the current shape, from either shape on disk:
- *   now:   costs: { [email]: cents } (each person who did groceries adds their own), settled: ["from>to", ...]
+ *   now:   costs: { [uid]: cents } (each person who did groceries adds their own), settled: ["from>to", ...]
  *   older: cost: { totalCents, paidBy } (one payer), settled: [eater id, ...] (who paid that payer back)
  * A meal can have both while it changes over (someone adds their costs to an older meal): the older cost then counts as its payer's
- * entry, unless that payer already has one of their own. Returns { costs: Map email -> cents, settled: Set of "from>to" }.
+ * entry, unless that payer already has one of their own. Returns { costs: Map uid -> cents, settled: Set of "from>to" }.
  */
 export function readCosts(d) {
   const costs = new Map();
   if (d.costs && typeof d.costs === "object") {
-    for (const [email, cents] of Object.entries(d.costs)) if (Number.isInteger(cents) && cents > 0 && cents <= MAX_CENTS) costs.set(email, cents);
+    for (const [id, cents] of Object.entries(d.costs)) if (Number.isInteger(cents) && cents > 0 && cents <= MAX_CENTS) costs.set(id, cents);
   }
   const legacy = d.cost && Number.isInteger(d.cost.totalCents) && d.cost.totalCents > 0 && typeof d.cost.paidBy === "string" ? d.cost : null;
   if (legacy && !costs.has(legacy.paidBy)) costs.set(legacy.paidBy, legacy.totalCents);

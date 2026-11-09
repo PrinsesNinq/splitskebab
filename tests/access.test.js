@@ -1,4 +1,5 @@
-// Who gets in (firestore.rules, public/js/config.js): any Google account can sign in, only invited people get data. These read the rules
+// Who gets in (firestore.rules, public/js/config.js): any Google account can sign in, only people with an account who accepted the terms
+// get data, and people are their uid: no email is an id anywhere, and an email is only stored by its owner. These read the rules
 // as text: the rules themselves can only be run on the Firebase emulator, which needs Java (not installed on this machine yet).
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -33,11 +34,11 @@ test("every app collection asks for an invitation, not just a sign-in", () => {
     assert.ok(allows?.length, `${p} has rules`);
     for (const a of allows) assert.ok(a.includes("allowed()"), `${p}: ${a}`);
   }
-  assert.match(block("userProfiles/{email}"), /allow read: if allowed\(\);/, "profiles (allergies, payment links) only for invited people");
+  assert.match(block("userProfiles/{uid}"), /allow read: if allowed\(\);/, "names and photos only for people with an account");
 });
 
 test("only admins read who the admins are; strangers cannot read the groups", () => {
-  assert.match(block("settings/admins"), /allow read: if allowed\(\) && \(resource == null \|\| me\(\) in resource\.data\.emails\);/, "only an admin (or anyone while there is no list yet)");
+  assert.match(block("settings/admins"), /allow read: if allowed\(\) && \(resource == null \|\| me\(\) in resource\.data\.get\('uids', \[\]\)\);/, "only an admin (or anyone while there is no list yet)");
   assert.match(block("settings/groups"), /allow read: if allowed\(\);/);
 });
 
@@ -65,13 +66,14 @@ test("everyone writes only their own costs for a meal, and only the payer retire
 });
 
 test("the public profile holds only a name and a photo; allergies, payment link and friends are private", () => {
-  assert.match(block("userProfiles/{email}"), /keys\(\)\.hasOnly\(\['displayName', 'photoUrl'\]\)/);
-  const priv = block("privateProfiles/{email}");
-  assert.match(priv, /allow get: if allowed\(\) && \(me\(\) == email \|\| me\(\) in resource\.data\.readers\);/, "only me and my readers");
+  assert.match(block("userProfiles/{uid}"), /keys\(\)\.hasOnly\(\['displayName', 'photoUrl'\]\)/);
+  const priv = block("privateProfiles/{uid}");
+  assert.match(priv, /allow get: if allowed\(\) && \(me\(\) == uid \|\| me\(\) in resource\.data\.readers\);/, "only me and my readers");
   assert.match(priv, /allow list: if allowed\(\) && me\(\) in resource\.data\.readers;/, "the query only by the readers condition it can prove");
   assert.ok(!/allow read:/.test(priv), "no combined read rule: an id condition cannot be proven for a query");
-  assert.match(priv, /allow create, update: if allowed\(\) && me\(\) == email &&/, "only I write mine (and so only I decide who reads it)");
-  assert.match(priv, /hasOnly\(\['allergies', 'paymentLink', 'friends', 'readers'\]\)/);
+  assert.match(priv, /allow create, update: if allowed\(\) && me\(\) == uid &&/, "only I write mine (and so only I decide who reads it)");
+  assert.match(priv, /hasOnly\(\['allergies', 'paymentLink', 'friends', 'readers', 'email'\]\)/);
+  assert.match(rules, /\(!\('email' in d\) \|\| d\.email == myEmail\(\)\)/, "an email there can only be my own sign-in email");
   assert.match(rules, /d\.readers is list && d\.readers\.size\(\) <= 1500/, "the readers list is capped as in js/sharing.js");
 });
 
@@ -82,32 +84,46 @@ test("everyone writes only their own reason for not coming, of at most 200 chara
   assert.match(fn, /n\[me\(\)\] is string && n\[me\(\)\]\.size\(\) <= 200/);
 });
 
-test("an account is a users/ document: anyone may create their own with only the time in it, only admins change or delete it", () => {
-  assert.match(rules, /function allowed\(\) \{[\s\S]*?exists\(\/databases\/\$\(database\)\/documents\/users\/\$\(me\(\)\)\)/);
-  const users = block("users/{email}");
+test("people are their uid: me() is the sign-in id, and no rule uses an email as an id", () => {
+  assert.match(rules, /function me\(\) \{\s*return request\.auth\.uid;\s*\}/);
+  assert.ok(!/match \/\w+\/\{email\}/.test(rules), "no document is keyed by an email");
+  assert.ok(!/me\(\) in [^;]*\.emails/.test(rules), "no list of emails is checked");
+  assert.match(rules, /function myEmail\(\) \{\s*return request\.auth\.token\.email\.lower\(\);\s*\}/);
+  for (const use of rules.match(/myEmail\(\)/g).slice(1)) assert.equal(use, "myEmail()");
+  const uses = rules.split("\n").filter((l) => l.includes("myEmail()") && !l.includes("function myEmail"));
+  for (const line of uses) assert.match(line, /email == myEmail\(\)|myEmail\(\) == 'nino\.otten@aperam\.com'/, `only compared with what I write about myself: ${line.trim()}`);
+});
+
+test("an account is a users/ document: created by accepting the terms with my own email, only admins change groups or delete it", () => {
+  assert.match(rules, /function allowed\(\) \{[\s\S]*?acceptedTerms\(\)/, "no data without accepted terms");
+  assert.match(rules, /function acceptedTerms\(\) \{[\s\S]*?users\/\$\(me\(\)\)\)\.data\.get\('termsVersion', 0\) >= 1/);
+  const users = block("users/{uid}");
   const create = /allow create: if ([\s\S]*?);\n/.exec(users)[1];
-  assert.match(create, /me\(\) == email/, "only your own account");
+  assert.match(create, /me\(\) == uid/, "only your own account");
   assert.match(create, /notBlocked\(\)/, "a blocked person cannot register again");
-  assert.match(create, /keys\(\)\.hasOnly\(\['registeredAt'\]\)/, "no groups or anything else on your own account");
-  assert.match(create, /registeredAt == request\.time/);
-  assert.match(users, /allow update, delete: if isAdmin\(\);/);
+  assert.match(create, /keys\(\)\.hasOnly\(\['registeredAt', 'termsVersion', 'termsAcceptedAt', 'email'\]\)/, "no groups or anything else on your own account");
+  assert.match(create, /registeredAt == request\.time && termsOk\(request\.resource\.data\)/);
+  assert.match(rules, /function termsOk\(d\) \{[\s\S]*?d\.termsAcceptedAt == request\.time && d\.email == myEmail\(\);/, "accepting stores my own email, stamped by the server");
+  const update = /allow update: if ([\s\S]*?);\n/.exec(users)[1];
+  assert.match(update, /isAdmin\(\) && request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasOnly\(\['groups'\]\)/, "admins change groups only");
+  assert.match(update, /me\(\) == uid && notBlocked\(\) &&[\s\S]*?hasOnly\(\['termsVersion', 'termsAcceptedAt', 'email'\]\)/, "I only accept (newer) terms");
+  assert.match(users, /allow delete: if isAdmin\(\);/);
+  assert.match(users, /allow read: if isAdmin\(\) \|\| \(signedIn\(\) && me\(\) == uid\);/, "my email there: only me and the admins");
 });
 
 test("a blocked person gets nothing, and only admins block", () => {
   assert.match(rules, /function allowed\(\) \{[\s\S]*?notBlocked\(\)/, "allowed() checks the block");
-  assert.match(block("blocked/{email}"), /allow write: if isAdmin\(\);/);
-  assert.match(block("blocked/{email}"), /allow read: if isAdmin\(\) \|\| \(signedIn\(\) && me\(\) == email\);/, "you may see that you are blocked");
+  assert.match(block("blocked/{uid}"), /allow write: if isAdmin\(\);/);
+  assert.match(block("blocked/{uid}"), /allow read: if isAdmin\(\) \|\| \(signedIn\(\) && me\(\) == uid\);/, "you may see that you are blocked");
 });
 
 test("every admin action in Settings is refused to non-admins by the rules, not only hidden", () => {
   assert.match(block("settings/admins"), /allow update, delete: if isAdmin\(\);/, "promote and demote");
-  assert.match(block("settings/admins"), /allow create: if isBootstrapAdmin\(\) && !exists/, "only the bootstrap account creates the list, once");
+  assert.match(block("settings/admins"), /allow create: if isBootstrapAdmin\(\) && !exists[\s\S]*?request\.resource\.data\.uids == \[me\(\)\];/, "only the bootstrap account creates the list, once, with itself");
   assert.match(block("settings/groups"), /allow write: if isAdmin\(\);/, "groups");
-  assert.match(block("users/{email}"), /allow update, delete: if isAdmin\(\);/, "change or remove an account");
-  assert.match(block("users/{email}"), /allow read: if isAdmin\(\) \|\| \(signedIn\(\) && me\(\) == email\);/, "the users list: admins, or only your own");
-  assert.match(block("blocked/{email}"), /allow write: if isAdmin\(\);/, "block and unblock");
-  assert.match(block("blocked/{email}"), /allow read: if isAdmin\(\) \|\| \(signedIn\(\) && me\(\) == email\);/, "the block list: admins, or only your own");
-  assert.match(block("userProfiles/{email}"), /allow delete: if isAdmin\(\);/, "delete someone's profile");
+  assert.match(block("users/{uid}"), /allow delete: if isAdmin\(\);/, "remove an account");
+  assert.match(block("blocked/{uid}"), /allow write: if isAdmin\(\);/, "block and unblock");
+  assert.match(block("userProfiles/{uid}"), /allow delete: if isAdmin\(\);/, "delete someone's profile");
 });
 
 test("the Settings page sends non-admins away before showing anything", () => {

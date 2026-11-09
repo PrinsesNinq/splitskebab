@@ -102,13 +102,13 @@ test("the grocery list keeps staples apart", () => {
 test("allergy conflicts name the person and only the allergens the recipe has", () => {
   const pesto = builtinRecipes("en").find((r) => r.id === "pesto");
   const people = [
-    { email: "e@x.com", name: "Elise", allergies: ["nuts", "fish"] },
-    { email: "n@x.com", name: "Nino", allergies: [] },
-    { email: "h@x.com", name: "Hacker", allergies: ["<script>", "milk"] },
+    { id: "ue", name: "Elise", allergies: ["nuts", "fish"] },
+    { id: "un", name: "Nino", allergies: [] },
+    { id: "uh", name: "Hacker", allergies: ["<script>", "milk"] },
   ];
   assert.deepEqual(allergyConflicts(pesto, people), [
-    { email: "e@x.com", name: "Elise", allergens: ["nuts"] },
-    { email: "h@x.com", name: "Hacker", allergens: ["milk"] },
+    { id: "ue", name: "Elise", allergens: ["nuts"] },
+    { id: "uh", name: "Hacker", allergens: ["milk"] },
   ]);
 });
 

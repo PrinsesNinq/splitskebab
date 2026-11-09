@@ -103,11 +103,11 @@
 
       <div class="tab-pane fade" id="friends-pane" role="tabpanel" aria-labelledby="friends-tab" tabindex="0">
         <p class="small text-body-secondary" data-i18n="friends.help">Friends are people you eat with now and then without living together. You can invite them to your meals, and they can invite you to theirs.</p>
-        <!-- Find people by name (or email): the results show as you type, each with Add. -->
+        <!-- Find people by name: the results show as you type, each with Add. -->
         <form class="mb-2" id="friend-form" role="search" novalidate>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
-            <input class="form-control" type="search" id="friend-search" maxlength="200" autocomplete="off" placeholder="Search by name or email" data-i18n-placeholder="friends.searchPlaceholder" aria-label="Search by name or email" data-i18n-aria-label="friends.searchPlaceholder" aria-controls="friend-results">
+            <input class="form-control" type="search" id="friend-search" maxlength="200" autocomplete="off" placeholder="Search by name" data-i18n-placeholder="friends.searchPlaceholder" aria-label="Search by name" data-i18n-aria-label="friends.searchPlaceholder" aria-controls="friend-results">
           </div>
         </form>
         <ul class="list-group mb-3" id="friend-results" aria-live="polite"></ul>

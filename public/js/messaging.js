@@ -4,10 +4,10 @@
 export const MAX_MESSAGE = 2000; // characters per message (firestore.rules allows the same)
 export const MAX_PREVIEW = 140; // the last message shown in the list (firestore.rules allows up to 160)
 
-/** One direct conversation per pair, whoever starts it: the two emails sorted and joined by "|" (as firestore.rules expects). */
+/** One direct conversation per pair, whoever starts it: the two uids sorted and joined by "|" (as firestore.rules expects). */
 export const directId = (a, b) => [a, b].sort().join("|");
 /** A person's feedback to the admins. */
-export const feedbackId = (email) => `feedback|${email}`;
+export const feedbackId = (uid) => `feedback|${uid}`;
 
 /** The other person in a direct conversation; for feedback, the person who gave it. */
 export function otherMember(conversation, me) {
@@ -28,7 +28,7 @@ export function preview(text) {
 }
 
 /**
- * The reactions after I react (or take my reaction back: emoji null): { emoji: [email] }. Each person has at most one reaction per
+ * The reactions after I react (or take my reaction back: emoji null): { emoji: [uid] }. Each person has at most one reaction per
  * message, so mine is first taken off whatever it was. Emojis nobody uses any more are dropped.
  */
 export function react(reactions, me, emoji) {

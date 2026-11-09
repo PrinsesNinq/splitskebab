@@ -10,7 +10,7 @@ import { ALLERGENS, allergenLabel } from "./allergens.js";
 import { getLang, t } from "./i18n.js";
 
 const user = await whenUser();
-const me = user.email.toLowerCase();
+const me = user.uid;
 const lang = getLang();
 const $ = (sel) => document.querySelector(sel);
 const stops = [];

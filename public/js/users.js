@@ -1,10 +1,10 @@
 // Who uses the app, their role and their groups: the data behind Settings > Users (admins only, see firestore.rules).
-//   userProfiles/{email}   name and photo, written by each person when they sign in (js/auth.js)
-//   users/{email}          { groups: [...], name?, photoUrl? }, set by admins; an admin can add someone before they ever sign in (with
-//                          the name and photo from the Google directory, shown until their own profile exists)
-//   settings/admins        { emails: [...] }, who is an admin
-//   settings/groups        { names: [...] }, the groups there are
-// Emails are the document ids, lowercase.
+//   userProfiles/{uid}  name and photo, written by each person when they sign in (js/auth.js)
+//   users/{uid}         { registeredAt, termsVersion, termsAcceptedAt, email, groups }: the account. email is there only once they accepted the
+//                       terms (which allows the admins to see it); groups are set by admins
+//   settings/admins     { uids: [...] }, who is an admin
+//   settings/groups     { names: [...] }, the groups there are
+// People are known by their uid (the document ids); nobody is added by email: anyone with a Google account registers themselves.
 import { SDK, db } from "./firebase-init.js";
 import { safePhoto } from "./photo.js";
 
@@ -12,36 +12,37 @@ const {
   collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, writeBatch, serverTimestamp,
 } = await import(`${SDK}/firebase-firestore.js`);
 
-// What is stored is not trusted: a person writes their own profile (userProfiles/{email}), so any field can hold anything. These keep one odd
+// What is stored is not trusted: a person writes their own profile (userProfiles/{uid}), so any field can hold anything. These keep one odd
 // record from breaking the whole list (a name that is not text once stopped the sort, and with it the Users tab).
 const text = (v) => (typeof v === "string" ? v.trim() : "");
 const strings = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x) : []);
 const photo = safePhoto; // js/photo.js: a Google photo or a small picture the person chose
 
 /**
- * Everyone the app knows, kept up to date: onChange({ people, groups }) on every change, once all four sources have answered.
- * people: [{ email, name, photoUrl, admin, groups, signedIn, invited, blocked }] sorted by name. Returns a function that stops listening.
+ * Everyone the app knows, kept up to date: onChange({ people, groups }) on every change, once all sources have answered.
+ * people: [{ id, name, email, photoUrl, admin, groups, registered, acceptedTerms, blocked }] sorted by name. email is "" until the
+ * person accepted the terms. Returns a function that stops listening.
  */
 export function watchPeople(onChange, onError = console.error) {
   const state = { profiles: null, users: null, admins: null, groups: null, blocked: null };
   const emit = () => {
     if (Object.values(state).some((v) => v === null)) return;
     const admins = strings(state.admins);
-    const emails = new Set([...state.profiles.keys(), ...state.users.keys(), ...admins]);
-    const people = [...emails].map((email) => {
-      const profile = state.profiles.get(email) || {};
-      const user = state.users.get(email) || {};
+    const ids = new Set([...state.profiles.keys(), ...state.users.keys(), ...admins]);
+    const people = [...ids].map((id) => {
+      const profile = state.profiles.get(id) || {};
+      const account = state.users.get(id) || null;
+      const acceptedTerms = Number(account?.termsVersion) >= 1;
       return {
-        email,
-        name: text(profile.displayName) || text(user.name) || email.split("@")[0],
-        photoUrl: photo(profile.photoUrl) || photo(user.photoUrl),
-        admin: admins.includes(email),
-        groups: strings(user.groups),
-        signedIn: state.profiles.has(email), // has signed in at least once (added by an admin otherwise)
-        // May use Splitskebab: an admin added them (a users/ document) or they are an admin. Someone who signed in without being added
-        // shows up here with invited false, for an admin to let in.
-        invited: state.users.has(email) || admins.includes(email),
-        blocked: state.blocked.has(email), // an admin blocked them: no access, and they cannot register again
+        id,
+        name: text(profile.displayName) || "?",
+        email: acceptedTerms ? text(account.email) : "", // shown only with the person's permission (the terms)
+        photoUrl: photo(profile.photoUrl),
+        admin: admins.includes(id),
+        groups: strings(account?.groups),
+        registered: Boolean(account), // has an account (signed in without registering otherwise)
+        acceptedTerms,
+        blocked: state.blocked.has(id), // an admin blocked them: no access, and they cannot register again
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
     onChange({ people, groups: strings(state.groups).sort((a, b) => a.localeCompare(b)) });
@@ -50,30 +51,25 @@ export function watchPeople(onChange, onError = console.error) {
   const stops = [
     onSnapshot(collection(db, "userProfiles"), (s) => { state.profiles = byId(s); emit(); }, onError),
     onSnapshot(collection(db, "users"), (s) => { state.users = byId(s); emit(); }, onError),
-    onSnapshot(doc(db, "settings", "admins"), (s) => { state.admins = (s.exists() && s.data().emails) || []; emit(); }, onError),
+    onSnapshot(doc(db, "settings", "admins"), (s) => { state.admins = (s.exists() && s.data().uids) || []; emit(); }, onError),
     onSnapshot(doc(db, "settings", "groups"), (s) => { state.groups = (s.exists() && s.data().names) || []; emit(); }, onError),
     onSnapshot(collection(db, "blocked"), (s) => { state.blocked = new Set(s.docs.map((d) => d.id)); emit(); }, onError),
   ];
   return () => stops.forEach((stop) => stop());
 }
 
-/** Adds someone before they sign in (so they can be put in groups); name and photo when known (the Google directory). */
-export const addPerson = (email, { name, photoUrl } = {}) => setDoc(doc(db, "users", email.toLowerCase()), {
-  ...(name ? { name } : {}), ...(photoUrl ? { photoUrl } : {}),
-}, { merge: true });
-
-export const setAdmin = (email, admin) => updateDoc(doc(db, "settings", "admins"), { emails: admin ? arrayUnion(email) : arrayRemove(email) });
+export const setAdmin = (id, admin) => updateDoc(doc(db, "settings", "admins"), { uids: admin ? arrayUnion(id) : arrayRemove(id) });
 
 /**
  * Removes someone's account: their groups, their profile and their admin rights, and their users/ document. Anyone can register, so they
  * can sign up again; to keep someone out, block them (setBlocked).
  */
-export async function removePerson(email) {
+export async function removePerson(id) {
   const batch = writeBatch(db);
-  batch.delete(doc(db, "users", email));
-  batch.delete(doc(db, "userProfiles", email));
-  batch.delete(doc(db, "privateProfiles", email)); // allergies, payment link, friend list
-  batch.update(doc(db, "settings", "admins"), { emails: arrayRemove(email) });
+  batch.delete(doc(db, "users", id));
+  batch.delete(doc(db, "userProfiles", id));
+  batch.delete(doc(db, "privateProfiles", id)); // allergies, payment link, friend list
+  batch.update(doc(db, "settings", "admins"), { uids: arrayRemove(id) });
   await batch.commit();
 }
 
@@ -81,11 +77,12 @@ export async function removePerson(email) {
  * Blocks someone (no access at all, and they cannot register again: firestore.rules notBlocked()) or lets them back in. Their account
  * and data stay, so unblocking gives everything back.
  */
-export const setBlocked = (email, blocked) => (blocked
-  ? setDoc(doc(db, "blocked", email), { blockedAt: serverTimestamp() })
-  : deleteDoc(doc(db, "blocked", email)));
+export const setBlocked = (id, blocked) => (blocked
+  ? setDoc(doc(db, "blocked", id), { blockedAt: serverTimestamp() })
+  : deleteDoc(doc(db, "blocked", id)));
 
-export const setGroups = (email, groups) => setDoc(doc(db, "users", email), { groups: [...new Set(groups)].sort() }, { merge: true });
+/** A person's groups: only on an existing account (firestore.rules let admins change nothing else on it). */
+export const setGroups = (id, groups) => updateDoc(doc(db, "users", id), { groups: [...new Set(groups)].sort() });
 
 export const addGroup = (name) => setDoc(doc(db, "settings", "groups"), { names: arrayUnion(name) }, { merge: true });
 
@@ -97,10 +94,10 @@ export async function changeGroup(name, newName, current) {
   names.delete(name);
   if (newName) names.add(newName);
   batch.set(doc(db, "settings", "groups"), { names: [...names].sort() }, { merge: true });
-  for (const person of current.people.filter((p) => p.groups.includes(name))) {
+  for (const person of current.people.filter((p) => p.groups.includes(name) && p.registered)) {
     const groups = person.groups.filter((g) => g !== name);
     if (newName) groups.push(newName);
-    batch.set(doc(db, "users", person.email), { groups: [...new Set(groups)].sort() }, { merge: true });
+    batch.update(doc(db, "users", person.id), { groups: [...new Set(groups)].sort() });
   }
   await batch.commit();
 }

@@ -3,14 +3,14 @@
 // sign-in (js/auth.js); after that they are mine to change here.
 import "../vendor/sel/elements/colour-themes.js"; // the colour theme swatches (component "Colour themes")
 import { whenUser, esc, onLeave, attempt, avatarHtml, toast } from "./ui.js";
-import { people, person, saveMyProfile, saveMyIdentity, safeLink } from "./store.js";
+import { people, person, saveMyProfile, saveMyIdentity, showMyEmail, safeLink } from "./store.js";
 import { ALLERGENS } from "./allergens.js";
 import { shrinkPhoto, safePhoto } from "./photo.js";
 import { getLang, t } from "./i18n.js";
 import { attachPushSettings } from "./push-settings.js";
 
 const user = await whenUser();
-const me = user.email.toLowerCase();
+const me = user.uid;
 const $ = (sel) => document.querySelector(sel);
 let dirty = false; // the person changed something: a live update must not overwrite it
 let pendingPhoto; // undefined: unchanged; null: removed; a string: the new photo (saved with Save)
@@ -30,7 +30,7 @@ const shownPhoto = () => (pendingPhoto === undefined ? person(me).photoUrl : pen
 function renderPhoto() {
   const p = person(me);
   const name = $("#display-name").value.trim() || p.name;
-  $("#photo-preview").innerHTML = avatarHtml({ email: me, name, photoUrl: shownPhoto() }, "avatar avatar-lg");
+  $("#photo-preview").innerHTML = avatarHtml({ id: me, name, photoUrl: shownPhoto() }, "avatar avatar-lg");
   $("#photo-remove").hidden = !shownPhoto();
   $("#photo-google").hidden = !safePhoto(user.photoURL) || shownPhoto() === user.photoURL;
 }
@@ -39,7 +39,8 @@ function render() {
   const p = person(me);
   $("#profile-avatar").innerHTML = avatarHtml({ ...p, name: p.name || user.displayName || me }, "avatar avatar-lg");
   $("#profile-name").textContent = p.name;
-  $("#profile-email").textContent = me;
+  $("#profile-email").textContent = user.email;
+  $("#show-email").checked = Boolean(p.email);
   if (!dirty) {
     renderGrid(p.allergies);
     $("#payment-link").value = p.paymentLink;
@@ -48,6 +49,17 @@ function render() {
   renderPhoto();
 }
 
+// Showing my email is saved at once, and is not part of the form's Save (so it does not mark the form as changed).
+$("#show-email").addEventListener("change", async (e) => {
+  e.stopPropagation();
+  const on = e.target.checked;
+  e.target.disabled = true;
+  const ok = await attempt(async () => { await showMyEmail(me, on ? user.email : null); return true; }, t(on ? "profile.emailShown" : "profile.emailHidden"));
+  if (!ok) e.target.checked = !on;
+  e.target.disabled = false;
+});
+
+$("#show-email").addEventListener("input", (e) => e.stopPropagation());
 $("#profile-form").addEventListener("input", () => { dirty = true; });
 $("#profile-form").addEventListener("change", () => { dirty = true; });
 $("#display-name").addEventListener("input", renderPhoto); // the initial in the preview follows the name

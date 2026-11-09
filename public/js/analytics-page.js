@@ -12,7 +12,7 @@ import { formatMoney } from "./money.js";
 import { getLang, t, formatDay } from "./i18n.js";
 
 const user = await whenUser();
-const me = user.email.toLowerCase();
+const me = user.uid;
 const lang = getLang();
 const circleId = String(param("circle") || "");
 const $ = (sel) => document.querySelector(sel);
@@ -94,7 +94,7 @@ function render() {
   const payers = paidByPerson(inPeriod);
   const most = payers[0]?.cents || 1;
   $("#analytics-payers").innerHTML = payers.length ? payers.map((p) => {
-    const who = person(p.email);
+    const who = person(p.id);
     return `<li class="mb-2">
       <div class="d-flex align-items-center gap-2 small">${avatarHtml(who, "avatar avatar-sm")}<span class="flex-grow-1 text-truncate">${esc(who.name)}</span><strong>${esc(formatMoney(p.cents, lang))}</strong></div>
       <div class="share-bar mt-1" aria-hidden="true"><span style="--share: ${Math.max(2, Math.round((p.cents / most) * 100))}%"></span></div>

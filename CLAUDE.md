@@ -3,7 +3,7 @@
 A mobile-first web app (installable PWA) for students who live together: plan meals per house or group on a calendar, pick a recipe and
 get the grocery list, see everyone's allergies (recipes that contain them are marked red), and split the receipt equally with payment
 requests. English and Dutch. Runs on Firebase project `splitskebab-1fb8` (owned by a personal Gmail account, Firestore in eur3, hosting at
-https://splitskebab-1fb8.web.app). Sign-in: any Google account; a new person creates their own account in one step (a users/{email}
+https://splitskebab-1fb8.web.app). Sign-in: any Google account; a new person creates their own account by accepting the terms (js/terms.js; a users/{uid}
 document), admins can block someone in Settings > Users (firestore.rules allowed(), notBlocked()).
 
 ## Stack and layout
@@ -18,6 +18,8 @@ document), admins can block someone in Settings > Users (firestore.rules allowed
   `i18n-dict.js`); Firestore access and shared live lists (`store.js`); one script per page (`home.js`, `meal.js`, `recipes.js`,
   `houses.js`, `profile.js`); shared UI (`ui.js`, `recipe-view.js`, `calendar.js`); the starter's auth and settings.
 - `firestore.rules`: every permission (data model at the top of `public/js/store.js`). Allergen ids must match `js/allergens.js`.
+  People are their Firebase uid everywhere (document ids, lists, map keys, chat ids), never their email: an email is stored only by its
+  owner, in `users/{uid}` (admins read it, which the terms allow) and, when they switch "show my email" on, in `privateProfiles/{uid}`.
   Profiles are split: `userProfiles` (name, photo: every user reads, for search) and `privateProfiles` (allergies, payment link,
   friends: only the person and their `readers`, which their own app keeps to housemates, meal guests and friends, `js/sharing.js`).
 - `public/vendor/sel/` (or the folder in `sel.lock.json`) holds components pulled from the Shared Element Library: generated, never edit.

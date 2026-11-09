@@ -8,7 +8,7 @@ import { normalise } from "./recipe-logic.js";
 import { t, formatDay } from "./i18n.js";
 
 const user = await whenUser();
-const me = user.email.toLowerCase();
+const me = user.uid;
 const $ = (sel) => document.querySelector(sel);
 const stops = [];
 onLeave(() => stops.forEach((stop) => stop()));
@@ -58,12 +58,12 @@ function renderInbox() {
 /** The people I can start a conversation with: my connections (my private profile's readers), filtered by what was typed. */
 function renderNewPeople() {
   const q = normalise($("#new-message-search").value);
-  const list = person(me).readers.map((email) => person(email))
-    .filter((p) => !q || normalise(p.name).includes(q) || p.email.includes(q))
+  const list = person(me).readers.map((id) => person(id))
+    .filter((p) => !q || normalise(p.name).includes(q) || (p.email && p.email.includes(q)))
     .sort((a, b) => a.name.localeCompare(b.name))
     .slice(0, 12);
   $("#new-message-people").innerHTML = list.map((p) => `<li class="list-group-item p-0">
-      <button type="button" class="btn w-100 text-start d-flex align-items-center gap-2 py-2" data-message="${esc(p.email)}">
+      <button type="button" class="btn w-100 text-start d-flex align-items-center gap-2 py-2" data-message="${esc(p.id)}">
         ${avatarHtml(p, "avatar avatar-sm")}<span class="text-truncate">${esc(p.name)}</span></button></li>`).join("")
     || `<li class="list-group-item small text-body-secondary">${esc(t("messages.nobodyToMessage"))}</li>`;
 }

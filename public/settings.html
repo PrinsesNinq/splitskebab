@@ -96,11 +96,11 @@
       </div>
 
       <div class="tab-pane fade" id="users-pane" role="tabpanel" aria-labelledby="users-tab" tabindex="0">
-        <p class="text-body-secondary">Everyone who signed in, or was added here: their role and their groups, live from Firestore (<code>js/users.js</code>). Only admins see this tab.</p>
+        <p class="text-body-secondary">Everyone who signed in: their role and their groups, live from Firestore (<code>js/users.js</code>). Only admins see this tab.</p>
         <div class="alert alert-danger d-none" role="alert" id="users-error"></div>
 
         <!-- The sortable table (component "List Striped Glass"), filled by js/settings.js: click a column header to sort it, the funnel
-             filters it. data-value / data-values on a cell give the value to sort and filter by (the email, one value per group). -->
+             filters it. data-value / data-values on a cell give the value to sort and filter by (the name, one value per group). -->
         <sel-striped-list sortable>
         <div class="table-responsive">
           <table class="table align-middle striped-list">
@@ -112,16 +112,7 @@
         </div>
         </sel-striped-list>
 
-        <hr class="my-4">
-        <h6 class="text-uppercase text-body-secondary small">Add user</h6>
-        <p class="text-body-secondary small">Anyone with a Google account can create their own Splitskebab account; adding someone here creates it for them ahead of time. "No account" means they signed in but did not register yet ("Give access" registers them). "Remove" deletes an account, but they can register again: "Block" keeps someone out until you unblock them.</p>
-        <form id="add-user-form" class="row g-3 align-items-end">
-          <div class="col-12 col-md">
-            <label class="form-label" for="add-user-name">Google account email</label>
-            <input class="form-control" id="add-user-name" type="email" inputmode="email" required autocomplete="off" maxlength="200" placeholder="elise@gmail.com">
-          </div>
-          <div class="col-12 col-md-auto"><button type="submit" class="btn btn-primary">Add user</button></div>
-        </form>
+        <p class="text-body-secondary small mt-2">Anyone with a Google account creates their own account by accepting the terms; there is nothing to add here. An email shows only for people who accepted the terms (that is their permission); "Terms not accepted" means they have an account from before the terms and will be asked at their next visit, "No account" that they signed in but did not register. "Remove" deletes an account, but they can register again: "Block" keeps someone out until you unblock them.</p>
 
         <hr class="my-4">
         <div class="d-flex align-items-center justify-content-between mb-2">

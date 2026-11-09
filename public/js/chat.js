@@ -9,7 +9,7 @@ import { otherMember, isUnread, react } from "./messaging.js";
 import { t, formatDay } from "./i18n.js";
 
 const user = await whenUser();
-const me = user.email.toLowerCase();
+const me = user.uid;
 const id = String(param("c") || "");
 const $ = (sel) => document.querySelector(sel);
 const stops = [];
@@ -31,11 +31,11 @@ function renderHeader() {
     const mine = conversation.members[0] === me;
     $("#chat-header").innerHTML = `<i class="bi bi-megaphone fs-3 text-primary" aria-hidden="true"></i>
       <div class="min-w-0"><h1 class="h5 mb-0 text-truncate">${esc(mine ? t("messages.feedbackTitle") : t("messages.feedbackFrom", { name: giver.name }))}</h1>
-      <span class="small text-body-secondary">${esc(mine ? t("chat.feedbackHelp") : giver.email)}</span></div>`;
+      <span class="small text-body-secondary">${esc(mine ? t("chat.feedbackHelp") : giver.email)}</span></div>`; // giver.email: only when they show it
   } else {
     const other = person(otherMember(conversation, me));
     $("#chat-header").innerHTML = `${avatarHtml(other, "avatar")}
-      <div class="min-w-0"><h1 class="h5 mb-0 text-truncate"><a class="person-link" href="person.html?email=${encodeURIComponent(other.email)}">${esc(other.name)}</a></h1></div>`;
+      <div class="min-w-0"><h1 class="h5 mb-0 text-truncate"><a class="person-link" href="person.html?id=${encodeURIComponent(other.id)}">${esc(other.name)}</a></h1></div>`;
   }
 }
 

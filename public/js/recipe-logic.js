@@ -133,13 +133,13 @@ export function groceryList(recipe, servings) {
 }
 
 /**
- * Who at the table reacts to this recipe: [{ email, name, allergens }] for every person whose allergies meet the recipe's allergens.
- * people: [{ email, name, allergies }].
+ * Who at the table reacts to this recipe: [{ id, name, allergens }] for every person whose allergies meet the recipe's allergens.
+ * people: [{ id, name, allergies }].
  */
 export function allergyConflicts(recipe, people) {
   const contained = new Set(recipe.allergens);
   return people
-    .map((p) => ({ email: p.email, name: p.name, allergens: cleanAllergens(p.allergies).filter((a) => contained.has(a)) }))
+    .map((p) => ({ id: p.id, name: p.name, allergens: cleanAllergens(p.allergies).filter((a) => contained.has(a)) }))
     .filter((p) => p.allergens.length);
 }
 

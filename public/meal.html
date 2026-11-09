@@ -178,11 +178,12 @@
           <div class="mt-3">
             <label class="form-label small mb-1" for="add-extra" data-i18n="meal.addExtra">Someone else joining?</label>
             <form class="input-group input-group-sm" id="add-extra-form">
-              <input class="form-control" id="add-extra" list="known-people" maxlength="100" autocomplete="off" placeholder="Name or email" data-i18n-placeholder="meal.addExtraPlaceholder">
-              <button type="submit" class="btn btn-outline-primary" data-i18n="common.add">Add</button>
+              <input class="form-control" id="add-extra" type="search" maxlength="100" autocomplete="off" placeholder="Name" data-i18n-placeholder="meal.addExtraPlaceholder" aria-controls="add-extra-results">
+              <button type="submit" class="btn btn-outline-primary" data-i18n="meal.addGuest">Add as guest</button>
             </form>
-            <datalist id="known-people"></datalist>
-            <p class="small text-body-secondary mt-1 mb-0" data-i18n="meal.addExtraHelp">An email of someone with Splitskebab lets them see the meal; a name adds a guest who pays you back directly.</p>
+            <!-- People with Splitskebab whose name matches (js/people-picker.js): picking one lets them see the meal. -->
+            <ul class="list-group mt-1" id="add-extra-results" aria-live="polite" hidden></ul>
+            <p class="small text-body-secondary mt-1 mb-0" data-i18n="meal.addExtraHelp">Pick someone with Splitskebab from the list to let them see the meal, or type any name and add them as a guest who pays you back directly.</p>
           </div>
           <!-- Friends from outside the house or group: they get an invitation (bell and calendar) and answer themselves. -->
           <div class="mt-3 d-none" id="invite-friends-box">

@@ -6,13 +6,13 @@ import { getLang, t } from "./i18n.js";
 
 export const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-/** A steady colour per person, from their email (the same one on every page and for everyone). */
+/** A steady colour per person, from their uid (the same one on every page and for everyone). */
 export const colour = (id) => `hsl(${[...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)} 55% 42%)`;
 
 /** The avatar (component "Avatar"): their photo, or their initial on their colour. */
 export function avatarHtml(p, cls = "avatar") {
   if (p.photoUrl) return `<img class="${cls}" src="${esc(p.photoUrl)}" alt="" referrerpolicy="no-referrer">`;
-  return `<span class="${cls}" style="--avatar-bg: ${colour(p.email || p.id || p.name)}" aria-hidden="true">${esc((p.name || "?").charAt(0).toUpperCase())}</span>`;
+  return `<span class="${cls}" style="--avatar-bg: ${colour(p.id || p.name)}" aria-hidden="true">${esc((p.name || "?").charAt(0).toUpperCase())}</span>`;
 }
 
 /** An overlapping row of avatars with "+N" for the rest (component "Avatar stack"). */

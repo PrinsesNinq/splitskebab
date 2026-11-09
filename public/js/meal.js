@@ -6,19 +6,19 @@ import {
 } from "./ui.js";
 import {
   myCircles, people, person, watchMeal, createMeal, updateMeal, deleteMeal, joinMeal, declineMeal, setHave, setSettled, userRecipes,
-  myFriendships, friendEmails, inviteToMeal, setMyCost,
+  myFriendships, friendIds, inviteToMeal, setMyCost,
 } from "./store.js";
 import { allRecipes, findRecipe, parseRecipeRef, ingredientHtml, ingredientText, getPantry } from "./recipe-view.js";
 import { groceryList, allergyConflicts, tableAllergies, rankByPantry, groceryKey } from "./recipe-logic.js";
 import { parseMoney, formatMoney, mealDebts, mealShares, mealTotal, eaters, guestId, settleKey } from "./money.js";
 import { allergenLabel } from "./allergens.js";
+import { attachPeoplePicker } from "./people-picker.js";
 import { getLang, t, formatDay } from "./i18n.js";
 
 const user = await whenUser();
-const me = user.email.toLowerCase();
+const me = user.uid;
 const lang = getLang();
 const $ = (sel) => document.querySelector(sel);
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const stops = [];
 onLeave(() => stops.forEach((stop) => stop()));
 
@@ -54,25 +54,25 @@ function startNew() {
 
   function renderPeople() {
     const c = circle();
-    const members = c ? c.members.map((email) => person(email)) : [];
+    const members = c ? c.members.map((uid) => person(uid)) : [];
     $("#new-people").innerHTML = members.map((p) => `
       <label class="list-group-item d-flex align-items-center gap-2">
-        <input class="form-check-input mt-0" type="checkbox" value="${esc(p.email)}" ${checked.has(p.email) ? "checked" : ""}>
+        <input class="form-check-input mt-0" type="checkbox" value="${esc(p.id)}" ${checked.has(p.id) ? "checked" : ""}>
         ${avatarHtml(p, "avatar avatar-sm")}
-        <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}${p.email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>${hiddenAllergiesTag(p)}</span>
+        <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}${p.id === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>${hiddenAllergiesTag(p)}</span>
         ${p.allergies.length ? `<span class="small">${allergenBadges(p.allergies)}</span>` : ""}
       </label>`).join("") || `<p class="small text-body-secondary mb-0">${esc(t("meal.noMembers"))}</p>`;
     // Friends who are not in this house or group already: tick them to invite them.
-    const outside = friends.filter((email) => !(c ? c.members : []).includes(email)).map((email) => person(email));
+    const outside = friends.filter((uid) => !(c ? c.members : []).includes(uid)).map((uid) => person(uid));
     $("#new-friends-box").classList.toggle("d-none", !outside.length);
     $("#new-friends").innerHTML = outside.map((p) => `
       <label class="list-group-item d-flex align-items-center gap-2">
-        <input class="form-check-input mt-0" type="checkbox" data-friend="${esc(p.email)}" ${invitedFriends.has(p.email) ? "checked" : ""}>
+        <input class="form-check-input mt-0" type="checkbox" data-friend="${esc(p.id)}" ${invitedFriends.has(p.id) ? "checked" : ""}>
         ${avatarHtml(p, "avatar avatar-sm")}
         <span class="flex-grow-1 min-w-0 text-truncate">${esc(p.name)}</span>
         ${p.allergies.length ? `<span class="small">${allergenBadges(p.allergies)}</span>` : ""}
       </label>`).join("");
-    const at = members.filter((p) => checked.has(p.email));
+    const at = members.filter((p) => checked.has(p.id));
     const lines = allergyLines(at);
     const hidden = at.filter((p) => !p.detailsVisible);
     $("#new-allergies").innerHTML = (lines ? `<strong>${esc(t("meal.allergiesAtTable"))}</strong><ul class="mb-0">${lines}</ul>` : "")
@@ -81,9 +81,9 @@ function startNew() {
   }
 
   $("#new-friends").addEventListener("change", (e) => {
-    const email = e.target.dataset.friend;
-    if (!email) return;
-    if (e.target.checked) invitedFriends.add(email); else invitedFriends.delete(email);
+    const uid = e.target.dataset.friend;
+    if (!uid) return;
+    if (e.target.checked) invitedFriends.add(uid); else invitedFriends.delete(uid);
   });
 
   $("#new-people").addEventListener("change", (e) => {
@@ -125,7 +125,7 @@ function startNew() {
     renderPeople();
   }));
   stops.push(people.subscribe(() => renderPeople()));
-  stops.push(myFriendships(me).subscribe((list) => { if (list) { friends = friendEmails(list); renderPeople(); } }));
+  stops.push(myFriendships(me).subscribe((list) => { if (list) { friends = friendIds(list); renderPeople(); } }));
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -136,10 +136,10 @@ function startNew() {
     $("#new-date").classList.toggle("is-invalid", !date);
     if (!title || !date || !c) return;
     $("#new-save").disabled = true;
-    const guestsFromOutside = [...invitedFriends].filter((email) => !c.members.includes(email) && friends.includes(email));
+    const guestsFromOutside = [...invitedFriends].filter((uid) => !c.members.includes(uid) && friends.includes(uid));
     const id = await attempt(() => createMeal(me, {
       title, date, time: $("#new-time").value || "", circleId: c.id, circleName: c.name,
-      viewers: [...new Set([...c.members, me, ...guestsFromOutside])], participants: [...checked].filter((email) => c.members.includes(email) || email === me),
+      viewers: [...new Set([...c.members, me, ...guestsFromOutside])], participants: [...checked].filter((uid) => c.members.includes(uid) || uid === me),
       declined: [], invited: guestsFromOutside, guests: [], rsvp: rsvp.checked, recipe, servings: null,
     }));
     $("#new-save").disabled = false;
@@ -162,7 +162,7 @@ function startView(id) {
   let friends = [];
   let costFormOpen = false; // "Add costs" was pressed
 
-  const eaterPeople = () => meal.participants.map((email) => person(email));
+  const eaterPeople = () => meal.participants.map((uid) => person(uid));
   const chosenRecipe = () => findRecipe(meal.recipe, recipes);
   const servings = () => meal.servings || Math.max(1, eaters(meal).length);
   /** Everyone who could join: the circle's members (when I am in it), anyone invited, and anyone who already said yes or no. */
@@ -224,18 +224,18 @@ function startView(id) {
   }
 
   function renderPeople() {
-    const rows = candidates().map((email) => {
-      const p = person(email);
-      const isIn = meal.participants.includes(email);
-      const declined = meal.declined.includes(email);
+    const rows = candidates().map((uid) => {
+      const p = person(uid);
+      const isIn = meal.participants.includes(uid);
+      const declined = meal.declined.includes(uid);
       const said = declined ? `<span class="badge text-bg-secondary">${esc(t("status.declined"))}</span>`
-        : !isIn && (meal.rsvp || meal.invited.includes(email)) ? `<span class="badge text-bg-warning">${esc(t("status.invited"))}</span>` : "";
+        : !isIn && (meal.rsvp || meal.invited.includes(uid)) ? `<span class="badge text-bg-warning">${esc(t("status.invited"))}</span>` : "";
       // Their reason for not coming (written by them; shown as text, never as markup).
-      const reason = declined ? meal.declineReasons.get(email) : "";
+      const reason = declined ? meal.declineReasons.get(uid) : "";
       return `<label class="list-group-item d-flex align-items-center gap-2 px-0">
-        <input class="form-check-input mt-0" type="checkbox" data-person="${esc(email)}" ${isIn ? "checked" : ""} aria-label="${esc(t("meal.eats", { name: p.name }))}">
+        <input class="form-check-input mt-0" type="checkbox" data-person="${esc(uid)}" ${isIn ? "checked" : ""} aria-label="${esc(t("meal.eats", { name: p.name }))}">
         ${avatarHtml(p, "avatar avatar-sm")}
-        <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}${email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
+        <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}${uid === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
         ${p.allergies.length ? `<span class="d-block small">${allergenBadges(p.allergies, { danger: chosenRecipe()?.allergens || [] })}</span>` : ""}
         ${hiddenAllergiesTag(p)}
         ${reason ? `<span class="d-block small text-body-secondary decline-reason"><i class="bi bi-chat-left-quote" aria-hidden="true"></i> ${esc(reason)}</span>` : ""}</span>
@@ -249,19 +249,17 @@ function startView(id) {
       </div>`);
     $("#people-list").innerHTML = [...rows, ...guests].join("");
     $("#eater-count").textContent = String(eaters(meal).length);
-    const known = people.value ? [...people.value.values()] : [];
-    $("#known-people").innerHTML = known.filter((p) => !candidates().includes(p.email)).map((p) => `<option value="${esc(p.email)}">${esc(p.name)}</option>`).join("");
     renderFriendInvites();
   }
 
   /** My friends who cannot see this meal yet, to invite (the box is hidden when there is nobody left to invite). */
   function renderFriendInvites() {
-    const open = friends.filter((email) => !meal.viewers.includes(email)).map((email) => person(email));
+    const open = friends.filter((uid) => !meal.viewers.includes(uid)).map((uid) => person(uid));
     $("#invite-friends-box").classList.toggle("d-none", !open.length);
     const keep = new Set([...document.querySelectorAll("#invite-friends-list input:checked")].map((x) => x.value));
     $("#invite-friends-list").innerHTML = open.map((p) => `
       <label class="list-group-item d-flex align-items-center gap-2">
-        <input class="form-check-input mt-0" type="checkbox" value="${esc(p.email)}" ${keep.has(p.email) ? "checked" : ""}>
+        <input class="form-check-input mt-0" type="checkbox" value="${esc(p.id)}" ${keep.has(p.id) ? "checked" : ""}>
         ${avatarHtml(p, "avatar avatar-sm")}
         <span class="flex-grow-1 min-w-0 text-truncate">${esc(p.name)}</span>
         ${p.allergies.length ? `<span class="small">${allergenBadges(p.allergies)}</span>` : ""}
@@ -319,12 +317,12 @@ function startView(id) {
     const nameOf = (eid) => (eid.startsWith("guest:") ? guestName(eid) : person(eid).name);
 
     // Who paid what: one line per person who added costs; mine can be changed.
-    $("#cost-list").innerHTML = [...meal.costs].sort(([a], [b]) => nameOf(a).localeCompare(nameOf(b))).map(([email, cents]) => `
+    $("#cost-list").innerHTML = [...meal.costs].sort(([a], [b]) => nameOf(a).localeCompare(nameOf(b))).map(([uid, cents]) => `
       <li class="list-group-item d-flex align-items-center gap-2 px-0">
-        ${avatarHtml(person(email), "avatar avatar-sm")}
-        <span class="flex-grow-1 min-w-0 text-truncate">${esc(t("pay.paidAmount", { name: nameOf(email) }))}${email === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
+        ${avatarHtml(person(uid), "avatar avatar-sm")}
+        <span class="flex-grow-1 min-w-0 text-truncate">${esc(t("pay.paidAmount", { name: nameOf(uid) }))}${uid === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>
         <strong>${esc(formatMoney(cents, lang))}</strong>
-        ${email === me ? `<button type="button" class="btn btn-sm btn-link p-0" id="cost-edit" aria-label="${esc(t("common.edit"))}"><i class="bi bi-pencil" aria-hidden="true"></i></button>` : ""}
+        ${uid === me ? `<button type="button" class="btn btn-sm btn-link p-0" id="cost-edit" aria-label="${esc(t("common.edit"))}"><i class="bi bi-pencil" aria-hidden="true"></i></button>` : ""}
       </li>`).join("");
 
     // The form is folded behind a button until it is needed: the costs come after the shopping, not when planning.
@@ -414,18 +412,18 @@ function startView(id) {
   $("#decline-cancel").addEventListener("click", closeDeclineForm);
 
   $("#people-list").addEventListener("change", (e) => {
-    const email = e.target.dataset.person;
-    if (!email) return;
-    if (email === me) {
+    const uid = e.target.dataset.person;
+    if (!uid) return;
+    if (uid === me) {
       // Unticking myself is saying no: it asks for the (optional) reason first, like the button; ticking is joining.
       if (e.target.checked) attempt(() => joinMeal(id, me));
       else { e.target.checked = true; openDeclineForm(); }
       return;
     }
     const participants = new Set(meal.participants);
-    if (e.target.checked) participants.add(email); else participants.delete(email);
+    if (e.target.checked) participants.add(uid); else participants.delete(uid);
     attempt(() => updateMeal(id, {
-      participants: [...participants], declined: meal.declined.filter((d) => !participants.has(d)), viewers: [...new Set([...meal.viewers, email])],
+      participants: [...participants], declined: meal.declined.filter((d) => !participants.has(d)), viewers: [...new Set([...meal.viewers, uid])],
     }));
   });
   $("#people-list").addEventListener("click", (e) => {
@@ -434,20 +432,25 @@ function startView(id) {
     const gid = button.dataset.removeGuest;
     attempt(() => updateMeal(id, { guests: meal.guests.filter((g) => g.id !== gid), settled: [...meal.settledPairs].filter((s) => !s.startsWith(`guest:${gid}>`)) }));
   });
+  // Someone with Splitskebab is picked from the matches by name (they then see the meal); a name typed and added is a guest who pays
+  // the payers back directly. Nobody is added by email (people are their uid; emails are private).
+  const redrawPicker = attachPeoplePicker($("#add-extra"), $("#add-extra-results"), {
+    me,
+    skip: () => candidates(),
+    label: t("common.add"),
+    onPick: (uid) => attempt(() => updateMeal(id, {
+      participants: [...new Set([...meal.participants, uid])], viewers: [...new Set([...meal.viewers, uid])], declined: meal.declined.filter((d) => d !== uid),
+    }), t("meal.added", { name: person(uid).name })),
+    empty: () => "",
+  });
+  stops.push(people.subscribe(() => redrawPicker()));
   $("#add-extra-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const value = $("#add-extra").value.trim();
-    if (!value) return;
-    if (EMAIL.test(value)) {
-      const email = value.toLowerCase();
-      attempt(() => updateMeal(id, {
-        participants: [...new Set([...meal.participants, email])], viewers: [...new Set([...meal.viewers, email])], declined: meal.declined.filter((d) => d !== email),
-      }), t("meal.added", { name: person(email).name }));
-    } else {
-      if (meal.guests.length >= 30) return;
-      attempt(() => updateMeal(id, { guests: [...meal.guests, { id: randomId(), name: value.slice(0, 60) }] }), t("meal.added", { name: value.slice(0, 60) }));
-    }
+    if (!value || meal.guests.length >= 30) return;
+    attempt(() => updateMeal(id, { guests: [...meal.guests, { id: randomId(), name: value.slice(0, 60) }] }), t("meal.added", { name: value.slice(0, 60) }));
     $("#add-extra").value = "";
+    redrawPicker();
   });
 
   $("#invite-friends-toggle").addEventListener("click", (e) => {
@@ -456,9 +459,9 @@ function startView(id) {
     e.currentTarget.setAttribute("aria-expanded", String(!panel.classList.contains("d-none")));
   });
   $("#invite-friends-send").addEventListener("click", async () => {
-    const emails = [...document.querySelectorAll("#invite-friends-list input:checked")].map((x) => x.value).filter((email) => friends.includes(email));
-    if (!emails.length) { toast(t("meal.pickFriends"), "warning"); return; }
-    const done = await attempt(async () => { await inviteToMeal(id, emails); return true; }, t("meal.invitesSent", { n: emails.length }));
+    const uids = [...document.querySelectorAll("#invite-friends-list input:checked")].map((x) => x.value).filter((uid) => friends.includes(uid));
+    if (!uids.length) { toast(t("meal.pickFriends"), "warning"); return; }
+    const done = await attempt(async () => { await inviteToMeal(id, uids); return true; }, t("meal.invitesSent", { n: uids.length }));
     if (done) $("#invite-friends-panel").classList.add("d-none");
   });
 
@@ -575,7 +578,7 @@ function startView(id) {
   stops.push(people.subscribe(() => render()));
   stops.push(myCircles(me).subscribe((list) => { if (list) { circles = list; render(); } }));
   stops.push(userRecipes.subscribe((list) => { if (list) { recipes = allRecipes(list); render(); } }));
-  stops.push(myFriendships(me).subscribe((list) => { if (list) { friends = friendEmails(list); if (meal) renderFriendInvites(); } }));
+  stops.push(myFriendships(me).subscribe((list) => { if (list) { friends = friendIds(list); if (meal) renderFriendInvites(); } }));
 }
 
 const id = param("id");

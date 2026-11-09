@@ -2,11 +2,12 @@
 // which must never be in the browser. Who gets what is decided in notify-logic.js (unit tested); this file only reads Firestore and sends.
 //
 // A device that wants notifications has a devices/{token} document (written by its own app, public/js/push.js; firestore.rules):
-//   { owner: email, lang: "en" | "nl", types: ["messages" | "meals" | "money"], updatedAt }
+//   { owner: uid, lang: "en" | "nl", types: ["messages" | "meals" | "money"], updatedAt }
 // The messages are data-only: the app's own service worker (public/sw.js) shows them, so it decides the look and what a tap opens.
-// Logs carry counts and ids, never emails or message text.
+// Logs carry counts and ids, never names or message text.
 import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onRequest } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
@@ -15,6 +16,7 @@ import { getMessaging } from "firebase-admin/messaging";
 import {
   messageRecipients, invitationRecipients, reminderRecipients, costChanges, devicesFor, notificationText, linkTo, dayInZone, euro,
 } from "./notify-logic.js";
+import { migrateToUids as runMigration } from "./migrate.js";
 
 // Next to the database (eur3, Europe). A few instances at most: a bug can never run up a bill.
 setGlobalOptions({ region: "europe-west1", maxInstances: 5, memory: "256MiB" });
@@ -25,23 +27,24 @@ const db = getFirestore();
 // FCM says these tokens are gone for good (app uninstalled, notifications turned off, browser data cleared): their device is removed.
 const DEAD = new Set(["messaging/registration-token-not-registered", "messaging/invalid-registration-token"]);
 
-async function nameOf(email) {
-  const snap = await db.doc(`userProfiles/${email}`).get();
+// People are their uid everywhere (firestore.rules): a name comes from their public profile, never from an email.
+async function nameOf(uid) {
+  const snap = await db.doc(`userProfiles/${uid}`).get();
   const name = snap.exists ? snap.get("displayName") : "";
-  return typeof name === "string" && name.trim() ? name.trim() : email.split("@")[0];
+  return typeof name === "string" && name.trim() ? name.trim() : "Splitskebab";
 }
 
 /** Recipients who still have access: a blocked person gets nothing. */
-async function notBlocked(emails) {
-  if (!emails.length) return [];
-  const snaps = await db.getAll(...emails.map((e) => db.doc(`blocked/${e}`)));
-  return emails.filter((_, i) => !snaps[i].exists);
+async function notBlocked(uids) {
+  if (!uids.length) return [];
+  const snaps = await db.getAll(...uids.map((id) => db.doc(`blocked/${id}`)));
+  return uids.filter((_, i) => !snaps[i].exists);
 }
 
-async function devicesOf(emails) {
+async function devicesOf(uids) {
   const out = [];
-  for (let i = 0; i < emails.length; i += 30) {
-    const snap = await db.collection("devices").where("owner", "in", emails.slice(i, i + 30)).get();
+  for (let i = 0; i < uids.length; i += 30) {
+    const snap = await db.collection("devices").where("owner", "in", uids.slice(i, i + 30)).get();
     for (const d of snap.docs) out.push({ token: d.id, owner: d.get("owner"), lang: d.get("lang"), types: d.get("types") });
   }
   return out;
@@ -88,7 +91,7 @@ export const onNewMessage = onDocumentCreated("conversations/{cid}/messages/{mid
   if (!conversation) return;
   const feedback = conversation.type === "feedback";
   const giverWrote = feedback && conversation.members?.[0] === message.from;
-  const admins = giverWrote ? ((await db.doc("settings/admins").get()).get("emails") || []) : [];
+  const admins = giverWrote ? ((await db.doc("settings/admins").get()).get("uids") || []) : [];
   const name = await nameOf(message.from);
   await notify({
     kind: "messages",
@@ -141,5 +144,16 @@ export const mealReminders = onSchedule({ schedule: "0 16 * * *", timeZone: "Eur
       link: linkTo("meal.html", "id", doc.id),
       tag: `meal-${doc.id}`,
     });
+  }
+});
+
+// ---- One-time: emails to uids as people's ids (functions/migrate.js). ?dry=1 only counts. Answers with counts only, refuses a second
+// real run, and is removed in the deploy after it ran. Public, so it can be started right after the deploy; it takes no input but ?dry.
+export const migrateToUids = onRequest({ timeoutSeconds: 540, memory: "512MiB", invoker: "public", maxInstances: 1 }, async (req, res) => {
+  try {
+    res.json(await runMigration({ dry: req.query.dry === "1" }));
+  } catch (err) {
+    logger.error("migration failed", { message: err?.message });
+    res.status(500).json({ error: "failed" });
   }
 });

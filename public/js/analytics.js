@@ -37,11 +37,11 @@ export function summary(meals) {
   };
 }
 
-/** Who paid how much in total (what they put in, not what they owe): [{ email, cents }], most first. */
+/** Who paid how much in total (what they put in, not what they owe): [{ id, cents }], most first. */
 export function paidByPerson(meals) {
   const paid = new Map();
-  for (const m of meals) for (const [email, cents] of m.costs || []) paid.set(email, (paid.get(email) || 0) + cents);
-  return [...paid].map(([email, cents]) => ({ email, cents })).sort((a, b) => b.cents - a.cents || a.email.localeCompare(b.email));
+  for (const m of meals) for (const [id, cents] of m.costs || []) paid.set(id, (paid.get(id) || 0) + cents);
+  return [...paid].map(([id, cents]) => ({ id, cents })).sort((a, b) => b.cents - a.cents || a.id.localeCompare(b.id));
 }
 
 /**
@@ -69,4 +69,4 @@ export function topMeals(meals, n = 5) {
 }
 
 /** Whether this person is an admin of the house or group: its creator always is, plus whoever an admin made one. */
-export const isCircleAdmin = (circle, email) => circle.owner === email || (circle.admins || []).includes(email);
+export const isCircleAdmin = (circle, id) => circle.owner === id || (circle.admins || []).includes(id);

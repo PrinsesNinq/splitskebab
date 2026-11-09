@@ -1,8 +1,10 @@
 // Signing in and out, who is signed in, and who is an admin. Any Google account can sign in (ALLOWED_DOMAIN "" in js/config.js; with a
-// domain there, only that one, and someone else is signed straight out again). Getting in is not getting access: only people an admin
-// added see anything (hasAccess() below, enforced by firestore.rules allowed()).
+// domain there, only that one, and someone else is signed straight out again). Getting in is not getting access: only people with an
+// account who accepted the terms see anything (accountStatus() below, enforced by firestore.rules allowed()).
+// People are known by their sign-in id (user.uid) everywhere, never by their email: see the top of firestore.rules.
 import { SDK, auth, db, configured } from "./firebase-init.js";
 import { ALLOWED_DOMAIN, BOOTSTRAP_ADMIN_EMAIL } from "./config.js";
+import { TERMS_VERSION } from "./terms.js";
 
 const fb = configured ? await import(`${SDK}/firebase-auth.js`) : null;
 const store = configured ? await import(`${SDK}/firebase-firestore.js`) : null;
@@ -34,10 +36,9 @@ export async function signIn() {
     await fb.signOut(auth);
     throw new Error(`Only @${ALLOWED_DOMAIN} accounts can sign in. You used ${user.email}.`);
   }
-  // Name and photo for the rest of the app to show next to this person (readable by every invited user, see firestore.rules). Merged: the
-  // same document holds the allergies and payment link the person set on their profile page, which a sign-in must not wipe.
+  // Name and photo for the rest of the app to show next to this person (readable by everyone with an account, see firestore.rules).
   // Google fills in only what the person did not set themselves (they can change their name and photo on the profile page).
-  const ref = store.doc(db, "userProfiles", user.email.toLowerCase());
+  const ref = store.doc(db, "userProfiles", user.uid);
   const existing = await store.getDoc(ref).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}));
   const fill = {};
   if (!existing.displayName && user.displayName) fill.displayName = user.displayName;
@@ -66,23 +67,25 @@ export async function signOutAndLeave() {
   location.replace("login.html");
 }
 
-// ---- Remembered invitation ----
-// Whether this person has an account, remembered on this device after the first check, so the app does not wait for server reads
-// before every start (on a phone those can take many seconds). js/app.js checks again in the background each time and forgets it
-// when the account was removed or blocked. It only spares the waiting: firestore.rules decide what anyone can read.
+// ---- Remembered access ----
+// Whether this person has an account (and accepted the terms), remembered on this device after the first check, so the app does not
+// wait for server reads before every start (on a phone those can take many seconds). js/app.js checks again in the background each
+// time and forgets it when the account was removed or blocked, or the terms changed. It only spares the waiting: firestore.rules
+// decide what anyone can read.
 const ACCESS_KEY = "access-ok";
-export function rememberedAccess(email) {
-  try { return localStorage.getItem(ACCESS_KEY) === email.toLowerCase(); } catch { return false; }
+const accessValue = (uid) => `${uid}:${TERMS_VERSION}`;
+export function rememberedAccess(uid) {
+  try { return localStorage.getItem(ACCESS_KEY) === accessValue(uid); } catch { return false; }
 }
-export function rememberAccess(email) {
-  try { localStorage.setItem(ACCESS_KEY, email.toLowerCase()); } catch { /* checked again next time */ }
+export function rememberAccess(uid) {
+  try { localStorage.setItem(ACCESS_KEY, accessValue(uid)); } catch { /* checked again next time */ }
 }
 export function forgetAccess() {
   try { localStorage.removeItem(ACCESS_KEY); } catch { /* nothing to forget */ }
 }
 
-/** Whether this email is in settings/admins, and whether that list exists at all yet. */
-export async function adminStatus(email) {
+/** Whether this person (uid) is in settings/admins, whether that list exists yet, and whether they may create it (the bootstrap email). */
+export async function adminStatus(uid, email = "") {
   let snap;
   try {
     snap = await store.getDoc(store.doc(db, "settings", "admins"));
@@ -91,44 +94,39 @@ export async function adminStatus(email) {
     if (err?.code === "permission-denied") return { isAdmin: false, hasAdmins: true, canBootstrap: false };
     throw err;
   }
-  const emails = snap.exists() ? snap.data().emails || [] : [];
-  return { isAdmin: emails.includes(email.toLowerCase()), hasAdmins: snap.exists(), canBootstrap: !snap.exists() && email.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase() };
+  const uids = snap.exists() ? snap.data().uids || [] : [];
+  return { isAdmin: uids.includes(uid), hasAdmins: snap.exists(), canBootstrap: !snap.exists() && email.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase() };
 }
 
 /**
- * Where this person stands: "ok" (has an account: registered themselves or added by an admin, or is an admin / the bootstrap account),
- * "new" (signed in with Google but no account yet: they can register), "blocked" (an admin blocked them), or null when it could not be
- * checked (no connection): js/app.js then keeps what it remembered, and never shuts someone out on a bad network.
- * firestore.rules (allowed()) enforces the same; this is only so the page can show the right screen.
+ * Where this person stands: "ok" (has an account and accepted the current terms), "terms" (has an account from before the current
+ * terms: they accept them to go on), "new" (signed in with Google but no account yet: they create one by accepting the terms),
+ * "blocked" (an admin blocked them), or null when it could not be checked (no connection): js/app.js then keeps what it remembered,
+ * and never shuts someone out on a bad network. firestore.rules (allowed()) enforces the same; this only picks the screen.
  */
-export async function accountStatus(email) {
-  const me = email.toLowerCase();
+export async function accountStatus(user) {
   // From the server, never the offline copy: "no document" must mean "no account", not "not downloaded yet".
   try {
-    const blocked = await store.getDocFromServer(store.doc(db, "blocked", me));
+    const blocked = await store.getDocFromServer(store.doc(db, "blocked", user.uid));
     if (blocked.exists()) return "blocked";
+    const own = await store.getDocFromServer(store.doc(db, "users", user.uid));
+    if (!own.exists()) return "new";
+    return (own.data().termsVersion || 0) >= TERMS_VERSION ? "ok" : "terms";
   } catch {
     return null;
-  }
-  if (me === BOOTSTRAP_ADMIN_EMAIL.toLowerCase()) return "ok";
-  let own;
-  try {
-    own = await store.getDocFromServer(store.doc(db, "users", me));
-  } catch {
-    return null;
-  }
-  if (own.exists()) return "ok";
-  try {
-    const admins = await store.getDocFromServer(store.doc(db, "settings", "admins"));
-    return admins.exists() && (admins.data().emails || []).includes(me) ? "ok" : "new";
-  } catch (err) {
-    return err?.code === "permission-denied" ? "new" : null; // people without an account may not read the admin list (firestore.rules)
   }
 }
 
-/** Creates my account (any Google account may: firestore.rules lets a person create only their own, with only the time in it). */
-export const register = (email) => store.setDoc(store.doc(db, "users", email.toLowerCase()), { registeredAt: store.serverTimestamp() });
+/** The fields that accept the terms: the version, the server's time, and my own sign-in email for the admins (firestore.rules termsOk). */
+const termsFields = (user) => ({ termsVersion: TERMS_VERSION, termsAcceptedAt: store.serverTimestamp(), email: user.email.toLowerCase() });
+
+/** Creates my account by accepting the terms (any Google account may: firestore.rules let a person create only their own). */
+export const register = (user) => store.setDoc(store.doc(db, "users", user.uid), { registeredAt: store.serverTimestamp(), ...termsFields(user) });
+
+/** Accepts the current terms on an account that already exists (made before the terms, or before they changed). */
+export const acceptTerms = (user) => store.updateDoc(store.doc(db, "users", user.uid), termsFields(user));
+
 /** Creates the admin list with this one account in it: only the bootstrap account may, and only once (firestore.rules). */
-export async function becomeFirstAdmin(email) {
-  await store.setDoc(store.doc(db, "settings", "admins"), { emails: [email.toLowerCase()] });
+export async function becomeFirstAdmin(uid) {
+  await store.setDoc(store.doc(db, "settings", "admins"), { uids: [uid] });
 }

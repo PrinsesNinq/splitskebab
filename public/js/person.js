@@ -1,15 +1,15 @@
-// Someone else's profile (person.html?email=...): their photo and name, the friendship with an action (add, accept, cancel, remove),
+// Someone else's profile (person.html?id=<uid>): their photo and name, their email only when they show it to me, the friendship with an action (add, accept, cancel, remove),
 // their allergies and payment link when they share them with me (privateProfiles readers: housemates, meal guests, friends), the houses
 // and groups we share, friends in common, and the meals coming up that we are both at. My own profile is profile.html.
 import { whenUser, esc, onLeave, param, attempt, avatarHtml, allergenBadges, todayIso, go, toast } from "./ui.js";
 import {
-  people, person, myCircles, myMeals, myFriendships, friendEmails, requestFriend, acceptFriend, removeFriendship, friendshipId, openDirect,
+  people, person, myCircles, myMeals, myFriendships, friendIds, requestFriend, acceptFriend, removeFriendship, friendshipId, openDirect,
 } from "./store.js";
 import { t, formatDay } from "./i18n.js";
 
 const user = await whenUser();
-const me = user.email.toLowerCase();
-const email = String(param("email") || "").trim().toLowerCase();
+const me = user.uid;
+const uid = String(param("id") || "").trim();
 const $ = (sel) => document.querySelector(sel);
 const stops = [];
 onLeave(() => stops.forEach((stop) => stop()));
@@ -19,7 +19,7 @@ let meals = [];
 let friendships = [];
 
 function renderFriendAction() {
-  const f = friendships.find((x) => x.other === email);
+  const f = friendships.find((x) => x.other === uid);
   let html;
   if (f?.status === "accepted") {
     html = `<span class="badge text-bg-success align-self-center">${esc(t("friends.isFriend"))}</span>
@@ -34,17 +34,18 @@ function renderFriendAction() {
     html = `<button type="button" class="btn btn-sm btn-primary" data-friend-act="add"><i class="bi bi-person-plus" aria-hidden="true"></i> ${esc(t("friends.add"))}</button>`;
   }
   // Message: with someone I am connected to (they share their profile with me, or I with them; firestore.rules check the same).
-  const connected = person(email).detailsVisible || person(me).readers.includes(email);
+  const connected = person(uid).detailsVisible || person(me).readers.includes(uid);
   if (connected) html += `<button type="button" class="btn btn-sm btn-outline-primary" data-send-message><i class="bi bi-chat-dots" aria-hidden="true"></i> ${esc(t("person.message"))}</button>`;
   $("#person-friend-action").innerHTML = html;
 }
 
 function render() {
-  const p = person(email);
+  const p = person(uid);
   document.title = `${p.name} · Splitskebab`;
   $("#person-avatar").innerHTML = avatarHtml(p, "avatar avatar-lg person-avatar");
   $("#person-name").textContent = p.name;
-  $("#person-email").textContent = email;
+  $("#person-email").textContent = p.email; // "" unless they chose to show it to the people they are connected to
+  $("#person-email").hidden = !p.email;
   renderFriendAction();
 
   // Allergies: only when shared with me; "not visible" is never shown as "none".
@@ -58,22 +59,22 @@ function render() {
     $("#person-pay-label").textContent = t("person.pay", { name: p.name });
   }
 
-  const shared = circles.filter((c) => c.members.includes(email));
+  const shared = circles.filter((c) => c.members.includes(uid));
   $("#person-circles").innerHTML = shared.length
     ? shared.map((c) => `<li><i class="bi ${c.type === "house" ? "bi-house-door" : "bi-people"}" aria-hidden="true"></i> ${esc(c.name)}</li>`).join("")
     : `<li class="small text-body-secondary">${esc(t("person.noSharedCircles"))}</li>`;
 
-  const mutual = friendEmails(friendships).filter((f) => f !== email && person(f).friends.includes(email));
+  const mutual = friendIds(friendships).filter((f) => f !== uid && person(f).friends.includes(uid));
   $("#person-mutual").innerHTML = mutual.length
-    ? `<div class="d-flex flex-wrap gap-2">${mutual.map((f) => `<a class="d-inline-flex align-items-center gap-1 text-decoration-none person-chip" href="person.html?email=${encodeURIComponent(f)}">${avatarHtml(person(f), "avatar avatar-sm")}<span>${esc(person(f).name)}</span></a>`).join("")}</div>`
+    ? `<div class="d-flex flex-wrap gap-2">${mutual.map((f) => `<a class="d-inline-flex align-items-center gap-1 text-decoration-none person-chip" href="person.html?id=${encodeURIComponent(f)}">${avatarHtml(person(f), "avatar avatar-sm")}<span>${esc(person(f).name)}</span></a>`).join("")}</div>`
     : `<p class="small text-body-secondary mb-0">${esc(t("person.noMutual"))}</p>`;
 
   const today = todayIso();
-  const together = meals.filter((m) => m.date >= today && m.viewers.includes(email)).slice(0, 6);
+  const together = meals.filter((m) => m.date >= today && m.viewers.includes(uid)).slice(0, 6);
   $("#person-meals").innerHTML = together.length
     ? together.map((m) => `<a class="list-group-item list-group-item-action px-0" href="meal.html?id=${encodeURIComponent(m.id)}">
         <span class="d-block fw-semibold">${esc(m.title || t("meal.untitled"))}</span>
-        <span class="d-block small text-body-secondary">${esc(formatDay(m.date))}${m.time ? ` · ${esc(m.time)}` : ""} · ${esc(m.participants.includes(email) ? t("status.joining") : m.declined.includes(email) ? t("status.declined") : t("status.invited"))}</span>
+        <span class="d-block small text-body-secondary">${esc(formatDay(m.date))}${m.time ? ` · ${esc(m.time)}` : ""} · ${esc(m.participants.includes(uid) ? t("status.joining") : m.declined.includes(uid) ? t("status.declined") : t("status.invited"))}</span>
       </a>`).join("")
     : `<p class="small text-body-secondary mb-0">${esc(t("person.noMeals"))}</p>`;
 }
@@ -83,7 +84,7 @@ $("#person-friend-action").addEventListener("click", async (e) => {
   if (message) {
     message.disabled = true;
     try {
-      go(`chat.html?c=${encodeURIComponent(await openDirect(me, email))}`);
+      go(`chat.html?c=${encodeURIComponent(await openDirect(me, uid))}`);
     } catch (err) {
       console.error(err);
       toast(err?.code === "permission-denied" ? t("messages.notConnected") : t("error.generic"), "danger");
@@ -94,23 +95,23 @@ $("#person-friend-action").addEventListener("click", async (e) => {
   const button = e.target.closest("[data-friend-act]");
   if (!button) return;
   const act = button.dataset.friendAct;
-  const name = person(email).name;
-  if (act === "remove" && friendships.find((x) => x.other === email)?.status === "accepted" && !window.confirm(t("friends.confirmRemove", { name }))) return;
+  const name = person(uid).name;
+  if (act === "remove" && friendships.find((x) => x.other === uid)?.status === "accepted" && !window.confirm(t("friends.confirmRemove", { name }))) return;
   button.disabled = true;
   if (act === "add") {
-    const ok = await attempt(async () => { await requestFriend(me, email); return true; }, t("friends.requested", { name }));
+    const ok = await attempt(async () => { await requestFriend(me, uid); return true; }, t("friends.requested", { name }));
     if (!ok) button.disabled = false;
   } else if (act === "accept") {
-    await attempt(() => acceptFriend(friendshipId(me, email)), t("friends.nowFriends", { name }));
+    await attempt(() => acceptFriend(friendshipId(me, uid)), t("friends.nowFriends", { name }));
   } else {
-    await attempt(() => removeFriendship(friendshipId(me, email)));
+    await attempt(() => removeFriendship(friendshipId(me, uid)));
   }
 });
 
-if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+if (!/^[\w-]{6,128}$/.test(uid)) { // a Firebase uid: letters, digits, - and _
   $("#person-error").textContent = t("person.notFound");
   $("#person-error").classList.remove("d-none");
-} else if (email === me) {
+} else if (uid === me) {
   go("profile.html"); // my own profile is the one I can edit
 } else {
   stops.push(people.subscribe(() => render()));

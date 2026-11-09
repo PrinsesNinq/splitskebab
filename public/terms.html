@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Splitskebab: terms of use and privacy</title>
+  <link rel="stylesheet" href="vendor/sel/theme/theme.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6b1f7e">
+  <link rel="icon" href="images/app-icon.svg" type="image/svg+xml">
+  <script src="js/theme-mode.js"></script>
+</head>
+<body>
+  <!-- The terms of use and privacy statement (js/terms.js), readable by anyone, also before signing in: linked from the sign-in page,
+       the account screen and the profile. No sign-in, no navbar: js/terms-page.js only fills in the text in the chosen language. -->
+  <main class="container main-container terms-page">
+    <a class="btn btn-sm btn-link px-0 mb-2" href="index.html" id="terms-back"><i class="bi bi-arrow-left" aria-hidden="true"></i> Splitskebab</a>
+    <h1 class="h4" id="terms-title">Terms of use and privacy</h1>
+    <div class="btn-group btn-group-sm mb-3" role="group" aria-label="Language">
+      <button type="button" class="btn btn-outline-primary" data-terms-lang="en">English</button>
+      <button type="button" class="btn btn-outline-primary" data-terms-lang="nl">Nederlands</button>
+    </div>
+    <div id="terms-body"></div>
+  </main>
+  <script type="module" src="js/terms-page.js"></script>
+</body>
+</html>

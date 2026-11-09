@@ -42,7 +42,7 @@ test("the headline numbers: total, meals, per meal and per person per meal", () 
 });
 
 test("who paid: what each person put in, most first", () => {
-  assert.deepEqual(paidByPerson(mealsWithCosts(meals, "h1", "2026-11-01", "2026-11-07")), [{ email: "a@x", cents: 2000 }, { email: "b@x", cents: 1000 }]);
+  assert.deepEqual(paidByPerson(mealsWithCosts(meals, "h1", "2026-11-01", "2026-11-07")), [{ id: "a@x", cents: 2000 }, { id: "b@x", cents: 1000 }]);
 });
 
 test("on what: per recipe, meals without one together, most first; and the most expensive meals", () => {

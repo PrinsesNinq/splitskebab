@@ -7,9 +7,10 @@
 import "./pwa.js"; // installable app: the service worker and the navbar's Install button
 import "./keyboard.js"; // phones: the bottom bar hides while the keyboard is open
 import { configured } from "./firebase-init.js";
-import { requireUser, signOutAndLeave, accountStatus, register, adminStatus, rememberedAccess, rememberAccess, forgetAccess } from "./auth.js";
+import { requireUser, signOutAndLeave, accountStatus, register, acceptTerms, adminStatus, rememberedAccess, rememberAccess, forgetAccess } from "./auth.js";
+import { TERMS, termsHtml } from "./terms.js";
 import { applyI18n, getLang, setLang, t, formatDay } from "./i18n.js";
-import { shareText } from "./ui.js";
+import { shareText, esc } from "./ui.js";
 import { addNotification } from "../vendor/sel/elements/notification-bell.js";
 import * as peopleStore from "./store.js";
 import { APP_VERSION } from "./version.js";
@@ -78,38 +79,61 @@ function fullPage(html) {
 }
 
 /**
- * Signed in with Google but no account yet: one button creates it (firestore.rules lets anyone create their own), then the profile
- * page opens so they can fill in their allergies and payment link. Texts go in as text: the name comes from Google.
+ * The terms (js/terms.js), to accept before using the app: when creating an account ("new": signed in with Google, no account yet), and
+ * once more for an account from before the terms or before they changed ("terms"). Accepting is required; showing the email to the
+ * people one is connected to is a separate choice, off unless ticked. A new account then goes to the profile (allergies first); an
+ * existing one carries on where it was. Texts go in escaped: the name comes from Google.
  */
-function showRegister(user, start) {
+function showTerms(user, mode) {
+  const lang = getLang() === "nl" ? "nl" : "en";
+  const terms = TERMS[lang];
   const content = fullPage(`
     <img src="images/app-icon.svg" alt="" width="72" height="72" class="login-app-icon mb-3">
-    <h1 class="h4"></h1>
-    <p class="text-body-secondary" id="register-intro"></p>
-    <div class="card card-body text-start mb-3"><strong id="register-name"></strong><span class="small text-body-secondary" id="register-email"></span></div>
+    <h1 class="h4">${esc(t(mode === "new" ? "register.title" : "terms.updatedTitle"))}</h1>
+    <p class="text-body-secondary">${esc(t(mode === "new" ? "register.intro" : "terms.updatedIntro"))}</p>
+    <div class="card card-body text-start mb-3"><strong>${esc(user.displayName || t("common.someone"))}</strong><span class="small text-body-secondary">${esc(user.email)}</span></div>
+    <section class="card mb-3 text-start" aria-labelledby="terms-heading">
+      <div class="card-header d-flex align-items-center justify-content-between gap-2">
+        <h2 class="h6 mb-0" id="terms-heading">${esc(terms.title)}</h2>
+        <a class="small" href="terms.html" target="_blank" rel="noopener">${esc(t("terms.openFull"))}</a>
+      </div>
+      <div class="card-body small terms-box" tabindex="0">${termsHtml(lang, esc)}</div>
+    </section>
+    <div class="form-check text-start mb-2">
+      <input class="form-check-input" type="checkbox" id="terms-accept">
+      <label class="form-check-label" for="terms-accept">${esc(terms.accept)}</label>
+    </div>
+    <div class="form-check form-switch text-start mb-1">
+      <input class="form-check-input" type="checkbox" role="switch" id="terms-show-email">
+      <label class="form-check-label" for="terms-show-email">${esc(terms.showEmail)}</label>
+    </div>
+    <p class="small text-body-secondary text-start mb-3">${esc(terms.showEmailHelp)}</p>
     <div class="alert alert-danger d-none" role="alert" id="register-error"></div>
-    <button type="button" class="btn btn-primary w-100 mb-2" id="register-btn"></button>
-    <button type="button" class="btn btn-link btn-sm" id="register-out"></button>`);
-  content.querySelector("h1").textContent = t("register.title");
-  content.querySelector("#register-intro").textContent = t("register.intro");
-  content.querySelector("#register-name").textContent = user.displayName || user.email;
-  content.querySelector("#register-email").textContent = user.email;
-  content.querySelector("#register-btn").textContent = t("register.button");
-  content.querySelector("#register-out").textContent = t("register.otherAccount");
+    <button type="button" class="btn btn-primary w-100 mb-2" id="register-btn" disabled>${esc(t(mode === "new" ? "register.button" : "terms.acceptButton"))}</button>
+    <button type="button" class="btn btn-link btn-sm" id="register-out">${esc(t("register.otherAccount"))}</button>`);
+  const accept = content.querySelector("#terms-accept");
+  const button = content.querySelector("#register-btn");
+  accept.addEventListener("change", () => { button.disabled = !accept.checked; });
   content.querySelector("#register-out").addEventListener("click", signOutAndLeave);
-  content.querySelector("#register-btn").addEventListener("click", async (event) => {
-    event.target.disabled = true;
+  button.addEventListener("click", async () => {
+    if (!accept.checked) return;
+    button.disabled = true;
     try {
-      await register(user.email);
-      rememberAccess(user.email);
-      // The profile is the first stop: allergies are what the others at the table need to know.
-      location.replace("profile.html?welcome=1");
+      await (mode === "new" ? register(user) : acceptTerms(user));
+      if (content.querySelector("#terms-show-email").checked) {
+        const { showMyEmail } = await import("./store.js");
+        await showMyEmail(user.uid, user.email);
+      }
+      rememberAccess(user.uid);
+      // A new account starts on the profile: allergies are what the others at the table need to know.
+      if (mode === "new") location.replace("profile.html?welcome=1");
+      else location.reload();
     } catch (err) {
-      console.error(err);
+      console.error(err?.code || err?.message || err);
       const box = content.querySelector("#register-error");
       box.textContent = err?.code === "permission-denied" ? t("register.refused") : t("error.generic");
       box.classList.remove("d-none");
-      event.target.disabled = false;
+      button.disabled = false;
     }
   });
 }
@@ -220,14 +244,13 @@ async function startUnreadCount(me) {
   document.addEventListener("soft-nav:load", render);
 }
 
-// ---- My private profile: moved off the public one, my friend list, and who may read it ----
+// ---- My private profile: my friend list, and who may read it ----
 // Allergies, payment link and friend list live in privateProfiles/{me}, readable only by the people on its readers list (firestore.rules):
 // housemates, people at my meals and my friends (js/sharing.js profileReaders). Only I can write that list, so my app keeps it up to date
 // whenever my houses, meals or friendships change. It writes only when something changed.
 async function startPrivacySync(me) {
   const store = await import("./store.js");
   const { profileReaders } = await import("./sharing.js");
-  await store.migrateMyProfile(me).catch((err) => console.warn("Could not move my profile details to my private profile:", err?.code || err));
   let circles = null;
   let meals = null;
   let friends = null;
@@ -241,7 +264,7 @@ async function startPrivacySync(me) {
   };
   store.myCircles(me).subscribe((list) => { if (list) { circles = list; sync(); } });
   store.myMeals(me).subscribe((list) => { if (list) { meals = list; sync(); } });
-  store.myFriendships(me).subscribe((list) => { if (list) { friends = store.friendEmails(list); sync(); } });
+  store.myFriendships(me).subscribe((list) => { if (list) { friends = store.friendIds(list); sync(); } });
   store.people.subscribe((map) => { if (map?.has(me)) { mine = map.get(me); sync(); } });
 }
 if (!configured) {
@@ -250,8 +273,9 @@ if (!configured) {
   show();
 } else {
   const user = await requireUser();
-  document.querySelector("#current-user-email").textContent = user.email;
-  document.querySelector("#current-user-initial").textContent = (user.displayName || user.email).charAt(0).toUpperCase();
+  // The account button shows the name, not the email: a phone screen is easily seen by others (the profile page shows the email to me).
+  document.querySelector("#current-user-email").textContent = user.displayName || t("nav.account");
+  document.querySelector("#current-user-initial").textContent = (user.displayName || "?").charAt(0).toUpperCase();
   document.querySelector("#nav-sign-out-btn").addEventListener("click", signOutAndLeave);
 
   let started = false;
@@ -259,39 +283,39 @@ if (!configured) {
     if (started) return;
     started = true;
     show();
-    adminStatus(user.email).then((s) => { document.querySelector("#nav-settings-item")?.toggleAttribute("hidden", !s.isAdmin && !s.canBootstrap); }).catch(() => {});
-    peopleStore.usePeopleFor(user.email.toLowerCase()); // the private profiles I may read (before any page subscribes)
+    adminStatus(user.uid, user.email).then((s) => { document.querySelector("#nav-settings-item")?.toggleAttribute("hidden", !s.isAdmin && !s.canBootstrap); }).catch(() => {});
+    peopleStore.usePeopleFor(user.uid); // the private profiles I may read (before any page subscribes)
     window.appUser = user; // for page scripts that start after this event (a page reached by soft navigation)
     document.dispatchEvent(new CustomEvent("app:user", { detail: { user } }));
-    startInvites(user.email.toLowerCase());
-    startMealSharing(user.email.toLowerCase());
-    startPrivacySync(user.email.toLowerCase());
-    startUnreadCount(user.email.toLowerCase());
+    startInvites(user.uid);
+    startMealSharing(user.uid);
+    startPrivacySync(user.uid);
+    startUnreadCount(user.uid);
     // Push notifications: keep this device's token fresh (and in the current language), when they are switched on here (js/push.js).
     // A phone that opened the app in its browser is asked to install it first (js/install-gate.js): on an iPhone notifications only
     // work in the installed app. The notifications question waits until that page is gone.
     const gate = import("./install-gate.js").then((g) => g.installGate()).catch((err) => console.warn("Install page failed:", err?.message || err));
     // On by default: a device that never answered is asked once, shortly after the app shows (js/push-prompt.js).
-    import("./push.js").then((push) => push.refreshPush(user.email.toLowerCase(), getLang()))
+    import("./push.js").then((push) => push.refreshPush(user.uid, getLang()))
       .catch((err) => console.warn("Push refresh failed:", err?.code || err?.message || err))
       .then(() => Promise.all([gate, new Promise((resolve) => setTimeout(resolve, 1500))]))
-      .then(() => import("./push-prompt.js")).then((prompt) => prompt.offerPush(user.email.toLowerCase()))
+      .then(() => import("./push-prompt.js")).then((prompt) => prompt.offerPush(user.uid))
       .catch((err) => console.warn("Push offer failed:", err?.code || err?.message || err));
   };
 
   // What to show for each account status (js/auth.js accountStatus): the app, "create your account", "blocked", or "no connection".
   const settle = (status) => {
-    if (status === "ok") { rememberAccess(user.email); start(); return; }
-    if (status === "new") { forgetAccess(); showRegister(user, start); } else if (status === "blocked") { forgetAccess(); showBlocked(user); } else { showNoConnection(); }
+    if (status === "ok") { rememberAccess(user.uid); start(); return; }
+    if (status === "new" || status === "terms") { forgetAccess(); showTerms(user, status); } else if (status === "blocked") { forgetAccess(); showBlocked(user); } else { showNoConnection(); }
     show();
   };
-  if (rememberedAccess(user.email)) {
+  if (rememberedAccess(user.uid)) {
     // Has an account on this device: start at once (the data comes from the offline copy), and check again in the background; a
     // removed or blocked account then gets its screen.
     start();
-    accountStatus(user.email).then((status) => { if (status === "new" || status === "blocked") settle(status); });
+    accountStatus(user).then((status) => { if (status === "new" || status === "terms" || status === "blocked") settle(status); });
   } else {
     // The first time on this device: wait for the answer (it is remembered after).
-    settle(await accountStatus(user.email));
+    settle(await accountStatus(user));
   }
 }

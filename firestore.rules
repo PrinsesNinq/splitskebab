@@ -2,10 +2,15 @@ rules_version = '2';
 // Splitskebab's security rules: this is where every permission is enforced (the pages only follow them). Anything without a rule stays
 // closed. Keep the bootstrap admin the same as BOOTSTRAP_ADMIN_EMAIL in public/js/config.js, and the allergen ids the same as
 // public/js/allergens.js: rules cannot import JS.
+//
+// People are known by their Firebase sign-in id (uid), never by their email: every document id, member list, meal list, chat id and map
+// key below holds uids, so nobody can read someone's email from the data. An email is stored in two places only, each written by its
+// owner and checked to be their own sign-in email: users/{uid}.email, read by the admins (accepting the terms allows that), and
+// privateProfiles/{uid}.email, read by the people they are connected to, only when they switched "show my email" on.
 service cloud.firestore {
   match /databases/{database}/documents {
     // A signed-in account with a verified email: any Google account (Google always verifies it; ALLOWED_DOMAIN is "" in config.js).
-    // Signed in is not invited: almost everything below also asks allowed().
+    // Signed in is not having an account: almost everything below also asks allowed().
     function signedIn() {
       return request.auth != null &&
         request.auth.token.email is string &&
@@ -13,18 +18,25 @@ service cloud.firestore {
     }
 
     function me() {
+      return request.auth.uid;
+    }
+
+    // My own sign-in email: only ever compared with what I write about myself, never used as an id.
+    function myEmail() {
       return request.auth.token.email.lower();
     }
 
-    function isAdmin() {
-      return signedIn() &&
-        exists(/databases/$(database)/documents/settings/admins) &&
-        me() in get(/databases/$(database)/documents/settings/admins).data.emails;
+    function adminList() {
+      return get(/databases/$(database)/documents/settings/admins).data.get('uids', []);
     }
 
-    // The one account that may create the admin list, once (Settings > General, "Become first admin").
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/settings/admins) && me() in adminList();
+    }
+
+    // The one account that may create the admin list, once (Settings > General, "Become first admin"): recognised by its sign-in email.
     function isBootstrapAdmin() {
-      return signedIn() && me() == 'nino.otten@aperam.com';
+      return signedIn() && myEmail() == 'nino.otten@aperam.com';
     }
 
     // An admin blocked this person (Settings > Users): they get nothing, and cannot register again.
@@ -32,18 +44,21 @@ service cloud.firestore {
       return !exists(/databases/$(database)/documents/blocked/$(me()));
     }
 
-    // Has an account: they registered themselves (any Google account can) or an admin added them (a users/{email} document either
-    // way), or they are an admin; and they are not blocked. Being signed in with Google alone is not enough: registering is a step.
+    // Has an account and accepted the terms (users/{uid} with a termsVersion: js/terms.js), or is an admin; and is not blocked. Being
+    // signed in with Google alone is not enough: registering, with the terms, is a step. Someone with an account from before the terms
+    // gets nothing until they accept them (the app asks).
+    function acceptedTerms() {
+      return exists(/databases/$(database)/documents/users/$(me())) &&
+        get(/databases/$(database)/documents/users/$(me())).data.get('termsVersion', 0) >= 1;
+    }
     function allowed() {
-      return signedIn() && notBlocked() &&
-        (exists(/databases/$(database)/documents/users/$(me())) || isAdmin() || isBootstrapAdmin());
+      return signedIn() && notBlocked() && (acceptedTerms() || isAdmin() || isBootstrapAdmin());
     }
 
-    // Whether an email (someone else's) has an account on Splitskebab: only they can be asked to be friends.
-    function isInvited(email) {
-      return (exists(/databases/$(database)/documents/users/$(email)) && !exists(/databases/$(database)/documents/blocked/$(email))) ||
-        email == 'nino.otten@aperam.com' ||
-        (exists(/databases/$(database)/documents/settings/admins) && email in get(/databases/$(database)/documents/settings/admins).data.emails);
+    // Whether someone (by uid) has an account on Splitskebab: only they can be asked to be friends.
+    function isInvited(uid) {
+      return (exists(/databases/$(database)/documents/users/$(uid)) && !exists(/databases/$(database)/documents/blocked/$(uid))) ||
+        (exists(/databases/$(database)/documents/settings/admins) && uid in adminList());
     }
 
     function isAllergenList(v) {
@@ -65,36 +80,50 @@ service cloud.firestore {
     }
 
     // A person's private profile: their allergies, a payment link that is empty or an https address (it ends up as a link other people
-    // tap), their list of friends (for friends of friends) and who may read it (readers: kept by their own app, js/sharing.js).
+    // tap), their list of friends (for friends of friends), who may read it (readers: kept by their own app, js/sharing.js) and, only when
+    // they chose to show it, their own sign-in email.
     function validPrivateProfile(d) {
       return (!('allergies' in d) || isAllergenList(d.allergies)) &&
         (!('paymentLink' in d) || (d.paymentLink is string && d.paymentLink.size() <= 300 && (d.paymentLink == '' || d.paymentLink.matches('https://[^\\s"<>]+')))) &&
         (!('friends' in d) || (d.friends is list && d.friends.size() <= 500)) &&
-        (!('readers' in d) || (d.readers is list && d.readers.size() <= 1500));
+        (!('readers' in d) || (d.readers is list && d.readers.size() <= 1500)) &&
+        (!('email' in d) || d.email == myEmail());
     }
-    // The admins' emails: only for invited people (anyone with a Google account can sign in, and must not see who the admins are).
+
+    // Accepting the terms (js/terms.js): a version, stamped with the server's time, and my own sign-in email for the admins.
+    function termsOk(d) {
+      return d.termsVersion is int && d.termsVersion >= 1 && d.termsVersion <= 1000 &&
+        d.termsAcceptedAt == request.time && d.email == myEmail();
+    }
+
+    // The admins (uids): only an admin reads the list (so nobody else learns who the admins are); anyone with access may see that it does
+    // not exist yet, which is how the bootstrap account knows it may become the first admin. isAdmin() reads it regardless of this rule.
     match /settings/admins {
-      // Only an admin reads the list (so nobody else learns who the admins are); anyone may see that it does not exist yet, which is how
-      // the bootstrap account knows it may become the first admin. firestore.rules' own isAdmin() reads it regardless of this rule.
-      allow read: if allowed() && (resource == null || me() in resource.data.emails);
-      allow create: if isBootstrapAdmin() && !exists(/databases/$(database)/documents/settings/admins);
+      allow read: if allowed() && (resource == null || me() in resource.data.get('uids', []));
+      allow create: if isBootstrapAdmin() && !exists(/databases/$(database)/documents/settings/admins) &&
+        request.resource.data.keys().hasOnly(['uids']) && request.resource.data.uids == [me()];
       allow update, delete: if isAdmin();
     }
 
-    // Who has an account, with their admin groups ({ groups: [...] }). Anyone signed in with Google may create their own (registering:
-    // only the time, nothing else: groups and the rest stay with the admins), unless they are blocked; admins create, change and delete
-    // anyone's. Each person may read their own (that is how the app knows they registered), an admin anyone's.
-    match /users/{email} {
-      allow read: if isAdmin() || (signedIn() && me() == email);
-      allow create: if isAdmin() ||
-        (signedIn() && me() == email && notBlocked() &&
-          request.resource.data.keys().hasOnly(['registeredAt']) && request.resource.data.registeredAt == request.time);
-      allow update, delete: if isAdmin();
+    // An account: { registeredAt, termsVersion, termsAcceptedAt, email, groups }. Anyone signed in with Google may create their own by
+    // accepting the terms (unless blocked), and accept a newer version later; groups are the admins'. Each person reads their own (that is
+    // how the app knows they registered), an admin anyone's: that is where the admins see an email, and only of people who accepted.
+    match /users/{uid} {
+      allow read: if isAdmin() || (signedIn() && me() == uid);
+      allow create: if signedIn() && me() == uid && notBlocked() &&
+        request.resource.data.keys().hasOnly(['registeredAt', 'termsVersion', 'termsAcceptedAt', 'email']) &&
+        request.resource.data.registeredAt == request.time && termsOk(request.resource.data);
+      allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['groups']) &&
+          request.resource.data.get('groups', []) is list) ||
+        (signedIn() && me() == uid && notBlocked() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['termsVersion', 'termsAcceptedAt', 'email']) &&
+          termsOk(request.resource.data));
+      allow delete: if isAdmin();
     }
 
     // Blocked people ({ blockedAt }): only admins write it; each person may read their own, so the app can tell them.
-    match /blocked/{email} {
-      allow read: if isAdmin() || (signedIn() && me() == email);
+    match /blocked/{uid} {
+      allow read: if isAdmin() || (signedIn() && me() == uid);
       allow write: if isAdmin();
     }
 
@@ -105,29 +134,29 @@ service cloud.firestore {
 
     // The public profile: name and photo, readable by everyone with an account (to find people by name). Each person writes their own
     // (js/auth.js at the first sign-in, the profile page); writing it needs no account yet, so someone who signed in without
-    // registering shows up in Settings > Users. Allergies, payment link and friends are NOT here: they are in the private profile.
-    match /userProfiles/{email} {
+    // registering shows up in Settings > Users. Allergies, payment link, friends and the email are NOT here: see the private profile.
+    match /userProfiles/{uid} {
       allow read: if allowed();
-      allow create, update: if signedIn() && me() == email &&
+      allow create, update: if signedIn() && me() == uid &&
         request.resource.data.keys().hasOnly(['displayName', 'photoUrl']) && validProfile(request.resource.data);
       allow delete: if isAdmin();
     }
 
-    // The private profile: allergies, payment link and friend list. Readable only by the person and the people on its readers list:
-    // housemates, people at their meals and their friends, kept up to date by their own app (js/app.js, js/sharing.js profileReaders).
-    // A stranger who registers sees names and photos, nothing more. Each person writes only their own.
-    match /privateProfiles/{email} {
+    // The private profile: allergies, payment link, friend list and (when shown) the email. Readable only by the person and the people
+    // on its readers list: housemates, people at their meals and their friends, kept up to date by their own app (js/app.js,
+    // js/sharing.js profileReaders). A stranger who registers sees names and photos, nothing more. Each person writes only their own.
+    match /privateProfiles/{uid} {
       // One profile: mine, or one that lists me as a reader. The list (the app's "every profile that lists me" query) only by the
       // readers condition, which the query's own filter (readers array-contains me) proves: a condition on the document's id cannot
       // be proven for a query, and would make Firestore refuse the whole list.
-      allow get: if allowed() && (me() == email || me() in resource.data.readers);
+      allow get: if allowed() && (me() == uid || me() in resource.data.readers);
       allow list: if allowed() && me() in resource.data.readers;
-      allow create, update: if allowed() && me() == email &&
-        request.resource.data.keys().hasOnly(['allergies', 'paymentLink', 'friends', 'readers']) && validPrivateProfile(request.resource.data);
-      allow delete: if isAdmin() || (allowed() && me() == email);
+      allow create, update: if allowed() && me() == uid &&
+        request.resource.data.keys().hasOnly(['allergies', 'paymentLink', 'friends', 'readers', 'email']) && validPrivateProfile(request.resource.data);
+      allow delete: if isAdmin() || (allowed() && me() == uid);
     }
     // Houses and groups. Members see and change them (add or remove someone, rename); the owner stays a member and is the only one who
-    // deletes it. Anyone can leave by removing themselves. Admins (the owner always, plus admins: [email] they or other admins chose)
+    // deletes it. Anyone can leave by removing themselves. Admins (the owner always, plus admins: [uid] they or other admins chose)
     // see the analytics; only an admin changes who is an admin.
     function validCircle(d) {
       return d.keys().hasOnly(['name', 'type', 'members', 'owner', 'admins', 'createdAt']) &&
@@ -179,7 +208,7 @@ service cloud.firestore {
         d.settled is list && d.settled.size() <= 130;
     }
 
-    // Costs: everyone who did groceries adds their own amount (costs.{their email}); nobody changes someone else's. A changed entry
+    // Costs: everyone who did groceries adds their own amount (costs.{their uid}); nobody changes someone else's. A changed entry
     // is a whole number of cents between 1 and 100,000 euros. The older one-payer cost (cost: { totalCents, paidBy }) only stays as it
     // is, or is retired (null) by its own payer when they write their entry.
     function costsChangeOk(next, prev) {
@@ -188,7 +217,7 @@ service cloud.firestore {
       return n.diff(p).affectedKeys().hasOnly([me()]) &&
         (!(me() in n) || (n[me()] is int && n[me()] > 0 && n[me()] <= 10000000));
     }
-    // Why someone is not coming: everyone writes only their own reason (declineReasons.{their email}), text of at most 200 characters.
+    // Why someone is not coming: everyone writes only their own reason (declineReasons.{their uid}), text of at most 200 characters.
     function reasonsChangeOk(next, prev) {
       let n = next.get('declineReasons', {});
       let p = prev.get('declineReasons', {});
@@ -230,7 +259,7 @@ service cloud.firestore {
         request.resource.data.updatedAt == request.time;
     }
 
-    // Friendships: one document per pair, its id the two emails sorted and joined by "|" (so there is never a second one). Either
+    // Friendships: one document per pair, its id the two uids sorted and joined by "|" (so there is never a second one). Either
     // person reads it and deletes it (decline, cancel, unfriend); only the one who was asked accepts it, and accepting changes nothing
     // else. Both people must have access to Splitskebab.
     match /friendships/{id} {
@@ -252,8 +281,8 @@ service cloud.firestore {
     }
 
     // ---- Messages ----
-    // A conversation is between two people (type "direct", id "a|b" with the emails sorted, like friendships: one per pair) or one
-    // person's feedback to the app's admins (type "feedback", id "feedback|<email>", members [that person]; every admin reads and answers
+    // A conversation is between two people (type "direct", id "a|b" with the uids sorted, like friendships: one per pair) or one
+    // person's feedback to the app's admins (type "feedback", id "feedback|<uid>", members [that person]; every admin reads and answers
     // it too). A direct conversation can only be started with someone I am connected to: a housemate, someone at one of my meals, or a
     // friend; that is exactly who is on either of our private profiles' readers lists (kept by our own apps). So a stranger who
     // registers cannot message anyone.

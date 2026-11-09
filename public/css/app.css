@@ -571,3 +571,13 @@
   color: var(--bs-primary);
 }
 .install-gate h1:focus { outline: none; }
+
+/* The terms of use page (terms.html) and the terms on the account screen: a readable column. */
+.terms-page {
+  max-width: 44rem;
+}
+.terms-box {
+  max-height: 40vh;
+  overflow-y: auto;
+  text-align: start;
+}

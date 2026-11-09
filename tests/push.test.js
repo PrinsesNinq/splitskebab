@@ -130,7 +130,7 @@ test("notifications are offered once per person and device, and the browser is o
   assert.ok(offer.indexOf("markAsked(me)") < offer.indexOf("modal.show()"), "marked as asked before the dialog: closing it counts as an answer");
   assert.match(offer, /addEventListener\("click", async[\s\S]*?enablePush\(me, KINDS, getLang\(\)\)/, "on with every kind, inside the tap");
   assert.ok(!/requestPermission/.test(offer), "the dialog never asks the browser on its own");
-  assert.match(read("public/js/app.js"), /prompt\.offerPush\(user\.email\.toLowerCase\(\)\)/, "offered when the app starts");
+  assert.match(read("public/js/app.js"), /prompt\.offerPush\(user\.uid\)/, "offered when the app starts");
 });
 
 test("a choice in the profile is an answer: switching notifications off is never undone by the first-time offer", () => {

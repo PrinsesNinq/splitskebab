@@ -6,7 +6,7 @@ import fs from "node:fs";
 const read = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
 test("every page with the navbar has the share button, and sharing opens straight from the tap", () => {
-  for (const page of fs.readdirSync(new URL("../public/", import.meta.url)).filter((f) => f.endsWith(".html") && f !== "login.html")) {
+  for (const page of fs.readdirSync(new URL("../public/", import.meta.url)).filter((f) => f.endsWith(".html") && !["login.html", "terms.html"].includes(f))) {
     assert.match(read(`public/${page}`), /data-share-app aria-label="Invite someone to Splitskebab" data-i18n-aria-label="share\.button"/, page);
   }
   const app = read("public/js/app.js");
