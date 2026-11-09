@@ -126,6 +126,7 @@
           <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More" data-i18n-aria-label="common.more"><i class="bi bi-three-dots" aria-hidden="true"></i></button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><button type="button" class="dropdown-item" id="meal-edit-btn" data-i18n="meal.edit">Edit name and time</button></li>
+            <li hidden><button type="button" class="dropdown-item" id="meal-move-btn" data-i18n="move.ask">Ask for another day</button></li>
             <li><button type="button" class="dropdown-item text-danger" id="meal-delete-btn" data-i18n="meal.delete">Delete meal</button></li>
           </ul>
         </div>
@@ -140,11 +141,32 @@
           <div class="col-7"><label class="form-label" for="edit-date" data-i18n="meal.date">Date</label><input class="form-control" type="date" id="edit-date" required></div>
           <div class="col-5"><label class="form-label" for="edit-time" data-i18n="meal.time">Time</label><input class="form-control" type="time" id="edit-time"></div>
         </div>
+        <!-- Only the host moves a meal (js/reschedule.js): for anyone else the day and time are locked, with the way to ask instead. -->
+        <p class="small text-body-secondary mb-2" id="edit-move-hint" hidden></p>
         <div class="d-flex gap-2">
           <button type="submit" class="btn btn-primary btn-sm" data-i18n="common.save">Save</button>
           <button type="button" class="btn btn-outline-secondary btn-sm" id="edit-cancel" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
+
+      <!-- Moving the meal (js/meal.js, js/store.js moveRequests): the requests the host answers, or my own request and how it went, and
+           the form to ask for another day. Hidden when there is nothing to show. -->
+      <section class="card card-body mb-3 d-none" id="move-box" aria-live="polite">
+        <div id="move-requests"></div>
+        <div id="move-mine"></div>
+        <form id="move-form" class="d-none" novalidate>
+          <h2 class="h6" data-i18n="move.ask">Ask for another day</h2>
+          <p class="small text-body-secondary" id="move-form-help"></p>
+          <div class="row g-2 mb-2">
+            <div class="col-7"><label class="form-label small" for="move-date" data-i18n="meal.date">Date</label><input class="form-control" type="date" id="move-date" required></div>
+            <div class="col-5"><label class="form-label small" for="move-time" data-i18n="meal.time">Time</label><input class="form-control" type="time" id="move-time"></div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm" data-i18n="move.send">Send request</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="move-cancel" data-i18n="common.cancel">Cancel</button>
+          </div>
+        </form>
+      </section>
 
       <!-- My answer: join or not (any time, also after the cooking started). -->
       <div class="rsvp-bar card card-body mb-3" id="rsvp-bar">

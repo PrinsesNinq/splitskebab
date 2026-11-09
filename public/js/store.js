@@ -31,11 +31,12 @@ import { missingViewers } from "./sharing.js";
 import { safePhoto } from "./photo.js";
 import { directId, feedbackId, preview, MAX_MESSAGE } from "./messaging.js";
 import { readCosts, settleKey } from "./money.js";
+import { rescheduleChanges } from "./reschedule.js";
 import { t } from "./i18n.js";
 
 const fs = await import(`${SDK}/firebase-firestore.js`);
 const {
-  collection, doc, onSnapshot, query, where, orderBy, limit, addDoc, getDoc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, serverTimestamp,
+  collection, collectionGroup, doc, onSnapshot, query, where, orderBy, limit, addDoc, getDoc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, serverTimestamp,
   writeBatch,
   FieldPath, deleteField,
 } = fs;
@@ -280,6 +281,62 @@ export const inviteToMeal = (id, uids) => updateMeal(id, { viewers: arrayUnion(.
 /** Whether I am asked to answer for this meal (and have not yet): everyone when the host asked everyone, else the people invited. */
 export const awaitsMyAnswer = (meal, me) =>
   meal.host !== me && !meal.participants.includes(me) && !meal.declined.includes(me) && (meal.rsvp || meal.invited.includes(me));
+
+// ---- Asking to move a meal: only its host moves it; anyone else asks (js/reschedule.js, firestore.rules) ----
+// meals/{id}/moveRequests/{uid}   { host, date, time, status: "pending" | "approved" | "declined", createdAt, decidedAt? }
+// One per person per meal (the id is who asks): asking again replaces it. host is the meal's host (checked by the rules), so the host's
+// app finds every request waiting for them in one query.
+
+const REQUEST_STATUS = ["pending", "approved", "declined"];
+function toMoveRequest(snap) {
+  const d = snap.data();
+  return {
+    mealId: snap.ref.parent.parent.id,
+    from: snap.id,
+    host: text(d.host),
+    date: /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : "",
+    time: /^\d{2}:\d{2}$/.test(d.time) ? d.time : "",
+    status: REQUEST_STATUS.includes(d.status) ? d.status : "pending",
+  };
+}
+
+/** Asks the host to move the meal to another day (and time). */
+export const requestMove = (meal, me, { date, time = "" }) => setDoc(doc(db, "meals", meal.id, "moveRequests", me),
+  { host: meal.host, date, time: time || "", status: "pending", createdAt: serverTimestamp() });
+
+/** Takes my request back (or, for the host, clears an answered one). */
+export const deleteMoveRequest = (mealId, from) => deleteDoc(doc(db, "meals", mealId, "moveRequests", from));
+
+/** The requests for one meal, live: cb(requests, error). */
+export function watchMoveRequests(mealId, cb) {
+  return onSnapshot(collection(db, "meals", mealId, "moveRequests"), (snap) => cb(snap.docs.map(toMoveRequest)), (err) => cb([], err));
+}
+
+let requestsFor = null;
+let requestsList = null;
+/** The requests waiting for me as host, across all my meals (the bell). */
+export function moveRequestsForMe(me) {
+  if (requestsFor !== me) {
+    requestsFor = me;
+    requestsList = shared((emit, fail) => onSnapshot(
+      query(collectionGroup(db, "moveRequests"), where("host", "==", me), where("status", "==", "pending"), limit(100)),
+      (snap) => emit(snap.docs.map(toMoveRequest)), fail));
+  }
+  return requestsList;
+}
+
+/**
+ * The host answers a request: approved moves the meal (the asked people answer again; the host and whoever asked keep their answers)
+ * and marks the request, in one write; declined only marks it. Both tell the asker (functions/index.js).
+ */
+export async function decideMove(meal, request, approve, me) {
+  const batch = writeBatch(db);
+  batch.update(doc(db, "meals", meal.id, "moveRequests", request.from), { status: approve ? "approved" : "declined", decidedAt: serverTimestamp() });
+  if (approve) {
+    batch.update(doc(db, "meals", meal.id), { ...rescheduleChanges(meal, [me, request.from], request), updatedAt: serverTimestamp() });
+  }
+  await batch.commit();
+}
 
 // ---- Friends ----
 

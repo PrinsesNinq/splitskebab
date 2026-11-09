@@ -13,7 +13,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import {
-  messageRecipients, invitationRecipients, reminderRecipients, moveRecipients, costChanges, devicesFor, notificationText, linkTo, dayInZone, euro,
+  messageRecipients, invitationRecipients, reminderRecipients, moveRecipients, moveRequestNotice, costChanges, devicesFor, notificationText, linkTo, dayInZone, euro,
 } from "./notify-logic.js";
 import { dailyStats } from "./stats.js";
 
@@ -130,6 +130,26 @@ export const onMealWritten = onDocumentWritten("meals/{id}", async (event) => {
       tag: `money-${id}`,
     });
   }
+});
+
+// ---- Asking the host to move a meal, and the host's answer ----
+export const onMoveRequest = onDocumentWritten("meals/{mealId}/moveRequests/{from}", async (event) => {
+  const before = event.data?.before?.exists ? event.data.before.data() : null;
+  const after = event.data?.after?.exists ? event.data.after.data() : null;
+  const { mealId, from } = event.params;
+  const notice = moveRequestNotice(before, after, from);
+  if (!notice?.kind) return;
+  const meal = (await db.doc(`meals/${mealId}`).get()).data();
+  if (!meal) return;
+  // The asker's name to the host; the host's name to the asker.
+  const name = await nameOf(notice.kind === "moveAsk" ? from : meal.host);
+  await notify({
+    kind: "meals",
+    recipients: notice.to,
+    text: (lang) => notificationText(notice.kind, lang, { name, title: meal.title, day: after.date, time: after.time }),
+    link: linkTo("meal.html", "id", mealId),
+    tag: `move-${mealId}`,
+  });
 });
 
 // ---- The day before: a reminder for whoever has not answered ----

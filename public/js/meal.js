@@ -6,14 +6,14 @@ import {
 } from "./ui.js";
 import {
   myCircles, people, person, watchMeal, createMeal, updateMeal, deleteMeal, joinMeal, declineMeal, setHave, setSettled, userRecipes,
-  myFriendships, friendIds, inviteToMeal, setMyCost,
+  myFriendships, friendIds, inviteToMeal, setMyCost, requestMove, deleteMoveRequest, watchMoveRequests, decideMove,
 } from "./store.js";
 import { allRecipes, findRecipe, parseRecipeRef, ingredientHtml, ingredientText, getPantry } from "./recipe-view.js";
 import { groceryList, allergyConflicts, tableAllergies, rankByPantry, groceryKey } from "./recipe-logic.js";
 import { parseMoney, formatMoney, mealDebts, mealShares, mealTotal, eaters, guestId, settleKey } from "./money.js";
 import { allergenLabel } from "./allergens.js";
 import { attachPeoplePicker } from "./people-picker.js";
-import { moves, askedAgain, rescheduleChanges } from "./reschedule.js";
+import { moves, askedAgain, rescheduleChanges, canMove } from "./reschedule.js";
 import { getLang, t, formatDay } from "./i18n.js";
 
 const user = await whenUser();
@@ -162,6 +162,7 @@ function startView(id) {
   let sort = "all";
   let friends = [];
   let costFormOpen = false; // "Add costs" was pressed
+  let requests = []; // asks to move this meal (meals/{id}/moveRequests)
 
   const eaterPeople = () => meal.participants.map((uid) => person(uid));
   const chosenRecipe = () => findRecipe(meal.recipe, recipes);
@@ -401,7 +402,44 @@ function startView(id) {
     renderPeople();
     renderRecipe();
     renderCost();
+    renderMove();
     if ($("#recipe-modal").classList.contains("show")) renderRecipeOptions();
+  }
+
+  const whenText = (r) => `${formatDay(r.date, { weekday: "long" })}${r.time ? ` ${r.time}` : ""}`;
+  /**
+   * Moving: the host sees the requests waiting for an answer (approve or decline); anyone else sees how their own request went and can
+   * ask for another day. Answered requests of others are not shown to the host (they are done).
+   */
+  function renderMove() {
+    const host = canMove(meal, me);
+    const pending = requests.filter((r) => r.status === "pending");
+    $("#meal-move-btn").closest("li").hidden = host;
+    $("#move-requests").innerHTML = host && pending.length ? `<h2 class="h6">${esc(t("move.waiting"))}</h2><ul class="list-group mb-0">${pending.map((r) => `
+      <li class="list-group-item d-flex align-items-center gap-2 flex-wrap" data-move-from="${esc(r.from)}">
+        ${avatarHtml(person(r.from), "avatar avatar-sm")}
+        <span class="flex-grow-1 min-w-0">${esc(t("move.asks", { name: person(r.from).name, when: whenText(r) }))}</span>
+        <button type="button" class="btn btn-sm btn-success" data-move-approve>${esc(t("move.approve"))}</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-move-decline>${esc(t("move.decline"))}</button>
+      </li>`).join("")}</ul>` : "";
+    const mine = host ? null : requests.find((r) => r.from === me);
+    const status = mine && { pending: "move.minePending", approved: "move.mineApproved", declined: "move.mineDeclined" }[mine.status];
+    const icon = !mine ? "" : mine.status === "approved" ? "bi-check-circle text-success" : mine.status === "declined" ? "bi-x-circle text-danger" : "bi-hourglass-split";
+    $("#move-mine").innerHTML = mine ? `<p class="small mb-0 d-flex align-items-center gap-2 flex-wrap">
+        <i class="bi ${icon}" aria-hidden="true"></i>
+        <span class="flex-grow-1">${esc(t(status, { host: person(meal.host).name, when: whenText(mine) }))}</span>
+        <button type="button" class="btn btn-sm btn-link p-0" data-move-withdraw>${esc(t(mine.status === "pending" ? "move.withdraw" : "move.dismiss"))}</button></p>` : "";
+    const empty = !$("#move-requests").innerHTML && !$("#move-mine").innerHTML && $("#move-form").classList.contains("d-none");
+    $("#move-box").classList.toggle("d-none", empty);
+  }
+
+  function openMoveForm() {
+    $("#move-date").value = meal.date;
+    $("#move-time").value = meal.time;
+    $("#move-form-help").textContent = t("move.help", { host: person(meal.host).name });
+    $("#move-form").classList.remove("d-none");
+    $("#move-box").classList.remove("d-none");
+    $("#move-date").focus();
   }
 
   // ---- Wiring (once; every handler reads the latest meal) ----
@@ -470,6 +508,12 @@ function startView(id) {
     $("#edit-title").value = meal.title;
     $("#edit-date").value = meal.date;
     $("#edit-time").value = meal.time;
+    // Only the host moves it: for anyone else the day and time are locked, with a pointer to asking.
+    const host = canMove(meal, me);
+    $("#edit-date").disabled = !host;
+    $("#edit-time").disabled = !host;
+    $("#edit-move-hint").hidden = host;
+    $("#edit-move-hint").textContent = host ? "" : t("move.onlyHost", { host: person(meal.host).name });
     $("#meal-edit").classList.remove("d-none");
     $("#edit-title").focus();
   });
@@ -480,9 +524,9 @@ function startView(id) {
     const date = $("#edit-date").value;
     $("#edit-title").classList.toggle("is-invalid", !title);
     if (!title || !date) return;
-    // Another day or time: the people who were asked answer again (js/reschedule.js), after a question when there are any.
+    // Another day or time (the host only): the people who were asked answer again (js/reschedule.js), after a question when there are any.
     const to = { date, time: $("#edit-time").value || "" };
-    const moving = moves(meal, to);
+    const moving = canMove(meal, me) && moves(meal, to);
     const again = moving ? askedAgain(meal, me) : [];
     if (again.length && !window.confirm(t("home.moveConfirm", { title, when: `${formatDay(date, { weekday: "long" })}${to.time ? ` ${to.time}` : ""}`, n: again.length }))) return;
     await attempt(() => updateMeal(id, { title, ...(moving ? rescheduleChanges(meal, me, to) : {}) }), t("common.saved"));
@@ -569,7 +613,35 @@ function startView(id) {
       shareText(mine.paymentLink ? t("pay.requestText", vars) : t("pay.requestTextNoLink", vars));
     }
   });
+  // ---- Moving: asking, answering, taking back ----
+  $("#meal-move-btn").addEventListener("click", openMoveForm);
+  $("#move-cancel").addEventListener("click", () => { $("#move-form").classList.add("d-none"); renderMove(); });
+  $("#move-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const to = { date: $("#move-date").value, time: $("#move-time").value || "" };
+    $("#move-date").classList.toggle("is-invalid", !to.date);
+    if (!to.date) return;
+    if (!moves(meal, to)) { toast(t("move.same"), "info"); return; }
+    const host = person(meal.host).name;
+    const done = await attempt(async () => { await requestMove(meal, me, to); return true; }, t("move.sent", { host }));
+    if (done) { $("#move-form").classList.add("d-none"); renderMove(); }
+  });
+  $("#move-box").addEventListener("click", async (e) => {
+    if (e.target.closest("[data-move-withdraw]")) { attempt(() => deleteMoveRequest(id, me)); return; }
+    const item = e.target.closest("[data-move-from]");
+    const request = item && requests.find((r) => r.from === item.dataset.moveFrom && r.status === "pending");
+    if (!request) return;
+    const name = person(request.from).name;
+    if (e.target.closest("[data-move-decline]")) { attempt(() => decideMove(meal, request, false, me), t("move.declined", { name })); return; }
+    if (!e.target.closest("[data-move-approve]")) return;
+    const again = askedAgain(meal, [me, request.from]);
+    const when = whenText(request);
+    if (again.length && !window.confirm(t("home.moveConfirm", { title: meal.title || t("meal.untitled"), when, n: again.length }))) return;
+    await attempt(() => decideMove(meal, request, true, me), t("home.moved", { when }));
+  });
+
   // ---- Live data ----
+  stops.push(watchMoveRequests(id, (list) => { requests = list; if (meal) renderMove(); }));
   stops.push(watchMeal(id, (next, err) => {
     if (err || !next) {
       $("#meal-view").classList.add("d-none");

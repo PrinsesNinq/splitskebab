@@ -66,3 +66,61 @@ test("a moved meal is a new notification in the bell, not one already seen", () 
   assert.match(app, /id: `invite-\$\{meal\.id\}-\$\{meal\.date\}`/);
   assert.match(app, /read: read\.has\(`invite-\$\{meal\.id\}-\$\{meal\.date\}`\)/);
 });
+
+// ---- Only the host moves a meal; anyone else asks ----
+import { canMove } from "../public/js/reschedule.js";
+import { moveRequestNotice } from "../functions/notify-logic.js";
+
+const rules = read("firestore.rules");
+const mealsBlock = rules.slice(rules.indexOf("match /meals/{id} {"), rules.indexOf("// The host's list of requests"));
+
+test("firestore.rules: only the host changes a meal's day or time", () => {
+  assert.match(mealsBlock, /\(\(request\.resource\.data\.date == resource\.data\.date && request\.resource\.data\.time == resource\.data\.time\) \|\| resource\.data\.host == me\(\)\);/);
+  assert.equal(canMove({ host: "uH" }, "uH"), true);
+  assert.equal(canMove({ host: "uH" }, "uA"), false);
+});
+
+test("firestore.rules: a request is made by someone at the meal, for themselves, naming its real host; only the host answers it", () => {
+  const req = rules.slice(rules.indexOf("match /moveRequests/{uid} {"), rules.indexOf("// The host's list of requests"));
+  assert.match(req, /allow read: if allowed\(\) && me\(\) in meal\(\)\.viewers;/);
+  assert.match(req, /allow create, update: if allowed\(\) && me\(\) == uid && me\(\) in meal\(\)\.viewers && me\(\) != meal\(\)\.host &&/);
+  assert.match(req, /request\.resource\.data\.host == meal\(\)\.host && request\.resource\.data\.status == 'pending' &&/, "always asking, never answering itself");
+  assert.match(req, /request\.resource\.data\.createdAt == request\.time;/);
+  assert.match(req, /allow update: if allowed\(\) && me\(\) == meal\(\)\.host && resource\.data\.status == 'pending' &&[\s\S]*?hasOnly\(\['status', 'decidedAt'\]\) &&[\s\S]*?status in \['approved', 'declined'\]/);
+  assert.match(req, /allow delete: if allowed\(\) && \(me\(\) == uid \|\| me\(\) == meal\(\)\.host\);/);
+  assert.match(rules, /match \/\{path=\*\*\}\/moveRequests\/\{uid\} \{\s*allow list: if allowed\(\) && resource\.data\.host == me\(\);/, "the host's list only holds their own requests");
+  assert.match(read("firestore.indexes.json"), /"collectionGroup": "moveRequests",\s*"queryScope": "COLLECTION_GROUP"/);
+});
+
+test("approving a request moves the meal in one write; the host and whoever asked keep their answers", () => {
+  const meal = { ...rsvpMeal, participants: ["uH", "uA", "uMe"], declined: ["uB"] };
+  assert.deepEqual(askedAgain(meal, ["uH", "uA"]).sort(), ["uB", "uMe"], "uA asked: keeps their yes");
+  const store = read("public/js/store.js");
+  assert.match(store, /batch\.update\(doc\(db, "meals", meal\.id, "moveRequests", request\.from\), \{ status: approve \? "approved" : "declined", decidedAt: serverTimestamp\(\) \}\);/);
+  assert.match(store, /if \(approve\) \{\s*batch\.update\(doc\(db, "meals", meal\.id\), \{ \.\.\.rescheduleChanges\(meal, \[me, request\.from\], request\), updatedAt: serverTimestamp\(\) \}\);/);
+});
+
+test("dragging someone else's meal asks its host instead of moving it", () => {
+  const home = read("public/js/home.js");
+  assert.match(home, /if \(!canMove\(meal, me\)\) \{\s*revert\(\);[\s\S]*?requestMove\(meal, me, to\)/, "the meal stays put until the host approves");
+});
+
+test("on the meal page only the host can change the day and time; others ask, and see how it went", () => {
+  const meal = read("public/js/meal.js");
+  assert.match(meal, /\$\("#edit-date"\)\.disabled = !host;/);
+  assert.match(meal, /const moving = canMove\(meal, me\) && moves\(meal, to\);/, "a non-host's save never moves it");
+  assert.match(meal, /decideMove\(meal, request, true, me\)/);
+  assert.match(meal, /requestMove\(meal, me, to\)/);
+  assert.match(read("public/js/app.js"), /moveRequestsForMe\(me\)\.subscribe/, "the host's bell");
+});
+
+test("the pushes: a request to the host, the answer to whoever asked, nothing for taking it back", () => {
+  const pending = { host: "uH", date: "2026-11-14", time: "", status: "pending" };
+  assert.deepEqual(moveRequestNotice(null, pending, "uA"), { kind: "moveAsk", to: ["uH"] });
+  assert.equal(moveRequestNotice(pending, { ...pending }, "uA"), null, "unchanged");
+  assert.deepEqual(moveRequestNotice(pending, { ...pending, date: "2026-11-15" }, "uA"), { kind: "moveAsk", to: ["uH"] }, "asked for another day");
+  assert.deepEqual(moveRequestNotice(pending, { ...pending, status: "approved" }, "uA"), { kind: "moveApproved", to: ["uA"] });
+  assert.deepEqual(moveRequestNotice(pending, { ...pending, status: "declined" }, "uA"), { kind: "moveDeclined", to: ["uA"] });
+  assert.equal(moveRequestNotice(pending, null, "uA"), null, "taken back");
+  assert.match(read("functions/index.js"), /export const onMoveRequest = onDocumentWritten\("meals\/\{mealId\}\/moveRequests\/\{from\}"/);
+});

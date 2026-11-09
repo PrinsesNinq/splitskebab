@@ -165,10 +165,11 @@ const seen = () => { try { return new Set(JSON.parse(localStorage.getItem(SEEN_K
 async function startInvites(me) {
   const bell = document.querySelector("sel-notification-bell");
   if (!bell) return;
-  const { myMeals, myFriendships, awaitsMyAnswer, person, people } = await import("./store.js");
+  const { myMeals, myFriendships, moveRequestsForMe, awaitsMyAnswer, person, people } = await import("./store.js");
   const { todayIso } = await import("./ui.js");
   let meals = [];
   let friendships = [];
+  let moveRequests = [];
   bell.addEventListener("notification:seen", (event) => {
     const ids = [...seen(), ...(event.detail?.ids || [])].slice(-200);
     try { localStorage.setItem(SEEN_KEY, JSON.stringify(ids)); } catch { /* the badge comes back next visit */ }
@@ -186,6 +187,18 @@ async function startInvites(me) {
         read: read.has(`friend-${f.id}`),
       });
     }
+    // Someone asks me, the host, to move a meal (js/store.js moveRequestsForMe): one notification per request and asked-for day.
+    for (const r of moveRequests) {
+      const meal = meals.find((m) => m.id === r.mealId);
+      const nid = `move-${r.mealId}-${r.from}-${r.date}-${r.time}`;
+      addNotification(bell, {
+        id: nid,
+        category: "invites",
+        text: t("move.bell", { name: person(r.from).name, title: meal?.title || t("meal.untitled"), day: formatDay(r.date) }),
+        href: `meal.html?id=${encodeURIComponent(r.mealId)}`,
+        read: read.has(nid),
+      });
+    }
     const invites = meals.filter((m) => m.date >= today && awaitsMyAnswer(m, me));
     for (const meal of invites) {
       // The id names the day: a meal that moved asks again, so it is a new, unread notification.
@@ -200,6 +213,7 @@ async function startInvites(me) {
   };
   myMeals(me).subscribe((list) => { if (list) { meals = list; render(); } });
   myFriendships(me).subscribe((list) => { if (list) { friendships = list; render(); } });
+  moveRequestsForMe(me).subscribe((list) => { if (list) { moveRequests = list; render(); } });
   people.subscribe(() => render()); // names arrive separately
 }
 

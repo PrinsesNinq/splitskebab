@@ -1,8 +1,8 @@
 // The calendar page: every meal I can see on a month calendar (or as a list), the meals of the day I tap below it, and what is coming up.
 // A meal I am invited to and have not answered is marked; tapping a meal opens it (meal.html), dragging it moves it to another day.
 import { whenUser, esc, circleTone, onLeave, todayIso, go, avatarStackHtml, attempt } from "./ui.js";
-import { myMeals, myCircles, people, person, updateMeal } from "./store.js";
-import { moves, askedAgain, rescheduleChanges } from "./reschedule.js";
+import { myMeals, myCircles, people, person, updateMeal, requestMove } from "./store.js";
+import { moves, askedAgain, rescheduleChanges, canMove } from "./reschedule.js";
 import { createCalendar, rememberView } from "./calendar.js";
 import { getLang, t, formatDay } from "./i18n.js";
 import { formatMoney, mealDebts } from "./money.js";
@@ -60,14 +60,22 @@ function mealRow(meal, { showDate = false } = {}) {
 
 function renderDay() {
   /**
- * A meal dragged to another day: moved, after a question when people who were asked to come will have to answer again (js/reschedule.js).
- * Cancelled, or refused (no connection, no right), it goes back where it was.
+ * A meal dragged to another day. Its host moves it, after a question when people who were asked to come will have to answer again
+ * (js/reschedule.js); anyone else asks the host instead, and the meal stays where it is until the host approves. Cancelled, or refused
+ * (no connection, no right), it goes back where it was.
  */
 async function moveMeal(id, to, revert) {
   const meal = meals.find((m) => m.id === id);
   if (!meal || !me || !moves(meal, to)) { revert(); return; }
-  const again = askedAgain(meal, me);
   const when = `${formatDay(to.date, { weekday: "long" })}${to.time ? ` ${to.time}` : ""}`;
+  if (!canMove(meal, me)) {
+    revert();
+    const host = person(meal.host).name;
+    if (!window.confirm(t("move.askConfirm", { host, title: meal.title || t("meal.untitled"), when }))) return;
+    await attempt(() => requestMove(meal, me, to), t("move.sent", { host }));
+    return;
+  }
+  const again = askedAgain(meal, me);
   if (again.length && !window.confirm(t("home.moveConfirm", { title: meal.title || t("meal.untitled"), when, n: again.length }))) { revert(); return; }
   const done = await attempt(async () => { await updateMeal(id, rescheduleChanges(meal, me, to)); return true; }, t("home.moved", { when }));
   if (!done) revert();
@@ -155,14 +163,22 @@ const calendarReady = createCalendar($("#calendar"), {
 });
 
 /**
- * A meal dragged to another day: moved, after a question when people who were asked to come will have to answer again (js/reschedule.js).
- * Cancelled, or refused (no connection, no right), it goes back where it was.
+ * A meal dragged to another day. Its host moves it, after a question when people who were asked to come will have to answer again
+ * (js/reschedule.js); anyone else asks the host instead, and the meal stays where it is until the host approves. Cancelled, or refused
+ * (no connection, no right), it goes back where it was.
  */
 async function moveMeal(id, to, revert) {
   const meal = meals.find((m) => m.id === id);
   if (!meal || !me || !moves(meal, to)) { revert(); return; }
-  const again = askedAgain(meal, me);
   const when = `${formatDay(to.date, { weekday: "long" })}${to.time ? ` ${to.time}` : ""}`;
+  if (!canMove(meal, me)) {
+    revert();
+    const host = person(meal.host).name;
+    if (!window.confirm(t("move.askConfirm", { host, title: meal.title || t("meal.untitled"), when }))) return;
+    await attempt(() => requestMove(meal, me, to), t("move.sent", { host }));
+    return;
+  }
+  const again = askedAgain(meal, me);
   if (again.length && !window.confirm(t("home.moveConfirm", { title: meal.title || t("meal.untitled"), when, n: again.length }))) { revert(); return; }
   const done = await attempt(async () => { await updateMeal(id, rescheduleChanges(meal, me, to)); return true; }, t("home.moved", { when }));
   if (!done) revert();

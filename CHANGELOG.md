@@ -36,3 +36,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Admins edit the terms of use in Settings; every new version has to be accepted again by everyone
 - Optional anonymous statistics (recipes cooked, how often and with how many people you eat, spend per diner): asked once, changeable on your profile, only totals are kept
 - Drag a meal on the calendar to move it to another day; everyone who was asked to come is asked again (also when the day or time is changed on the meal)
+- Only the host moves a meal; anyone else asks for another day (by dragging it or from the meal), and the host approves or declines

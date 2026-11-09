@@ -49,6 +49,22 @@ export function moveRecipients(before, after) {
   return reminderRecipients(after).filter((e) => !invited.has(e));
 }
 
+/**
+ * A request to move a meal (meals/{id}/moveRequests/{from}) was written: who hears about it. A new or changed pending request goes to the
+ * host ("moveAsk"); the host's answer goes to whoever asked ("moveApproved" / "moveDeclined"). Anything else (taken back, cleared): nothing.
+ */
+export function moveRequestNotice(before, after, from) {
+  if (!after) return null;
+  if (after.status === "pending") {
+    const changed = !before || before.status !== "pending" || before.date !== after.date || (before.time || "") !== (after.time || "");
+    return changed && after.host ? { kind: after.host === from ? null : "moveAsk", to: [after.host] } : null;
+  }
+  if (before?.status === "pending" && ["approved", "declined"].includes(after.status)) {
+    return { kind: after.status === "approved" ? "moveApproved" : "moveDeclined", to: [from] };
+  }
+  return null;
+}
+
 /** The reminder the day before: everyone asked who has not answered yet. */
 export function reminderRecipients(meal) {
   const done = answered(meal);
@@ -89,6 +105,9 @@ const TEXT = {
     invited: ["{name} asks: are you coming?", "{title} on {day}{time}"],
     reminder: ["Are you coming tomorrow?", "{title}{time}: {name} would like to know"],
     moved: ["{title} has moved", "Now on {day}{time}. Are you still coming?"],
+    moveAsk: ["{name} asks to move {title}", "To {day}{time}. Open the meal to approve or decline."],
+    moveApproved: ["{title} has moved", "{name} said yes: it is now on {day}{time}."],
+    moveDeclined: ["{title} stays where it is", "{name} said no to moving it to {day}{time}."],
     paid: ["{name} paid {amount}", "for {title}. Open the meal to see what you owe."],
   },
   nl: {
@@ -98,6 +117,9 @@ const TEXT = {
     invited: ["{name} vraagt: eet je mee?", "{title} op {day}{time}"],
     reminder: ["Eet je morgen mee?", "{title}{time}: {name} wil het graag weten"],
     moved: ["{title} is verplaatst", "Nu op {day}{time}. Eet je nog mee?"],
+    moveAsk: ["{name} vraagt {title} te verplaatsen", "Naar {day}{time}. Open de maaltijd om het goed of af te keuren."],
+    moveApproved: ["{title} is verplaatst", "{name} vond het goed: het is nu op {day}{time}."],
+    moveDeclined: ["{title} blijft staan", "{name} wilde het niet verplaatsen naar {day}{time}."],
     paid: ["{name} heeft {amount} betaald", "voor {title}. Open de maaltijd om te zien wat je moet betalen."],
   },
 };
