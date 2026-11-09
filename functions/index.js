@@ -7,7 +7,6 @@
 // Logs carry counts and ids, never names or message text.
 import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { onRequest } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
@@ -16,7 +15,6 @@ import { getMessaging } from "firebase-admin/messaging";
 import {
   messageRecipients, invitationRecipients, reminderRecipients, costChanges, devicesFor, notificationText, linkTo, dayInZone, euro,
 } from "./notify-logic.js";
-import { migrateToUids as runMigration } from "./migrate.js";
 
 // Next to the database (eur3, Europe). A few instances at most: a bug can never run up a bill.
 setGlobalOptions({ region: "europe-west1", maxInstances: 5, memory: "256MiB" });
@@ -144,16 +142,5 @@ export const mealReminders = onSchedule({ schedule: "0 16 * * *", timeZone: "Eur
       link: linkTo("meal.html", "id", doc.id),
       tag: `meal-${doc.id}`,
     });
-  }
-});
-
-// ---- One-time: emails to uids as people's ids (functions/migrate.js). ?dry=1 only counts. Answers with counts only, refuses a second
-// real run, and is removed in the deploy after it ran. Public, so it can be started right after the deploy; it takes no input but ?dry.
-export const migrateToUids = onRequest({ timeoutSeconds: 540, memory: "512MiB", invoker: "public", maxInstances: 1 }, async (req, res) => {
-  try {
-    res.json(await runMigration({ dry: req.query.dry === "1" }));
-  } catch (err) {
-    logger.error("migration failed", { message: err?.message });
-    res.status(500).json({ error: "failed" });
   }
 });
