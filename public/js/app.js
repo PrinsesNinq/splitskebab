@@ -205,7 +205,7 @@ async function startInvites(me) {
       addNotification(bell, {
         id: `invite-${meal.id}-${meal.date}`,
         category: "invites",
-        text: t("invite.text", { title: meal.title || t("meal.untitled"), day: formatDay(meal.date), circle: meal.circleName }),
+        text: t("invite.text", { title: meal.title || t("meal.untitled"), day: formatDay(meal.date), circle: meal.circleName || t("meal.noCircleShort") }),
         href: `meal.html?id=${encodeURIComponent(meal.id)}`,
         read: read.has(`invite-${meal.id}-${meal.date}`),
       });

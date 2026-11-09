@@ -80,8 +80,10 @@
     <sel-chat class="chat" id="chat"></sel-chat>
     <p class="text-body-secondary small text-center my-4" id="chat-empty" hidden></p>
 
-    <!-- Writing (component "Chat composer"): Enter sends, Shift+Enter is a new line. -->
-    <div class="chat-composer chat-page__composer mt-3" id="composer" hidden>
+    <!-- Writing (component "Chat composer"): Enter sends, Shift+Enter is a new line. Docked at the bottom of the screen (above the bottom
+         bar, or above the keyboard while typing: css/app.css .chat-dock); the chat scrolls behind it and keeps room for it (js/chat.js). -->
+    <div class="chat-dock" id="chat-dock"><div class="container">
+    <div class="chat-composer chat-page__composer" id="composer" hidden>
       <textarea class="chat-composer__input" rows="1" maxlength="2000" placeholder="Write a message..." data-i18n-placeholder="chat.placeholder" aria-label="Message" data-i18n-aria-label="chat.message"></textarea>
       <div class="chat-composer__footer">
         <small class="chat-composer__hint" data-i18n="chat.hint">Enter to send, Shift+Enter for a new line</small>
@@ -89,6 +91,7 @@
         <button type="button" class="chat-composer__send" aria-label="Send" data-i18n-aria-label="chat.send"><i class="bi bi-send-fill" aria-hidden="true"></i></button>
       </div>
     </div>
+    </div></div>
   </main>
 
   <!-- This page's own script: inside #page-content, so it also runs when the page is reached by soft navigation. -->

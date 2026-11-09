@@ -233,6 +233,7 @@ service cloud.firestore {
 
     // Meals. viewers (the circle's members when it was planned, plus anyone added) see and change it: anyone at the table can change
     // who joins, the recipe, the groceries and the cost. The host, the circle and the creation time never change; only the host deletes.
+    // The circle is optional: circleId '' is a meal for only the people its host invited (no house or group shared with them).
     function validMeal(d) {
       return d.keys().hasOnly(['title', 'date', 'time', 'circleId', 'circleName', 'host', 'viewers', 'participants', 'declined', 'invited',
           'guests', 'rsvp', 'recipe', 'servings', 'have', 'cost', 'costs', 'settled', 'declineReasons', 'createdAt', 'updatedAt']) &&
@@ -283,7 +284,8 @@ service cloud.firestore {
       allow create: if allowed() && validMeal(request.resource.data) && request.resource.data.host == me() &&
         me() in request.resource.data.viewers &&
         request.resource.data.get('costs', {}).size() == 0 && request.resource.data.get('cost', null) == null &&
-        me() in get(/databases/$(database)/documents/circles/$(request.resource.data.circleId)).data.members;
+        (request.resource.data.circleId == '' ||
+          me() in get(/databases/$(database)/documents/circles/$(request.resource.data.circleId)).data.members);
       allow update: if allowed() && me() in resource.data.viewers && validMeal(request.resource.data) &&
         me() in request.resource.data.viewers &&
         request.resource.data.host == resource.data.host &&

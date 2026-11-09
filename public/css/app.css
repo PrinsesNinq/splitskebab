@@ -470,16 +470,35 @@
   margin-top: 0.15rem;
 }
 .chat-message--own .chat-meta { text-align: end; }
-.chat-page__composer {
-  position: sticky;
+/* The composer is docked to the bottom of the screen, just above the bottom bar, whether the chat is short or long; the messages scroll
+   behind it. While the keyboard is open the bottom bar steps aside and the composer sits on the keyboard (--keyboard-inset, js/keyboard.js:
+   the part of the page the keyboard covers). The page keeps room under the last message for the composer's real height (--composer-height,
+   js/chat.js, which grows with the text), so nothing is ever hidden behind it. */
+.chat-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: calc(4.75rem + env(safe-area-inset-bottom));
-  z-index: 5;
+  z-index: 1020;
+  pointer-events: none; /* the empty sides of the dock do not block the chat behind it */
+}
+.keyboard-open .chat-dock {
+  bottom: calc(0.5rem + var(--keyboard-inset, 0px));
+}
+.chat-page__composer {
+  pointer-events: auto;
   background: var(--bs-body-bg);
   border-radius: 1rem;
   box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.12);
 }
+.chat-page {
+  padding-bottom: calc(var(--composer-height, 6.5rem) + 0.75rem);
+}
+.keyboard-open .chat-page {
+  padding-bottom: calc(var(--composer-height, 6.5rem) + 0.75rem + var(--keyboard-inset, 0px));
+}
 @media (min-width: 768px) {
-  .chat-page__composer { bottom: 6rem; }
+  .chat-dock { bottom: 6rem; }
 }
 
 /* ---- Recipes page ---- */

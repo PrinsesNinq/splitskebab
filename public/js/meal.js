@@ -43,19 +43,22 @@ function startNew() {
   const rsvp = $("#new-rsvp");
   const recipe = parseRecipeRef(param("recipe"));
   let circles = [];
+  let circlesLoaded = false; // the first list sets the choice; later ones keep what was picked
   let checked = new Set([me]);
   let friends = [];
-  const invitedFriends = new Set();
+  const invited = new Set(); // people from outside the house or group (friends ticked, or anyone found by name)
+  const picked = new Set(); // found by name: listed with the friends so they can be unticked again
 
   $("#new-date").value = /^\d{4}-\d{2}-\d{2}$/.test(param("date") || "") ? param("date") : todayIso();
   $("#meal-loading").classList.add("d-none");
   form.classList.remove("d-none");
 
-  const circle = () => circles.find((c) => c.id === circleSelect.value);
+  // The house or group is optional: without one ("") only I am in it, and whoever I invite.
+  const circle = () => circles.find((c) => c.id === circleSelect.value) || null;
+  const memberIds = () => circle()?.members || [me];
 
   function renderPeople() {
-    const c = circle();
-    const members = c ? c.members.map((uid) => person(uid)) : [];
+    const members = memberIds().map((uid) => person(uid));
     $("#new-people").innerHTML = members.map((p) => `
       <label class="list-group-item d-flex align-items-center gap-2">
         <input class="form-check-input mt-0" type="checkbox" value="${esc(p.id)}" ${checked.has(p.id) ? "checked" : ""}>
@@ -63,12 +66,12 @@ function startNew() {
         <span class="flex-grow-1 min-w-0"><span class="d-block text-truncate">${esc(p.name)}${p.id === me ? ` <span class="text-body-secondary small">(${esc(t("common.you"))})</span>` : ""}</span>${hiddenAllergiesTag(p)}</span>
         ${p.allergies.length ? `<span class="small">${allergenBadges(p.allergies)}</span>` : ""}
       </label>`).join("") || `<p class="small text-body-secondary mb-0">${esc(t("meal.noMembers"))}</p>`;
-    // Friends who are not in this house or group already: tick them to invite them.
-    const outside = friends.filter((uid) => !(c ? c.members : []).includes(uid)).map((uid) => person(uid));
-    $("#new-friends-box").classList.toggle("d-none", !outside.length);
+    // Friends, and anyone found by name, who are not in this house or group already: tick them to invite them.
+    const outside = [...new Set([...friends, ...picked])].filter((uid) => !memberIds().includes(uid)).map((uid) => person(uid));
+    $("#new-friends").classList.toggle("d-none", !outside.length);
     $("#new-friends").innerHTML = outside.map((p) => `
       <label class="list-group-item d-flex align-items-center gap-2">
-        <input class="form-check-input mt-0" type="checkbox" data-friend="${esc(p.id)}" ${invitedFriends.has(p.id) ? "checked" : ""}>
+        <input class="form-check-input mt-0" type="checkbox" data-friend="${esc(p.id)}" ${invited.has(p.id) ? "checked" : ""}>
         ${avatarHtml(p, "avatar avatar-sm")}
         <span class="flex-grow-1 min-w-0 text-truncate">${esc(p.name)}</span>
         ${p.allergies.length ? `<span class="small">${allergenBadges(p.allergies)}</span>` : ""}
@@ -84,8 +87,17 @@ function startNew() {
   $("#new-friends").addEventListener("change", (e) => {
     const uid = e.target.dataset.friend;
     if (!uid) return;
-    if (e.target.checked) invitedFriends.add(uid); else invitedFriends.delete(uid);
+    if (e.target.checked) invited.add(uid); else invited.delete(uid);
+    redrawInvite();
   });
+  // Anyone with Splitskebab, found by name (never by email: js/people-picker.js), is invited without sharing a house or group.
+  const redrawInvite = attachPeoplePicker($("#new-invite-search"), $("#new-invite-results"), {
+    me,
+    skip: () => [...memberIds(), ...invited],
+    label: t("meal.invite"),
+    onPick: (uid) => { picked.add(uid); invited.add(uid); renderPeople(); },
+  });
+  stops.push(people.subscribe(() => redrawInvite()));
 
   $("#new-people").addEventListener("change", (e) => {
     if (e.target.type !== "checkbox") return;
@@ -95,34 +107,29 @@ function startNew() {
 
   // Asking everyone: only I am in for now, the others answer themselves (from the bell or the meal).
   rsvp.addEventListener("change", () => {
-    const c = circle();
-    checked = rsvp.checked ? new Set([me]) : new Set(c ? c.members : [me]);
+    checked = rsvp.checked ? new Set([me]) : new Set(memberIds());
     renderPeople();
   });
 
   circleSelect.addEventListener("change", () => {
-    try { localStorage.setItem("last-circle", circleSelect.value); } catch { /* only a convenience */ }
-    const c = circle();
-    checked = rsvp.checked ? new Set([me]) : new Set(c ? c.members : [me]);
+    try { localStorage.setItem("last-circle", circleSelect.value || "none"); } catch { /* only a convenience */ }
+    checked = rsvp.checked ? new Set([me]) : new Set(memberIds());
     renderPeople();
+    redrawInvite();
   });
 
   stops.push(myCircles(me).subscribe((list, err) => {
     if (err) { fail(t("error.load")); return; }
     if (!list) return;
-    const first = !circles.length;
+    const first = !circlesLoaded;
+    circlesLoaded = true;
     circles = list;
-    if (!circles.length) {
-      form.classList.add("d-none");
-      $("#meal-error").innerHTML = `${esc(t("home.noCircle"))} <a class="alert-link" href="houses.html">${esc(t("home.noCircleLink"))}</a>`;
-      $("#meal-error").classList.replace("alert-danger", "alert-info");
-      $("#meal-error").classList.remove("d-none");
-      return;
-    }
-    const keep = circleSelect.value || (() => { try { return localStorage.getItem("last-circle"); } catch { return null; } })();
-    circleSelect.innerHTML = circles.map((c) => `<option value="${esc(c.id)}">${esc(c.name)} (${esc(t(`circle.${c.type}`))})</option>`).join("");
-    if (keep && circles.some((c) => c.id === keep)) circleSelect.value = keep;
-    if (first) checked = new Set(circle()?.members || [me]);
+    // The last choice stays (also "none"); the first time, the first house or group, or none when I am in none.
+    const keep = first ? (() => { try { return localStorage.getItem("last-circle"); } catch { return null; } })() : circleSelect.value || "none";
+    circleSelect.innerHTML = `<option value="">${esc(t("meal.noCircleOption"))}</option>`
+      + circles.map((c) => `<option value="${esc(c.id)}">${esc(c.name)} (${esc(t(`circle.${c.type}`))})</option>`).join("");
+    circleSelect.value = keep === "none" ? "" : circles.some((c) => c.id === keep) ? keep : circles[0]?.id || "";
+    if (first) checked = new Set(memberIds());
     renderPeople();
   }));
   stops.push(people.subscribe(() => renderPeople()));
@@ -135,12 +142,13 @@ function startNew() {
     const c = circle();
     $("#new-title").classList.toggle("is-invalid", !title);
     $("#new-date").classList.toggle("is-invalid", !date);
-    if (!title || !date || !c) return;
+    if (!title || !date) return;
     $("#new-save").disabled = true;
-    const guestsFromOutside = [...invitedFriends].filter((uid) => !c.members.includes(uid) && friends.includes(uid));
+    const members = memberIds();
+    const guestsFromOutside = [...invited].filter((uid) => !members.includes(uid) && uid !== me);
     const id = await attempt(() => createMeal(me, {
-      title, date, time: $("#new-time").value || "", circleId: c.id, circleName: c.name,
-      viewers: [...new Set([...c.members, me, ...guestsFromOutside])], participants: [...checked].filter((uid) => c.members.includes(uid) || uid === me),
+      title, date, time: $("#new-time").value || "", circleId: c?.id || "", circleName: c?.name || "",
+      viewers: [...new Set([...members, me, ...guestsFromOutside])], participants: [...checked].filter((uid) => members.includes(uid) || uid === me),
       declined: [], invited: guestsFromOutside, guests: [], rsvp: rsvp.checked, recipe, servings: null,
     }));
     $("#new-save").disabled = false;
@@ -176,7 +184,7 @@ function startView(id) {
   function renderHeader() {
     $("#meal-title").textContent = meal.title || t("meal.untitled");
     const when = `${formatDay(meal.date, { weekday: "long" })}${meal.time ? ` · ${meal.time}` : ""}`;
-    $("#meal-when").textContent = `${when} · ${meal.circleName} · ${t("meal.hostedBy", { name: person(meal.host).name })}`;
+    $("#meal-when").textContent = [when, meal.circleName, t("meal.hostedBy", { name: person(meal.host).name })].filter(Boolean).join(" · ");
     $("#meal-delete-btn").closest("li").hidden = meal.host !== me;
   }
 

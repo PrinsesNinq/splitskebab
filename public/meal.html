@@ -95,7 +95,8 @@
       </div>
       <div class="mb-3">
         <label class="form-label" for="new-circle" data-i18n="meal.circle">House or group</label>
-        <select class="form-select" id="new-circle" required></select>
+        <!-- Optional (js/meal.js): "none" plans a meal for only the people invited below, without sharing a house or group with them. -->
+        <select class="form-select" id="new-circle"></select>
       </div>
       <div class="form-check form-switch mb-3">
         <input class="form-check-input" type="checkbox" role="switch" id="new-rsvp">
@@ -106,10 +107,13 @@
         <legend class="form-label fs-6" data-i18n="meal.whoJoins">Who is joining?</legend>
         <div class="list-group" id="new-people"></div>
       </fieldset>
-      <fieldset class="mb-3 d-none" id="new-friends-box">
-        <legend class="form-label fs-6" data-i18n="meal.inviteFriends">Invite friends too</legend>
-        <p class="small text-body-secondary mb-2" data-i18n="meal.inviteFriendsHelp">Friends from outside this house or group see the meal and say themselves whether they join.</p>
-        <div class="list-group" id="new-friends"></div>
+      <fieldset class="mb-3" id="new-friends-box">
+        <legend class="form-label fs-6" data-i18n="meal.invitePeople">Invite people</legend>
+        <p class="small text-body-secondary mb-2" data-i18n="meal.invitePeopleHelp">Anyone you invite sees the meal and says themselves whether they join. They do not have to share a house or group with you.</p>
+        <div class="list-group mb-2" id="new-friends"></div>
+        <label class="visually-hidden" for="new-invite-search" data-i18n="meal.inviteSearch">Find someone by name</label>
+        <input class="form-control" id="new-invite-search" type="search" maxlength="100" autocomplete="off" placeholder="Find someone by name" data-i18n-placeholder="meal.inviteSearch" aria-controls="new-invite-results">
+        <ul class="list-group mt-1" id="new-invite-results" aria-live="polite" hidden></ul>
       </fieldset>
       <div class="alert alert-warning d-none" id="new-allergies" role="status"></div>
       <button type="submit" class="btn btn-primary w-100" id="new-save" data-i18n="meal.create">Plan meal</button>

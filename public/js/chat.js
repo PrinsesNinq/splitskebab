@@ -95,6 +95,21 @@ const composer = attachComposer($("#composer"), {
 attachEmojiInsertButton($("#emoji-btn"), input);
 stops.push(() => composer.dispose?.());
 
+// ---- Keeping the newest message in view above the docked composer (css/app.css .chat-dock) ----
+// The page keeps room for the composer's real height (it grows with the text), and when I was reading the newest message it stays in
+// view as the composer grows or the keyboard opens.
+const page = $(".chat-page");
+const nearBottom = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 80;
+const toBottom = () => window.scrollTo(0, document.documentElement.scrollHeight);
+const sizer = new ResizeObserver(() => {
+  const keep = nearBottom();
+  page.style.setProperty("--composer-height", `${$("#composer").offsetHeight}px`); // measured per instance
+  if (keep) toBottom();
+});
+sizer.observe($("#composer"));
+stops.push(() => sizer.disconnect());
+input.addEventListener("focus", () => { if (nearBottom()) setTimeout(toBottom, 300); }); // after the keyboard has come up
+
 // ---- Reactions, editing, deleting (events from the chat component) ----
 const chatEl = $("#chat");
 chatEl.addEventListener("chat:react", (e) => {
@@ -132,10 +147,10 @@ if (!/^[\w.@+|-]{3,300}$/.test(id)) {
   }));
   stops.push(watchMessages(id, (list, err) => {
     if (err) { fail(t("chat.notFound")); return; }
-    const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 80;
+    const atBottom = nearBottom();
     messages = list;
     renderMessages();
-    if (atBottom || messages.at(-1)?.from === me) $("#composer").scrollIntoView({ block: "end" });
+    if (atBottom || messages.at(-1)?.from === me) requestAnimationFrame(toBottom); // after the bubbles are drawn
     readIfSeen();
   }));
   stops.push(people.subscribe(() => { renderHeader(); renderMessages(); }));

@@ -47,7 +47,7 @@ function mealRow(meal, { showDate = false } = {}) {
       <span class="meal-row__when">${showDate ? `<span class="d-block small fw-semibold">${esc(formatDay(meal.date))}</span>` : ""}<span class="small text-body-secondary">${esc(meal.time || t("meal.noTime"))}</span></span>
       <span class="flex-grow-1 min-w-0">
         <span class="d-block fw-semibold text-truncate">${esc(meal.title || t("meal.untitled"))}</span>
-        <span class="d-block small text-body-secondary text-truncate">${esc(meal.circleName)}</span>
+        <span class="d-block small text-body-secondary text-truncate">${esc(meal.circleName || t("meal.noCircleShort"))}</span>
       </span>
       <span class="text-end d-flex flex-column align-items-end gap-1">
         <span class="badge ${STATUS_BADGE[status]}">${esc(t(`status.${status}`))}</span>
@@ -104,7 +104,7 @@ function events() {
       start: m.time ? `${m.date}T${m.time}` : m.date,
       allDay: !m.time,
       classNames: ["meal", `meal--${status}`, `meal-tone-${circleTone(m.circleId)}`],
-      extendedProps: { tooltip: `${m.title || t("meal.untitled")} · ${m.circleName} · ${t(`status.${status}`)}` },
+      extendedProps: { tooltip: [m.title || t("meal.untitled"), m.circleName, t(`status.${status}`)].filter(Boolean).join(" · ") },
     };
   });
 }
