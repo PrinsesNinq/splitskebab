@@ -8,6 +8,27 @@
 .auth-pending body {
   visibility: hidden;
 }
+/* Meanwhile the app's icon shows (a splash), not a white page: on a slow phone that wait can take a few seconds. */
+.auth-pending::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--bs-body-bg) url("../images/app-icon.svg") center / 5rem no-repeat;
+  animation: splash-pulse 1.6s ease-in-out infinite;
+}
+@keyframes splash-pulse {
+  50% { opacity: 0.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-pending::before { animation: none; }
+}
+
+/* Phones: while the on-screen keyboard is open (js/keyboard.js) the bottom bar and the floating button step aside. */
+.keyboard-open .bottom-nav,
+.keyboard-open .fab {
+  display: none;
+}
 
 .brand-icon {
   border-radius: 0.5rem;

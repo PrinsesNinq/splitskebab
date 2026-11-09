@@ -5,6 +5,7 @@
 // gets nothing, see firestore.rules allowed()), translates the page, and fills the notification bell with the meals the
 // person is invited to and has not answered yet.
 import "./pwa.js"; // installable app: the service worker and the navbar's Install button
+import "./keyboard.js"; // phones: the bottom bar hides while the keyboard is open
 import { configured } from "./firebase-init.js";
 import { requireUser, signOutAndLeave, accountStatus, register, adminStatus, rememberedAccess, rememberAccess, forgetAccess } from "./auth.js";
 import { applyI18n, getLang, setLang, t, formatDay } from "./i18n.js";
