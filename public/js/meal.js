@@ -177,6 +177,7 @@ function startView(id) {
   const servings = () => meal.servings || Math.max(1, eaters(meal).length);
   /** Everyone who could join: the circle's members (when I am in it), anyone invited, and anyone who already said yes or no. */
   function candidates() {
+    if (!meal) return []; // the meal is not read yet (the people search and the people list ask before it is)
     const circle = circles.find((c) => c.id === meal.circleId);
     return [...new Set([...(circle ? circle.members : meal.viewers), ...meal.invited, ...meal.participants, ...meal.declined])];
   }

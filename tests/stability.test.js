@@ -85,3 +85,20 @@ test("service worker: offline gives the copy; a slow network with no copy is sti
   assert.equal((await harness({ networkMs: 120 }).run()).body, "fresh");
   assert.equal((await harness({ networkMs: 1, networkFails: true }).run()).body, "error");
 });
+
+test("a meal page opens before its meal is read: the name search does not ask for the people to skip until something is typed", () => {
+  // The bug: attachPeoplePicker drew its (empty) list at once, which asked meal.js candidates() for the people to skip while the meal was
+  // still null, so every meal page stopped with a TypeError and stayed blank.
+  const picker = read("public/js/people-picker.js");
+  assert.ok(picker.includes("const found = query.length >= 2 ? searchPeople(query, people.value, me, 6, new Set(skip())) : [];"));
+  const meal = read("public/js/meal.js");
+  const candidates = meal.slice(meal.indexOf("function candidates()"), meal.indexOf("function candidates()") + 200);
+  assert.ok(candidates.includes("if (!meal) return [];"), "the meal page also copes with being asked early");
+});
+
+test("the calendar page has one moveMeal, not a copy inside renderDay", () => {
+  const home = read("public/js/home.js");
+  assert.equal(home.match(/async function moveMeal\(/g).length, 1);
+  const renderDay = home.slice(home.indexOf("function renderDay()"), home.indexOf("\n}\n", home.indexOf("function renderDay()")));
+  assert.ok(!renderDay.includes("moveMeal"));
+});

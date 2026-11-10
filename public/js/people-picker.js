@@ -14,7 +14,8 @@ import { t } from "./i18n.js";
 export function attachPeoplePicker(input, list, { me, skip = () => [], label, onPick, empty }) {
   const render = () => {
     const query = input.value.trim();
-    const found = searchPeople(query, people.value, me, 6, new Set(skip()));
+    // Nothing typed yet: nothing to find, and skip() is not asked (the page it belongs to may still be loading: a meal not read yet).
+    const found = query.length >= 2 ? searchPeople(query, people.value, me, 6, new Set(skip())) : [];
     list.innerHTML = found.map((p) => `<li class="list-group-item d-flex align-items-center gap-2">
         ${avatarHtml(p, "avatar avatar-sm")}
         <span class="flex-grow-1 min-w-0 text-truncate">${esc(p.name)}</span>

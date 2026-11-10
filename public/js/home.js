@@ -59,30 +59,7 @@ function mealRow(meal, { showDate = false } = {}) {
 }
 
 function renderDay() {
-  /**
- * A meal dragged to another day. Its host moves it, after a question when people who were asked to come will have to answer again
- * (js/reschedule.js); anyone else asks the host instead, and the meal stays where it is until the host approves. Cancelled, or refused
- * (no connection, no right), it goes back where it was.
- */
-async function moveMeal(id, to, revert) {
-  const meal = meals.find((m) => m.id === id);
-  if (!meal || !me || !moves(meal, to)) { revert(); return; }
-  const when = `${formatDay(to.date, { weekday: "long" })}${to.time ? ` ${to.time}` : ""}`;
-  if (!canMove(meal, me)) {
-    revert();
-    const host = person(meal.host).name;
-    if (!window.confirm(t("move.askConfirm", { host, title: meal.title || t("meal.untitled"), when }))) return;
-    await attempt(() => requestMove(meal, me, to), t("move.sent", { host }));
-    return;
-  }
-  const again = askedAgain(meal, me);
-  if (again.length && !window.confirm(t("home.moveConfirm", { title: meal.title || t("meal.untitled"), when, n: again.length }))) { revert(); return; }
-  const done = await attempt(async () => { await updateMeal(id, rescheduleChanges(meal, me, to)); return true; }, t("home.moved", { when }));
-  if (!done) revert();
-  else { selected = to.date; renderDay(); }
-}
-
-$("#day-title").textContent = formatDay(selected, { weekday: "long" });
+  $("#day-title").textContent = formatDay(selected, { weekday: "long" });
   $("#plan-day").href = `meal.html?new=1&date=${selected}`;
   const list = meals.filter((m) => m.date === selected);
   $("#day-list").innerHTML = list.length ? list.map((m) => mealRow(m)).join("") : `<p class="text-body-secondary small mb-0">${esc(t("home.nothingPlanned"))}</p>`;

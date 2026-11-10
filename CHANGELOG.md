@@ -39,3 +39,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Only the host moves a meal; anyone else asks for another day (by dragging it or from the meal), and the host approves or declines
 - Plan a meal without a house or group: invite anyone by name instead
 - Chat: the message box stays at the bottom of the screen, with the messages scrolling behind it
+- Fixed: opening a meal showed a blank page
