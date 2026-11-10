@@ -21,6 +21,26 @@ export function isUnread(conversation, me) {
   return read < conversation.lastAt;
 }
 
+/**
+ * Whether to write my read time now: the conversation is unread and its last message is newer than the one I already marked. Until the
+ * server confirms the write, Firestore shows my pending read time as empty, so the conversation still looks unread: without remembering
+ * what was marked (markedUpTo, the lastAt of the last write), every snapshot wrote again.
+ */
+export function shouldMarkRead(conversation, me, markedUpTo) {
+  return Boolean(conversation) && isUnread(conversation, me) && conversation.lastAt > (markedUpTo || 0);
+}
+
+/**
+ * "sent" when the promise resolves within ms, "pending" when it is still going (it rejects when it fails first). Firestore resolves a write
+ * only once the server has it; on a stalled phone connection that can be never, and the composer stayed locked. The write is already on
+ * the screen and goes out when the connection is back, so after a short wait the box is freed for the next message.
+ */
+export function settleWithin(promise, ms) {
+  let timer;
+  const waiting = new Promise((resolve) => { timer = setTimeout(() => resolve("pending"), ms); });
+  return Promise.race([promise.then(() => "sent"), waiting]).finally(() => clearTimeout(timer));
+}
+
 /** A message as one line of at most MAX_PREVIEW characters, for the conversation list. */
 export function preview(text) {
   const line = String(text ?? "").replace(/\s+/g, " ").trim();

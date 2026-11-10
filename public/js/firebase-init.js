@@ -4,6 +4,7 @@
 // production data. The ports are the ones in firebase.json ("emulators"). Not set up yet (js/config.js still has placeholders): nothing
 // is loaded and db / auth stay null; the pages say so.
 import { firebaseConfig, configured } from "./config.js";
+import { keepsOfflineCopy } from "./offline-cache.js";
 
 export const SDK = "https://www.gstatic.com/firebasejs/10.14.1";
 export const usingEmulators = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -22,10 +23,13 @@ if (configured) {
   // A copy of what was read is kept on the device (IndexedDB), so the next visit shows the meals, houses and recipes at once and the
   // server's changes stream in after; shared between open tabs. Long polling is switched on by itself where the network breaks
   // Firestore's streaming connection (some mobile networks and proxies), which otherwise stalls the first reads for many seconds.
-  // Signing out wipes the copy (js/auth.js). A browser that cannot store it (private mode) just works without one.
+  // Signing out wipes the copy (js/auth.js). A browser that cannot store it (private mode) just works without one. iPhones, iPads and
+  // Safari keep it in memory only: their IndexedDB hangs Firestore after the app was in the background (js/offline-cache.js).
   try {
     db = fs.initializeFirestore(app, {
-      localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() }),
+      localCache: keepsOfflineCopy(navigator)
+        ? fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() })
+        : fs.memoryLocalCache(),
       experimentalAutoDetectLongPolling: true,
     });
   } catch (err) {

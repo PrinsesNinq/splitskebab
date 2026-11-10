@@ -44,7 +44,9 @@ test("reacting: one reaction per person, taking it back, empty emojis dropped", 
 test("the chat empties the message box once a message is sent (the composer itself never does)", () => {
   const chat = fs.readFileSync(new URL("../public/js/chat.js", import.meta.url), "utf8");
   const submit = chat.slice(chat.indexOf("onSubmit:"), chat.indexOf("} catch (err) {", chat.indexOf("onSubmit:")));
-  assert.match(submit, /await sendMessage\(id, me, body\);\s*input\.value = "";/, "cleared right after the message is saved, not before (a failed send keeps the text)");
+  // Cleared once the send is saved or still waiting for a stalled connection (tests/chat-stability.test.js), never before: a send that
+  // fails first throws past it, so the text stays.
+  assert.match(submit, /await settleWithin\(sending, SEND_WAIT_MS\)\)[^\n]*\n\s*input\.value = "";/, "cleared right after the send settles, not before");
 });
 
 test("firestore.rules: a direct conversation only with someone I am connected to, messages only in my own name", () => {

@@ -5,7 +5,7 @@ import { attachComposer, attachEmojiInsertButton } from "../vendor/sel/elements/
 import "../vendor/sel/elements/chat-bubbles.js";
 import { whenUser, esc, onLeave, param, avatarHtml, colour, toast } from "./ui.js";
 import { people, person, watchConversation, watchMessages, sendMessage, markRead, editMessage, deleteMessage, setReactions } from "./store.js";
-import { otherMember, isUnread, react } from "./messaging.js";
+import { otherMember, shouldMarkRead, settleWithin, react } from "./messaging.js";
 import { t, formatDay } from "./i18n.js";
 
 const user = await whenUser();
@@ -70,24 +70,31 @@ function renderMessages() {
 }
 
 /** Marks the conversation read while it is open and on screen (an app in the background has not "read" anything). */
+let markedUpTo = 0; // the last message I marked read: once per message, not once per snapshot (js/messaging.js shouldMarkRead)
 function readIfSeen() {
-  if (conversation && document.visibilityState === "visible" && isUnread(conversation, me)) markRead(id, me).catch(() => {});
+  if (document.visibilityState !== "visible" || !shouldMarkRead(conversation, me, markedUpTo)) return;
+  markedUpTo = conversation.lastAt;
+  markRead(id, me).catch(() => {}); // not marked: the list shows it unread a little longer, nothing else depends on it
 }
 
 // ---- Writing ----
 // The composer locks itself while a message is being sent (no double sends) and keeps the text when sending fails, but it never empties
-// the box: that is ours to do once the message is saved, or the same text could be sent again and again.
+// the box: that is ours to do once the message is saved, or the same text could be sent again and again. It is not locked longer than
+// SEND_WAIT_MS: on a stalled phone connection the server's answer can take forever (js/messaging.js settleWithin), while the message is
+// already in the list and goes out when the connection is back. A failure after that still says so.
+const SEND_WAIT_MS = 6000;
+const failed = (err) => { console.error(err); toast(err?.code === "permission-denied" ? t("error.permission") : t("error.generic"), "danger"); };
 const input = $("#composer .chat-composer__input");
 const composer = attachComposer($("#composer"), {
   onSubmit: async (body) => {
+    const sending = sendMessage(id, me, body);
     try {
-      await sendMessage(id, me, body);
+      if ((await settleWithin(sending, SEND_WAIT_MS)) === "pending") sending.catch(failed);
       input.value = "";
       input.dispatchEvent(new Event("input", { bubbles: true })); // shrinks the box back and disables Send while it is empty
       setTimeout(() => input.focus(), 0); // after the composer unlocks itself, so the next message can be typed straight away
     } catch (err) {
-      console.error(err);
-      toast(err?.code === "permission-denied" ? t("error.permission") : t("error.generic"), "danger");
+      failed(err);
       throw err; // the composer keeps the text
     }
   },
@@ -106,7 +113,7 @@ chatEl.addEventListener("chat:react", (e) => {
 });
 // The real result goes to waitUntil (not attempt(), which swallows a failure): the component keeps the editor open when saving fails,
 // and only removes a message once deleting it worked.
-const report = (promise) => { promise.catch((err) => { console.error(err); toast(err?.code === "permission-denied" ? t("error.permission") : t("error.generic"), "danger"); }); return promise; };
+const report = (promise) => { promise.catch(failed); return promise; };
 chatEl.addEventListener("chat:edit", (e) => {
   const body = String(e.detail.text || "").trim();
   if (!body) { e.preventDefault?.(); return; }
