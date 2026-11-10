@@ -3,7 +3,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { keyboardInset } from "../public/js/keyboard.js";
 import { DICT } from "../public/js/i18n-dict.js";
 
 const read = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
@@ -41,23 +40,18 @@ test("a meal without a house or group reads well everywhere it is shown", () => 
   }
 });
 
-test("the keyboard inset is the part of the page under the visible area, and nothing while it is closed", () => {
-  assert.equal(keyboardInset({ open: true, visualHeight: 500, visualTop: 0, windowHeight: 800 }), 300);
-  assert.equal(keyboardInset({ open: true, visualHeight: 500, visualTop: 120, windowHeight: 800 }), 180, "iOS scrolled the visible area");
-  assert.equal(keyboardInset({ open: false, visualHeight: 500, windowHeight: 800 }), 0);
-  assert.equal(keyboardInset({ open: true, visualHeight: undefined, windowHeight: 800 }), 0);
-  assert.equal(keyboardInset({ open: true, visualHeight: 820, windowHeight: 800 }), 0, "never negative");
+test("the chat composer stays at the bottom in the page's flow, never fixed, so messages keep room for it and phones can reach it", () => {
+  // A fixed composer (moved up by a measured keyboard inset) broke on phones: people could no longer answer. Sticky keeps it in the flow.
+  const css = read("public/css/app.css");
+  const rule = /\.chat-page__composer \{([^}]*)\}/.exec(css)[1];
+  assert.match(rule, /position: sticky;/);
+  assert.match(rule, /bottom: calc\(4\.75rem \+ env\(safe-area-inset-bottom\)\);/, "just above the bottom bar");
+  assert.match(rule, /margin-top: auto;/, "at the bottom of a short chat too");
+  assert.match(css, /\.chat-page \{\s*display: flex;\s*flex-direction: column;\s*min-height: calc\(100vh/);
+  assert.match(css, /\.keyboard-open \.chat-page__composer \{\s*bottom: 0\.5rem;/);
+  for (const gone of ["chat-dock", "--keyboard-inset", "--composer-height"]) assert.ok(!css.includes(gone), gone);
+  assert.ok(read("public/chat.html").includes('<div class="chat-composer chat-page__composer" id="composer" hidden>'));
+  assert.ok(!read("public/js/chat.js").includes("ResizeObserver"));
+  assert.ok(!read("public/js/keyboard.js").includes("keyboard-inset"));
 });
 
-test("the chat composer is docked to the bottom of the screen and the messages keep room for it", () => {
-  const css = read("public/css/app.css");
-  assert.match(css, /\.chat-dock \{\s*position: fixed;/);
-  assert.match(css, /\.keyboard-open \.chat-dock \{\s*bottom: calc\(0\.5rem \+ var\(--keyboard-inset, 0px\)\);/, "on the keyboard while typing");
-  assert.match(css, /\.chat-page \{\s*padding-bottom: calc\(var\(--composer-height, 6\.5rem\) \+ 0\.75rem\);/, "the last message stays clear");
-  assert.ok(!/\.chat-page__composer \{[^}]*position: sticky/.test(css), "no longer only sticky inside the page");
-  assert.match(read("public/chat.html"), /<div class="chat-dock" id="chat-dock"><div class="container">\s*<div class="chat-composer chat-page__composer" id="composer" hidden>/);
-  const chat = read("public/js/chat.js");
-  assert.ok(chat.includes('page.style.setProperty("--composer-height"'), "measured as the composer grows");
-  assert.ok(chat.includes("stops.push(() => sizer.disconnect());"), "stopped when the page is left");
-  assert.match(read("public/js/keyboard.js"), /root\.style\.setProperty\("--keyboard-inset", `\$\{inset\}px`\)/);
-});

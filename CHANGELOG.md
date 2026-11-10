@@ -40,3 +40,4 @@ All notable changes are kept here in Keep a Changelog format.
 - Plan a meal without a house or group: invite anyone by name instead
 - Chat: the message box stays at the bottom of the screen, with the messages scrolling behind it
 - Fixed: opening a meal showed a blank page
+- Fixed: on some phones the chat's message box could not be reached to answer
